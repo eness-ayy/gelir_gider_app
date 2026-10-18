@@ -1,0 +1,123 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
+import 'package:get/get.dart' hide Response;
+
+abstract class ApiConstants {
+  static const baseUrl = "https://gelir-gider-backend.onrender.com/api";
+  static const String login = '/auth/google';
+  static const String profile = '/auth/profile';
+  static const String categories = '/categories';
+  static const String transactions = '/transactions';
+  static const String serverClient =
+      '567229315149-7sqmdlqnu3vbc87v8bkb6fs393fk1g1j.apps.googleusercontent.com';
+}
+
+class ApiServices extends GetxService {
+  late StorgeService _storgeService;
+  late Dio _dio;
+
+  Future<ApiServices> init() async {
+    _storgeService = Get.find<StorgeService>();
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: Duration(seconds: 10),
+        receiveTimeout: Duration(seconds: 10),
+        contentType: "application/json",
+      ),
+    );
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = _storgeService.getValue<String>(StorageKeys.userToken);
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401) {
+            await _storgeService.remove(StorageKeys.userToken);
+          }
+          return handler.next(error);
+        },
+      ),
+    );
+    return this;
+  }
+
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParametres,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.get(
+        path,
+        queryParameters: queryParametres,
+        options: options,
+      );
+    } catch (e) {
+      debugPrint("Dio get error $e");
+      rethrow;
+    }
+  }
+
+  Future<Response> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParametres,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.post(
+        path,
+        data: data,
+        queryParameters: queryParametres,
+        options: options,
+      );
+    } catch (e) {
+      debugPrint("Dio post error $e");
+      rethrow;
+    }
+  }
+
+  Future<Response> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParametres,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.put(
+        path,
+        data: data,
+        queryParameters: queryParametres,
+        options: options,
+      );
+    } catch (e) {
+      debugPrint("Dio put error $e");
+      rethrow;
+    }
+  }
+
+  Future<Response> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.delete(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } catch (e) {
+      debugPrint("Dio delete error: $e");
+      rethrow;
+    }
+  }
+}

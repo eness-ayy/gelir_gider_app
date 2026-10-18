@@ -1,0 +1,338 @@
+import 'package:flutter/material.dart';
+import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
+import 'package:gelir_gider_uygulamasi/models/app_category.dart';
+import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
+import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
+import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
+import 'package:gelir_gider_uygulamasi/utils/turkish_string_helper.dart';
+import 'package:get/get.dart';
+
+class DashboardController extends BaseController {
+  late final TransactionRepostory _transactionRepostory;
+  late final CategoryRepository _categoryRepository;
+
+  final myTransaction = <AppTransaction>[].obs;
+  final categories = <AppCategory>[].obs;
+
+  // Search & Filter state
+  final searchController = TextEditingController();
+  final searchQuery = ''.obs;
+  final selectedType = 'all'.obs; // 'all', 'income', 'expense'
+  final selectedDateRange = 'this_month'.obs; // 'this_month', 'this_week', 'last_month', 'all', 'custom'
+  final customStartDate = Rxn<DateTime>();
+  final customEndDate = Rxn<DateTime>();
+  final selectedCategoryId = Rxn<String>();
+  final selectedSort = 'date_desc'.obs; // 'date_desc', 'date_asc', 'amount_desc', 'amount_asc'
+
+  // Summary amounts (aylık özet & filtrelenmiş özet)
+  final aylikGelir = 0.0.obs;
+  final aylikGider = 0.0.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _transactionRepostory = Get.find<TransactionRepostory>();
+    _categoryRepository = Get.find<CategoryRepository>();
+
+    searchController.addListener(() {
+      searchQuery.value = searchController.text;
+    });
+
+    getTransactions();
+    loadCategories();
+  }
+
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
+  }
+
+  Future<void> loadCategories() async {
+    try {
+      final list = await _categoryRepository.getCategories();
+      categories.value = list;
+    } catch (e) {
+      debugPrint('Kategoriler alınırken hata: $e');
+    }
+  }
+
+  Future<void> refreshDashboard() async {
+    await Future.wait([
+      getTransactions(),
+      loadCategories(),
+    ]);
+  }
+
+  // Geriye dönük uyumluluk için
+  Future<void> refreshDeshboard() async {
+    await refreshDashboard();
+  }
+
+  Future<void> getTransactions() async {
+    try {
+      setLoading(true);
+      final transactions = await _transactionRepostory.getTransactions();
+      myTransaction.value = transactions;
+      aylikOzet();
+    } catch (e) {
+      showErrorSnackbar(message: "Veriler getirilirken hata oluştu");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  Future<bool> deleteTransactions(String id) async {
+    try {
+      final transactionsResult = await _transactionRepostory.deleteTransaction(id);
+      if (transactionsResult) {
+        myTransaction.removeWhere((element) => element.id == id);
+        aylikOzet();
+        showSuccessSnackbar(message: "İşlem başarıyla silindi");
+        return true;
+      } else {
+        showErrorSnackbar(message: "İşlem silinemedi");
+        return false;
+      }
+    } catch (e) {
+      showErrorSnackbar(message: "İşlem silinirken hata oluştu");
+      return false;
+    }
+  }
+
+  void aylikOzet() {
+    aylikGelir.value = 0;
+    aylikGider.value = 0;
+    final now = DateTime.now();
+
+    if (myTransaction.isNotEmpty) {
+      final currentMonthTransactions = myTransaction.where((transaction) {
+        final parsedDate = DateTime.tryParse(transaction.date);
+        if (parsedDate == null) return false;
+        return parsedDate.year == now.year && parsedDate.month == now.month;
+      }).toList();
+
+      for (var tr in currentMonthTransactions) {
+        final amount = double.tryParse(tr.amount) ?? 0.0;
+        if (tr.type == 'income') {
+          aylikGelir.value += amount;
+        } else {
+          aylikGider.value += amount;
+        }
+      }
+    }
+  }
+
+  // MARK: - Filtering & Search Getters
+
+  bool get hasActiveFilters {
+    return searchQuery.value.trim().isNotEmpty ||
+        selectedType.value != 'all' ||
+        selectedDateRange.value != 'this_month' ||
+        selectedCategoryId.value != null ||
+        selectedSort.value != 'date_desc';
+  }
+
+  int get activeFilterCount {
+    int count = 0;
+    if (selectedType.value != 'all') count++;
+    if (selectedDateRange.value != 'this_month') count++;
+    if (selectedCategoryId.value != null) count++;
+    if (selectedSort.value != 'date_desc') count++;
+    if (searchQuery.value.trim().isNotEmpty) count++;
+    return count;
+  }
+
+  List<AppTransaction> get filteredTransactions {
+    final now = DateTime.now();
+    var list = myTransaction.where((tr) {
+      // 1. İşlem Türü Filtresi
+      if (selectedType.value != 'all' && tr.type != selectedType.value) {
+        return false;
+      }
+
+      // 2. Kategori Filtresi
+      if (selectedCategoryId.value != null && selectedCategoryId.value!.isNotEmpty) {
+        if (tr.categoryId != selectedCategoryId.value) {
+          return false;
+        }
+      }
+
+      // 3. Tarih Aralığı Filtresi
+      final parsedDate = DateTime.tryParse(tr.date);
+      if (parsedDate != null) {
+        switch (selectedDateRange.value) {
+          case 'this_month':
+            if (parsedDate.year != now.year || parsedDate.month != now.month) {
+              return false;
+            }
+            break;
+          case 'last_month':
+            final targetYear = now.month == 1 ? now.year - 1 : now.year;
+            final targetMonth = now.month == 1 ? 12 : now.month - 1;
+            if (parsedDate.year != targetYear || parsedDate.month != targetMonth) {
+              return false;
+            }
+            break;
+          case 'this_week':
+            final startOfWeek = DateTime(now.year, now.month, now.day)
+                .subtract(Duration(days: now.weekday - 1));
+            final endOfWeek = startOfWeek.add(const Duration(days: 7));
+            if (parsedDate.isBefore(startOfWeek) || !parsedDate.isBefore(endOfWeek)) {
+              return false;
+            }
+            break;
+          case 'custom':
+            if (customStartDate.value != null && customEndDate.value != null) {
+              final start = DateTime(
+                customStartDate.value!.year,
+                customStartDate.value!.month,
+                customStartDate.value!.day,
+              );
+              final end = DateTime(
+                customEndDate.value!.year,
+                customEndDate.value!.month,
+                customEndDate.value!.day,
+                23,
+                59,
+                59,
+              );
+              if (parsedDate.isBefore(start) || parsedDate.isAfter(end)) {
+                return false;
+              }
+            }
+            break;
+          case 'all':
+          default:
+            break;
+        }
+      }
+
+      // 4. Arama Sorgusu (Türkçe karakter ve toleranslı arama destekli)
+      final query = searchQuery.value.trim();
+      if (query.isNotEmpty) {
+        final descMatch = TurkishStringHelper.containsSearch(tr.description, query);
+        final catMatch = TurkishStringHelper.containsSearch(tr.category?.name, query);
+        final amountMatch = tr.amount.contains(query);
+        if (!descMatch && !catMatch && !amountMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+
+    // 5. Sıralama
+    switch (selectedSort.value) {
+      case 'date_asc':
+        list.sort((a, b) {
+          final aDate = DateTime.tryParse(a.date) ?? DateTime(1970);
+          final bDate = DateTime.tryParse(b.date) ?? DateTime(1970);
+          return aDate.compareTo(bDate);
+        });
+        break;
+      case 'amount_desc':
+        list.sort((a, b) {
+          final aAmt = double.tryParse(a.amount) ?? 0.0;
+          final bAmt = double.tryParse(b.amount) ?? 0.0;
+          return bAmt.compareTo(aAmt);
+        });
+        break;
+      case 'amount_asc':
+        list.sort((a, b) {
+          final aAmt = double.tryParse(a.amount) ?? 0.0;
+          final bAmt = double.tryParse(b.amount) ?? 0.0;
+          return aAmt.compareTo(bAmt);
+        });
+        break;
+      case 'date_desc':
+      default:
+        list.sort((a, b) {
+          final aDate = DateTime.tryParse(a.date) ?? DateTime(1970);
+          final bDate = DateTime.tryParse(b.date) ?? DateTime(1970);
+          return bDate.compareTo(aDate);
+        });
+        break;
+    }
+
+    return list;
+  }
+
+  // Dinamik Özet Değerleri (Filtrelenmiş İşlemlere Göre)
+  double get filteredGelir {
+    double total = 0.0;
+    for (var tr in filteredTransactions) {
+      if (tr.type == 'income') {
+        total += double.tryParse(tr.amount) ?? 0.0;
+      }
+    }
+    return total;
+  }
+
+  double get filteredGider {
+    double total = 0.0;
+    for (var tr in filteredTransactions) {
+      if (tr.type == 'expense') {
+        total += double.tryParse(tr.amount) ?? 0.0;
+      }
+    }
+    return total;
+  }
+
+  double get filteredBakiye => filteredGelir - filteredGider;
+
+  String get periodTitle {
+    switch (selectedDateRange.value) {
+      case 'this_week':
+        return 'Haftalık';
+      case 'last_month':
+        return 'Geçen Ay';
+      case 'custom':
+        return 'Dönem';
+      case 'all':
+        return 'Toplam';
+      case 'this_month':
+      default:
+        return 'Aylık';
+    }
+  }
+
+  // MARK: - Filter Actions
+
+  void setTypeFilter(String type) {
+    selectedType.value = type;
+  }
+
+  void setDateRangeFilter(String range) {
+    selectedDateRange.value = range;
+  }
+
+  void setCustomDateRange(DateTime start, DateTime end) {
+    customStartDate.value = start;
+    customEndDate.value = end;
+    selectedDateRange.value = 'custom';
+  }
+
+  void setCategoryFilter(String? categoryId) {
+    selectedCategoryId.value = categoryId;
+  }
+
+  void setSort(String sort) {
+    selectedSort.value = sort;
+  }
+
+  void clearSearch() {
+    searchController.clear();
+    searchQuery.value = '';
+  }
+
+  void clearFilters() {
+    clearSearch();
+    selectedType.value = 'all';
+    selectedDateRange.value = 'this_month';
+    customStartDate.value = null;
+    customEndDate.value = null;
+    selectedCategoryId.value = null;
+    selectedSort.value = 'date_desc';
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "567229315149",
+    "project_id": "gelir-gider-uyg",
+    "storage_bucket": "gelir-gider-uyg.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:567229315149:android:f8733b279b8868bfd64404",
+        "android_client_info": {
+          "package_name": "com.example.gelir_gider_uygulamasi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "567229315149-qq88fmchtcrkbr8gcasnl05m9prf60j7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.gelir_gider_uygulamasi",
+            "certificate_hash": "52e7400637d9e7c4bec8ef9c47f726f740152512"
+          }
+        },
+        {
+          "client_id": "567229315149-7sqmdlqnu3vbc87v8bkb6fs393fk1g1j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAC9XdAbi_UU6BUsVn72c4r3OclrKNH5O0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "567229315149-7sqmdlqnu3vbc87v8bkb6fs393fk1g1j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
