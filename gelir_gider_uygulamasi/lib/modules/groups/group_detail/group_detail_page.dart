@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/group/expense_group.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_expense.dart';
+import 'package:gelir_gider_uygulamasi/models/group/group_settlement.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/widgets/add_group_expense_sheet.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
@@ -34,7 +35,7 @@ class GroupDetailPage extends GetView<GroupDetailController> {
               ),
               Tab(
                 icon: Icon(Icons.handshake_rounded, size: 20),
-                text: "Hesaplaşma & Denge",
+                text: "Hesaplaşma",
               ),
             ],
           ),
@@ -99,8 +100,7 @@ class GroupDetailPage extends GetView<GroupDetailController> {
     ExpenseGroup group,
     bool isDark,
   ) {
-    final currencyFormat =
-        NumberFormat.currency(symbol: "₺", decimalDigits: 2);
+    final currencyFormat = NumberFormat.currency(symbol: "₺", decimalDigits: 2);
     final netBalance = group.userNetBalance;
 
     Color badgeColor;
@@ -123,9 +123,7 @@ class GroupDetailPage extends GetView<GroupDetailController> {
       statusTitle = "Gruba Borcun";
       statusValue = currencyFormat.format(netBalance.abs());
     } else {
-      badgeColor = isDark
-          ? Colors.grey.shade900
-          : Colors.grey.shade100;
+      badgeColor = isDark ? Colors.grey.shade900 : Colors.grey.shade100;
       badgeTextColor = isDark ? Colors.white70 : Colors.grey.shade700;
       statusTitle = "Genel Durum";
       statusValue = "Ödeşildi (0.00 ₺)";
@@ -269,8 +267,7 @@ class GroupDetailPage extends GetView<GroupDetailController> {
       );
     }
 
-    final currencyFormat =
-        NumberFormat.currency(symbol: "₺", decimalDigits: 2);
+    final currencyFormat = NumberFormat.currency(symbol: "₺", decimalDigits: 2);
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
@@ -381,11 +378,16 @@ class GroupDetailPage extends GetView<GroupDetailController> {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline,
-                              color: Colors.redAccent, size: 18),
+                          Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
-                          Text("Harcamayı Sil",
-                              style: TextStyle(color: Colors.redAccent)),
+                          Text(
+                            "Harcamayı Sil",
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
                         ],
                       ),
                     ),
@@ -406,8 +408,7 @@ class GroupDetailPage extends GetView<GroupDetailController> {
     bool isDark,
   ) {
     final settlements = group.calculateSettlements();
-    final currencyFormat =
-        NumberFormat.currency(symbol: "₺", decimalDigits: 2);
+    final currencyFormat = NumberFormat.currency(symbol: "₺", decimalDigits: 2);
 
     if (settlements.isEmpty) {
       return Center(
@@ -458,14 +459,15 @@ class GroupDetailPage extends GetView<GroupDetailController> {
           decoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.2),
-            ),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.auto_awesome_rounded,
-                  color: AppColors.primary, size: 20),
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
@@ -478,150 +480,180 @@ class GroupDetailPage extends GetView<GroupDetailController> {
         ),
 
         // Transfer Kartları
-        ...settlements.map((settle) {
-          final fromP = group.findParticipant(settle.fromParticipantId);
-          final toP = group.findParticipant(settle.toParticipantId);
+        ...settlements.map((settle) => _buildSettlementCard(
+              context: context,
+              settle: settle,
+              group: group,
+              isDark: isDark,
+              currencyFormat: currencyFormat,
+            )),
+      ],
+    );
+  }
 
-          final fromName = fromP?.displayName ?? "Bilinmeyen";
-          final toName = toP?.displayName ?? "Bilinmeyen";
+  /// Sade, modern ve kafa karışıklığını sıfıra indiren Hesaplaşma/Transfer Kartı
+  Widget _buildSettlementCard({
+    required BuildContext context,
+    required GroupSettlement settle,
+    required ExpenseGroup group,
+    required bool isDark,
+    required NumberFormat currencyFormat,
+  }) {
+    final fromP = group.findParticipant(settle.fromParticipantId);
+    final toP = group.findParticipant(settle.toParticipantId);
 
-          final isMeFrom = fromP?.isCurrentUser ?? false;
-          final isMeTo = toP?.isCurrentUser ?? false;
+    final fromName = fromP?.displayName ?? "Bilinmeyen";
+    final toName = toP?.displayName ?? "Bilinmeyen";
 
-          return Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: isMeFrom
-                    ? Colors.redAccent.withValues(alpha: 0.4)
-                    : (isMeTo
-                        ? Colors.green.withValues(alpha: 0.4)
-                        : (isDark ? Colors.white10 : Colors.grey.shade200)),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+    final isMeFrom = fromP?.isCurrentUser ?? false;
+    final isMeTo = toP?.isCurrentUser ?? false;
+
+    // Durum ve tema renkleri
+    final Color accentColor;
+    final String amountText;
+
+    if (isMeTo) {
+      // 1. Kullanıcı alacaklı (Örn: Faruk bana ödeyecek)
+      accentColor = const Color(0xFF10B981); // Zümrüt yeşili
+      amountText = "+${currencyFormat.format(settle.amount)}";
+    } else if (isMeFrom) {
+      // 2. Kullanıcı borçlu (Örn: Ben Faruk'a ödeyeceğim)
+      accentColor = const Color(0xFFEF4444); // Canlı kırmızı
+      amountText = "-${currencyFormat.format(settle.amount)}";
+    } else {
+      // 3. Diğer iki katılımcı arası transfer
+      accentColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF2563EB); // Canlı mavi
+      amountText = currencyFormat.format(settle.amount);
+    }
+
+    final Color cardBorderColor = isMeTo
+        ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.4 : 0.3)
+        : (isMeFrom
+            ? const Color(0xFFEF4444).withValues(alpha: isDark ? 0.4 : 0.3)
+            : (isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : Colors.grey.shade200));
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 0,
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cardBorderColor, width: 1.2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            // Transfer Akışı (Borçlu ──► Alacaklı)
+            Expanded(
               child: Row(
                 children: [
-                  // Borçlu Avatar
+                  // Borçlu (Ödeyen) Avatarı
                   CircleAvatar(
-                    radius: 18,
+                    radius: 16,
                     backgroundColor: isMeFrom
-                        ? Colors.red.withValues(alpha: 0.15)
-                        : Colors.grey.withValues(alpha: 0.15),
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                        : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
                     child: Text(
                       fromP?.initial ?? '?',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isMeFrom ? Colors.redAccent : null,
+                        color: isMeFrom
+                            ? const Color(0xFFEF4444)
+                            : (isDark ? Colors.white : Colors.black87),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
 
                   // Borçlu Adı
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          fromName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: isMeFrom ? Colors.redAccent : null,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (isMeFrom)
-                          const Text(
-                            "Sen ödemelisin",
-                            style: TextStyle(fontSize: 10, color: Colors.redAccent),
-                          ),
-                      ],
+                  Flexible(
+                    child: Text(
+                      fromName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isMeFrom
+                            ? const Color(0xFFEF4444)
+                            : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
 
-                  // Ok ve Tutar Rozeti
+                  // Yön Oku
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            currencyFormat.format(settle.amount),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
-                      ],
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF262626)
+                            : const Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 13,
+                        color: isDark ? Colors.white60 : Colors.black45,
+                      ),
                     ),
                   ),
 
-                  // Alacaklı Adı
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          toName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: isMeTo ? Colors.green : null,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (isMeTo)
-                          const Text(
-                            "Sana ödenecek",
-                            style: TextStyle(fontSize: 10, color: Colors.green),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // Alacaklı Avatar
+                  // Alacaklı (Alan) Avatarı
                   CircleAvatar(
-                    radius: 18,
+                    radius: 16,
                     backgroundColor: isMeTo
-                        ? Colors.green.withValues(alpha: 0.15)
-                        : Colors.grey.withValues(alpha: 0.15),
+                        ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                        : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
                     child: Text(
                       toP?.initial ?? '?',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isMeTo ? Colors.green : null,
+                        color: isMeTo
+                            ? const Color(0xFF10B981)
+                            : (isDark ? Colors.white : Colors.black87),
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Alacaklı Adı
+                  Flexible(
+                    child: Text(
+                      toName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isMeTo
+                            ? const Color(0xFF10B981)
+                            : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
             ),
-          );
-        }),
-      ],
+
+            const SizedBox(width: 12),
+
+            // Tutar
+            Text(
+              amountText,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: accentColor,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -636,9 +668,7 @@ class GroupDetailPage extends GetView<GroupDetailController> {
           autofocus: true,
           decoration: InputDecoration(
             hintText: "Katılımcı adı",
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
       ),

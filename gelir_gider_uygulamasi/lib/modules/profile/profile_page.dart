@@ -11,11 +11,8 @@ class ProfilePage extends GetView<ProfileController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil'),
-      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Obx(
           () {
             final user = controller.user.value;
@@ -59,6 +56,57 @@ class ProfilePage extends GetView<ProfileController> {
                     subtitle: const Text("Kategorileri düzenle, sil veya ekle"),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => CategoryManagementSheet.show(context),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  color: Colors.redAccent.withValues(alpha: 0.08),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Colors.redAccent.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.logout_rounded,
+                        color: Colors.redAccent,
+                        size: 20,
+                      ),
+                    ),
+                    title: const Text(
+                      "Çıkış Yap",
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: const Text("Hesabınızdan güvenli şekilde çıkış yapın"),
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.redAccent,
+                    ),
+                    onTap: () {
+                      Get.defaultDialog(
+                        title: "Çıkış Yap",
+                        middleText:
+                            "Hesabınızdan çıkış yapmak istediğinize emin misiniz?",
+                        textConfirm: "Evet, Çıkış Yap",
+                        textCancel: "Vazgeç",
+                        confirmTextColor: Colors.white,
+                        buttonColor: Colors.redAccent,
+                        onConfirm: () {
+                          Get.back();
+                          controller.cikisYap();
+                        },
+                      );
+                    },
                   ),
                 ),
               ],

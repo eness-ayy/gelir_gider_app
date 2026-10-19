@@ -2,7 +2,6 @@ import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.da
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/groups_page.dart';
-import 'package:gelir_gider_uygulamasi/modules/groups/widgets/create_group_dialog.dart';
 import 'package:gelir_gider_uygulamasi/modules/home/home_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_page.dart';
@@ -16,29 +15,18 @@ class HomePage extends GetView<HomeController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() => Text(controller.pageTitle)),
-        actions: [
-          Obx(() {
-            if (controller.currentIndex.value == 1) {
-              return IconButton(
-                onPressed: () => CreateGroupDialog.show(context),
-                icon: const Icon(Icons.group_add_rounded),
-                tooltip: "Yeni Grup Oluştur",
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-          IconButton(
-            onPressed: controller.goToProfile,
-            icon: const Icon(Icons.account_circle_outlined),
-            tooltip: "Profil",
+        title: Obx(
+          () => Text(
+            controller.pageTitle,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : AppColors.lightTextPrimary,
+            ),
           ),
-          IconButton(
-            onPressed: controller.cikisYap,
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: "Çıkış Yap",
-          ),
-        ],
+        ),
+        centerTitle: false,
       ),
       body: Obx(
         () => IndexedStack(
@@ -60,25 +48,48 @@ class HomePage extends GetView<HomeController> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: Obx(
-        () => AnimatedBottomNavigationBar(
+        () => AnimatedBottomNavigationBar.builder(
+          itemCount: 4,
+          tabBuilder: (int index, bool isActive) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final color = isActive
+                ? (isDark ? Colors.white : AppColors.primary)
+                : (isDark ? Colors.white54 : Colors.black45);
+
+            const navItems = [
+              (icon: Icons.dashboard_rounded, label: "Dashboard"),
+              (icon: Icons.diversity_3_rounded, label: "Gruplar"),
+              (icon: Icons.pie_chart_rounded, label: "İstatistikler"),
+              (icon: Icons.person_rounded, label: "Profil"),
+            ];
+            final item = navItems[index];
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(item.icon, size: 20, color: color),
+                const SizedBox(height: 3),
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                    color: color,
+                  ),
+                ),
+              ],
+            );
+          },
+          height: 64,
           gapLocation: GapLocation.center,
           backgroundColor: Theme.of(context).brightness == Brightness.dark
               ? AppColors.darkSurface
               : AppColors.lightBackground,
-          icons: const [
-            Icons.dashboard_rounded, // 0: Ana Sayfa
-            Icons.diversity_3_rounded, // 1: Gruplar
-            Icons.pie_chart_rounded, // 2: Raporlar
-            Icons.person_rounded, // 3: Profil
-          ],
           activeIndex: controller.currentIndex.value,
           splashColor: AppColors.primary,
-          activeColor: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white
-              : AppColors.primary,
-          inactiveColor: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white54
-              : Colors.black54,
           leftCornerRadius: 32,
           rightCornerRadius: 32,
           notchSmoothness: NotchSmoothness.verySmoothEdge,

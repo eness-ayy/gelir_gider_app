@@ -16,127 +16,260 @@ class GroupsPage extends GetView<GroupsController> {
     return Scaffold(
       body: Obx(() {
         final groups = controller.groups;
+        final hasGroups = groups.isNotEmpty;
 
-        if (groups.isEmpty) {
-          return _buildEmptyState(context, isDark);
-        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. İkincil Başlık Satırı (AppBar'ın hemen altı)
+            _buildSecondaryHeader(context, isDark, hasGroups, groups.length),
 
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-          itemCount: groups.length,
-          itemBuilder: (context, index) {
-            final group = groups[index];
-            return _buildGroupCard(context, group, isDark);
-          },
+            // 2. İçerik Alanı: Boş Durum (Empty State) veya Dolu Durum (Kart Listesi)
+            Expanded(
+              child: hasGroups
+                  ? _buildGroupList(context, isDark, groups)
+                  : _buildEmptyState(context, isDark),
+            ),
+          ],
         );
       }),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.diversity_3_rounded,
-                size: 72,
-                color: AppColors.primary,
-              ),
+  /// AppBar'ın altındaki ikincil başlık satırı
+  Widget _buildSecondaryHeader(
+    BuildContext context,
+    bool isDark,
+    bool hasGroups,
+    int groupCount,
+  ) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Sol Başlık: "Gruplarım (X)" veya liste boşken sade "Gruplarım (0)"
+          Text(
+            hasGroups ? "Gruplarım ($groupCount)" : "Gruplarım (0)",
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              letterSpacing: -0.3,
             ),
-            const SizedBox(height: 24),
-            Text(
-              "Henüz bir grup yok",
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "Arkadaşlarınızla tatil, ev masrafı veya etkinlik harcamalarını bölüşmek için hemen ilk grubunuzu oluşturun.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 24),
+          ),
+
+          // Sağ Buton: Sadece en az 1 grup varken "+ Yeni Ekle" butonu görünür; liste boşken GİZLİ
+          if (hasGroups)
             ElevatedButton.icon(
               onPressed: () => CreateGroupDialog.show(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                minimumSize: const Size(0, 36),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              icon: const Icon(Icons.add_rounded),
+              icon: const Icon(Icons.group_add_rounded, size: 16),
               label: const Text(
-                "Yeni Grup Oluştur",
-                style: TextStyle(fontWeight: FontWeight.bold),
+                "+ Yeni Ekle",
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
-        ),
+            )
+          else
+            const SizedBox.shrink(),
+        ],
       ),
     );
   }
 
+  /// 2. BOŞ DURUM (EMPTY STATE)
+  Widget _buildEmptyState(BuildContext context, bool isDark) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Üstte: Hafif transparan gri/mavi yuvarlak zemin içinde büyük ikon
+                  Container(
+                    width: 104,
+                    height: 104,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF1E293B).withValues(alpha: 0.6)
+                          : const Color(0xFFEFF6FF),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(
+                          0xFF2563EB,
+                        ).withValues(alpha: isDark ? 0.35 : 0.2),
+                        width: 2,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(
+                          0xFF2563EB,
+                        ).withValues(alpha: isDark ? 0.25 : 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.group_add_outlined,
+                        size: 38,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Başlık (Label): Kalın ve beyaz/koyu
+                  Text(
+                    "İlk Grup Harcamanı Ekle",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Açıklama metni: Sönük gri renkte
+                  Text(
+                    "Arkadaşlarınla yaptığın etkinlikleri, tatil veya ev masraflarını bölüşmek için hemen başla.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Buton: Dikkat çekici, canlı mavi, tam genişlikte "+ Grup Harcaması Oluştur"
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () => CreateGroupDialog.show(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        elevation: 3,
+                        shadowColor: const Color(
+                          0xFF2563EB,
+                        ).withValues(alpha: 0.4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      icon: const Icon(Icons.add_rounded, size: 22),
+                      label: const Text(
+                        "Grup Harcaması Oluştur",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 3. DOLU DURUM (LİSTE VARKEN KART YAPISI)
+  Widget _buildGroupList(
+    BuildContext context,
+    bool isDark,
+    List<ExpenseGroup> groups,
+  ) {
+    return ListView.builder(
+      // Sayfa içeriğinin altına en az 80px (100px) alt boşluk bırakılarak FAB çakışması önlenir
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 100),
+      itemCount: groups.length,
+      itemBuilder: (context, index) {
+        final group = groups[index];
+        return _buildGroupCard(context, group, isDark);
+      },
+    );
+  }
+
+  /// Modern Grup Kartı
   Widget _buildGroupCard(
     BuildContext context,
     ExpenseGroup group,
     bool isDark,
   ) {
-    final currencyFormat =
-        NumberFormat.currency(symbol: "₺", decimalDigits: 2);
+    final currencyFormat = NumberFormat.currency(symbol: "₺", decimalDigits: 2);
     final netBalance = group.userNetBalance;
 
-    Color badgeColor;
+    Color badgeBgColor;
     Color badgeTextColor;
     String statusText;
 
     if (netBalance > 0.01) {
-      badgeColor = isDark
-          ? Colors.green.shade900.withValues(alpha: 0.4)
-          : Colors.green.shade50;
-      badgeTextColor = isDark ? Colors.greenAccent : Colors.green.shade800;
-      statusText = "+${currencyFormat.format(netBalance)} Alacaksın";
+      badgeBgColor = isDark
+          ? const Color(0xFF065F46).withValues(alpha: 0.35)
+          : const Color(0xFFECFDF5);
+      badgeTextColor = isDark
+          ? const Color(0xFF34D399)
+          : const Color(0xFF059669);
+      statusText = "▲ +${currencyFormat.format(netBalance)} Alacaklısın";
     } else if (netBalance < -0.01) {
-      badgeColor = isDark
-          ? Colors.red.shade900.withValues(alpha: 0.4)
-          : Colors.red.shade50;
-      badgeTextColor = isDark ? Colors.redAccent : Colors.red.shade800;
-      statusText = "${currencyFormat.format(netBalance.abs())} Borçlusun";
+      badgeBgColor = isDark
+          ? const Color(0xFF7F1D1D).withValues(alpha: 0.35)
+          : const Color(0xFFFEF2F2);
+      badgeTextColor = isDark
+          ? const Color(0xFFF87171)
+          : const Color(0xFFDC2626);
+      statusText = "▼ -${currencyFormat.format(netBalance.abs())} Borçlusun";
     } else {
-      badgeColor = isDark
-          ? Colors.grey.shade900
+      badgeBgColor = isDark
+          ? Colors.white.withValues(alpha: 0.08)
           : Colors.grey.shade100;
       badgeTextColor = isDark ? Colors.white70 : Colors.grey.shade700;
-      statusText = "Ödeşildi";
+      statusText = "✓ Ödeşildi";
     }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      color: isDark ? AppColors.darkSurface : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
-          color: isDark ? Colors.white10 : Colors.grey.shade200,
+          color: isDark
+              ? const Color(0xFF334155).withValues(alpha: 0.6)
+              : Colors.grey.shade200,
+          width: 1,
         ),
       ),
-      elevation: isDark ? 2 : 1,
       child: InkWell(
         onTap: () => controller.openGroupDetail(group),
         borderRadius: BorderRadius.circular(18),
@@ -145,62 +278,76 @@ class GroupsPage extends GetView<GroupsController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Üst Satır: İkon + Grup Başlığı + Silme Menüsü
+              // Üst Kısım: Mavi kare grup ikonu + Grup adı & Detay + 3 Nokta Menüsü
               Row(
                 children: [
+                  // Sol: Mavi kare içinde grup ikonu
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [const Color(0xFF1E3A8A), const Color(0xFF3B82F6)]
-                            : [const Color(0xFF93C5FD), const Color(0xFF3B82F6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                      color: const Color(
+                        0xFF2563EB,
+                      ).withValues(alpha: isDark ? 0.2 : 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(
+                          0xFF2563EB,
+                        ).withValues(alpha: isDark ? 0.35 : 0.2),
                       ),
-                      borderRadius: BorderRadius.circular(12),
                     ),
                     alignment: Alignment.center,
                     child: const Icon(
                       Icons.diversity_3_rounded,
-                      color: Colors.white,
-                      size: 22,
+                      color: Color(0xFF2563EB),
+                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
+
+                  // Orta: Grup Adı & X Katılımcı • X Harcama
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           group.title,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           "${group.participants.length} Katılımcı • ${group.expenses.length} Harcama",
                           style: TextStyle(
                             fontSize: 12,
+                            fontWeight: FontWeight.w500,
                             color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.lightTextSecondary,
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
                           ),
                         ),
                       ],
                     ),
                   ),
+
+                  // Sağ: 3 Nokta Menüsü
                   PopupMenuButton<String>(
                     icon: Icon(
                       Icons.more_vert_rounded,
-                      color: isDark ? Colors.white54 : Colors.grey,
+                      color: isDark ? Colors.white60 : Colors.grey.shade600,
                       size: 20,
                     ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    color: isDark ? AppColors.darkSurface : Colors.white,
                     onSelected: (value) {
                       if (value == 'delete') {
                         _confirmDeleteGroup(context, group);
@@ -211,11 +358,19 @@ class GroupsPage extends GetView<GroupsController> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline,
-                                color: Colors.redAccent, size: 18),
-                            SizedBox(width: 8),
-                            Text("Grubu Sil",
-                                style: TextStyle(color: Colors.redAccent)),
+                            Icon(
+                              Icons.delete_outline_rounded,
+                              color: Colors.redAccent,
+                              size: 18,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              "Grubu Sil",
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -225,12 +380,20 @@ class GroupsPage extends GetView<GroupsController> {
               ),
               const SizedBox(height: 14),
 
-              const Divider(height: 1),
+              // İnce Çizgi (Divider)
+              Divider(
+                height: 1,
+                thickness: 0.8,
+                color: isDark
+                    ? const Color(0xFF334155).withValues(alpha: 0.6)
+                    : Colors.grey.shade200,
+              ),
               const SizedBox(height: 12),
 
-              // Alt Satır: Toplam Harcama & Kullanıcının Net Durumu
+              // Alt Kısım: "Toplam Harcama" tutarı & Sağda yeşil/kırmızı net bakiye rozeti
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,50 +402,44 @@ class GroupsPage extends GetView<GroupsController> {
                         "Toplam Harcama",
                         style: TextStyle(
                           fontSize: 11,
+                          fontWeight: FontWeight.w500,
                           color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         currencyFormat.format(group.totalExpense),
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
                         ),
                       ),
                     ],
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: badgeColor,
-                      borderRadius: BorderRadius.circular(10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          netBalance > 0.01
-                              ? Icons.arrow_upward_rounded
-                              : (netBalance < -0.01
-                                  ? Icons.arrow_downward_rounded
-                                  : Icons.check_circle_outline_rounded),
-                          size: 14,
-                          color: badgeTextColor,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          statusText,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: badgeTextColor,
-                          ),
-                        ),
-                      ],
+                    decoration: BoxDecoration(
+                      color: badgeBgColor,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: badgeTextColor.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: badgeTextColor,
+                      ),
                     ),
                   ),
                 ],

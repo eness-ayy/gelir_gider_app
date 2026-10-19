@@ -23,4 +23,33 @@ void main() {
     );
     expect(find.byType(AnimatedBottomNavigationBar), findsOneWidget);
   });
+
+  testWidgets('Test bottom navigation bar renders 4 tab labels correctly', (tester) async {
+    const navItems = [
+      "Dashboard",
+      "Gruplar",
+      "İstatistikler",
+      "Profil",
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          floatingActionButton: FloatingActionButton(onPressed: () {}),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+          bottomNavigationBar: AnimatedBottomNavigationBar.builder(
+            itemCount: 4,
+            tabBuilder: (index, isActive) => Text(navItems[index]),
+            activeIndex: 1,
+            gapLocation: GapLocation.center,
+            onTap: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    for (final label in navItems) {
+      expect(find.text(label), findsOneWidget);
+    }
+  });
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/groups_controller.dart';
-import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
 
 class CreateGroupDialog extends StatefulWidget {
@@ -29,7 +28,6 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
     super.initState();
     _groupNameController = TextEditingController();
     _participantControllers = [
-      TextEditingController(),
       TextEditingController(),
     ];
   }
@@ -120,225 +118,299 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(22),
           child: SingleChildScrollView(
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.group_add_rounded,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    "Yeni Grup / Etkinlik",
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Grup Adı
-              Text(
-                "Grup Adı",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                  color: isDark ? Colors.white70 : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _groupNameController,
-                decoration: InputDecoration(
-                  hintText: "Örn: Ev Arkadaşları, Antalya Tatili",
-                  filled: true,
-                  fillColor: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.grey.shade100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Katılımcılar Başlığı
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Diğer Katılımcılar",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                      color: isDark ? Colors.white70 : Colors.black87,
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: _addParticipantField,
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text("Kişi Ekle", style: TextStyle(fontSize: 12)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-
-              // "Sen (Grup Yöneticisi)" Sabit Rozet
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Başlık & İkon
+                Row(
                   children: [
-                    const Icon(Icons.person, size: 16, color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        "Sen (Otomatik Dahil)",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.group_add_rounded,
+                        color: Color(0xFF38BDF8),
+                        size: 24,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                    const SizedBox(width: 12),
+                    Text(
+                      "Yeni Grup / Etkinlik",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
                       ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(6),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Grup Adı
+                Text(
+                  "Grup Adı",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: isDark
+                        ? const Color(0xFFCBD5E1)
+                        : const Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _groupNameController,
+                  decoration: InputDecoration(
+                    hintText: "Örn: Ev Arkadaşları, Antalya Tatili",
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.grey.shade400,
+                      fontSize: 14,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? const Color(0xFF27272A)
+                        : Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Katılımcılar Başlığı
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Diğer Katılımcılar",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: isDark
+                            ? const Color(0xFFCBD5E1)
+                            : const Color(0xFF334155),
                       ),
-                      child: const Text(
-                        "Yönetici",
+                    ),
+                    TextButton.icon(
+                      onPressed: _addParticipantField,
+                      icon: const Icon(
+                        Icons.add,
+                        size: 16,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      label: const Text(
+                        "Kişi Ekle",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
+                          color: Color(0xFF3B82F6),
                           fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 6),
 
-              // Dinamik Katılımcı Alanları
-              Column(
-                children: List.generate(
-                  _participantControllers.length,
-                  (index) {
-                    final c = _participantControllers[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: c,
-                              decoration: InputDecoration(
-                                hintText: "Katılımcı ${index + 1} adı",
-                                prefixIcon: const Icon(
-                                  Icons.person_outline_rounded,
+                // "Sen (Otomatik Dahil)" Sabit Rozet
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B)
+                        .withValues(alpha: isDark ? 0.45 : 0.25),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.45),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.person,
+                        size: 18,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          "Sen",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF3B82F6),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          "Yönetici",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Dinamik Katılımcı Alanları (Varsayılan 1 Katılımcı)
+                Column(
+                  children: List.generate(
+                    _participantControllers.length,
+                    (index) {
+                      final c = _participantControllers[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: c,
+                                decoration: InputDecoration(
+                                  hintText: "Katılımcı ${index + 1} adı",
+                                  hintStyle: TextStyle(
+                                    color: isDark
+                                        ? Colors.white38
+                                        : Colors.grey.shade400,
+                                    fontSize: 14,
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.person_outline_rounded,
+                                    size: 20,
+                                    color: isDark
+                                        ? Colors.white38
+                                        : Colors.grey.shade400,
+                                  ),
+                                  filled: true,
+                                  fillColor: isDark
+                                      ? const Color(0xFF27272A)
+                                      : Colors.grey.shade100,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (_participantControllers.length > 1) ...[
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.remove_circle_outline,
+                                  color: Colors.redAccent,
                                   size: 20,
                                 ),
-                                filled: true,
-                                isDense: true,
-                                fillColor: isDark
-                                    ? Colors.white.withValues(alpha: 0.05)
-                                    : Colors.grey.shade100,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
+                                onPressed: () => _removeParticipantField(index),
                               ),
-                            ),
-                          ),
-                          if (_participantControllers.length > 1) ...[
-                            const SizedBox(width: 4),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.remove_circle_outline,
-                                color: Colors.redAccent,
-                                size: 20,
-                              ),
-                              onPressed: () => _removeParticipantField(index),
-                            ),
+                            ],
                           ],
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // Butonlar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: _isSubmitting
-                        ? null
-                        : () => Navigator.of(context, rootNavigator: true).pop(),
-                    child: const Text("İptal"),
+                        ),
+                      );
+                    },
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(120, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                ),
+                const SizedBox(height: 20),
+
+                // Butonlar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: _isSubmitting
+                          ? null
+                          : () =>
+                              Navigator.of(context, rootNavigator: true).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF3B82F6),
+                      ),
+                      child: const Text(
+                        "İptal",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3B82F6),
+                        ),
                       ),
                     ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        minimumSize: const Size(124, 46),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              "Grup Oluştur",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          )
-                        : const Text("Grup Oluştur"),
-                  ),
-                ],
-              ),
-            ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }

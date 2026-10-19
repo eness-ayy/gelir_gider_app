@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/groups_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/groups/groups_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/widgets/create_group_dialog.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
@@ -104,5 +105,55 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CreateGroupDialog), findsNothing);
+  });
+
+  testWidgets('GroupsPage shows Empty State when list is empty, then transitions to card list when group is created', (tester) async {
+    final groupService = Get.find<GroupService>();
+    groupService.groups.clear();
+
+    await tester.pumpWidget(
+      const GetMaterialApp(
+        home: Scaffold(
+          body: GroupsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. Verify Empty State elements
+    expect(find.text("Gruplarım (0)"), findsOneWidget);
+    expect(find.text("+ Yeni Ekle"), findsNothing); // Sağ üstteki buton gizli olmalı
+    expect(find.text("İlk Grup Harcamanı Ekle"), findsOneWidget);
+    expect(find.text("Arkadaşlarınla yaptığın etkinlikleri, tatil veya ev masraflarını bölüşmek için hemen başla."), findsOneWidget);
+    expect(find.text("Grup Harcaması Oluştur"), findsOneWidget);
+
+    // 2. Click "Grup Harcaması Oluştur" to open dialog
+    await tester.tap(find.text("Grup Harcaması Oluştur"));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateGroupDialog), findsOneWidget);
+
+    // 3. Enter group name and submit
+    final nameField = find.widgetWithText(TextField, "Örn: Ev Arkadaşları, Antalya Tatili");
+    await tester.enterText(nameField, "Bolu Yedigöller Gezisi");
+    await tester.pumpAndSettle();
+
+    final submitBtn = find.text("Grup Oluştur");
+    await tester.tap(submitBtn);
+    await tester.pumpAndSettle();
+
+    // 4. Verify Empty State is removed and Filled State is visible
+    expect(find.text("İlk Grup Harcamanı Ekle"), findsNothing);
+    expect(find.text("Grup Harcaması Oluştur"), findsNothing);
+
+    // 5. Verify Secondary Header updated
+    expect(find.text("Gruplarım (1)"), findsOneWidget);
+    expect(find.text("+ Yeni Ekle"), findsOneWidget); // Artık görünür
+
+    // 6. Verify Card details
+    expect(find.text("Bolu Yedigöller Gezisi"), findsOneWidget);
+    expect(find.textContaining("Katılımcı"), findsOneWidget);
+    expect(find.text("Toplam Harcama"), findsOneWidget);
+    expect(find.text("✓ Ödeşildi"), findsOneWidget);
   });
 }

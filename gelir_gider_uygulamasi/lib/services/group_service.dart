@@ -49,14 +49,15 @@ class GroupService extends GetxService {
         final List<dynamic> decoded = jsonDecode(jsonString);
         final list = decoded
             .map((item) => ExpenseGroup.fromJson(item as Map<String, dynamic>))
+            .where((g) => g.id != 'sample_group_1')
             .toList();
         groups.assignAll(list);
       } else {
-        // İlk açılışta kullanıcıyı karşılayacak örnek bir grup oluştur (isteğe bağlı)
-        _createDefaultSampleGroup();
+        groups.clear();
       }
     } catch (e) {
       debugPrint("Grup verileri yüklenirken hata: $e");
+      groups.clear();
     }
   }
 
@@ -67,43 +68,6 @@ class GroupService extends GetxService {
     } catch (e) {
       debugPrint("Grup verileri kaydedilirken hata: $e");
     }
-  }
-
-  void _createDefaultSampleGroup() {
-    final currentUserName = _getCurrentUserName();
-    final sampleGroup = ExpenseGroup(
-      id: 'sample_group_1',
-      title: 'Hafta Sonu Kampı',
-      createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      participants: [
-        Participant(id: 'user_me', name: currentUserName, isCurrentUser: true),
-        const Participant(id: 'p_ahmet', name: 'Ahmet'),
-        const Participant(id: 'p_mehmet', name: 'Mehmet'),
-        const Participant(id: 'p_ayse', name: 'Ayşe'),
-      ],
-      expenses: [
-        GroupExpense(
-          id: 'exp_1',
-          title: 'Kamp Yeri & Çadır Kirası',
-          amount: 1200.0,
-          paidById: 'user_me',
-          date: DateTime.now().subtract(const Duration(days: 2)),
-          splitParticipantIds: ['user_me', 'p_ahmet', 'p_mehmet', 'p_ayse'],
-          paymentMethod: 'bank_card',
-        ),
-        GroupExpense(
-          id: 'exp_2',
-          title: 'Market & Barbekü Alışverişi',
-          amount: 800.0,
-          paidById: 'p_ahmet',
-          date: DateTime.now().subtract(const Duration(days: 1)),
-          splitParticipantIds: ['user_me', 'p_ahmet', 'p_mehmet', 'p_ayse'],
-          paymentMethod: 'cash',
-        ),
-      ],
-    );
-    groups.add(sampleGroup);
-    _persist();
   }
 
   String _getCurrentUserName() {

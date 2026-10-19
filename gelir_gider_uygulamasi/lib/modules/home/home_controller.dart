@@ -28,7 +28,7 @@ class HomeController extends BaseController {
       case 0:
         return "Gelir Gider App";
       case 1:
-        return "Gruplar & Etkinlikler";
+        return "Gruplar";
       case 2:
         return "İstatistikler & Raporlar";
       case 3:
