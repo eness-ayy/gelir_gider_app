@@ -294,15 +294,17 @@ void main() {
     expect(budgetService.getBudget('cat_test'), equals(1500.0));
   });
 
-  testWidgets('BudgetOverviewCard displays 1 category initially and expands downwards when tapped', (tester) async {
+  testWidgets('BudgetOverviewCard displays 2 categories initially and expands downwards when tapped', (tester) async {
     final now = DateTime.now();
     final cat1 = AppCategory(id: 'cat_eglence', name: 'Eğlence', type: 'expense');
     final cat2 = AppCategory(id: 'cat_faturalar', name: 'Faturalar', type: 'expense');
+    final cat3 = AppCategory(id: 'cat_market', name: 'Market', type: 'expense');
     await budgetService.setBudget('cat_eglence', 1000.0);
     await budgetService.setBudget('cat_faturalar', 200.0);
+    await budgetService.setBudget('cat_market', 300.0);
 
     final mockController = Get.put<DashboardController>(_MockDashboardController());
-    mockController.categories.value = [cat1, cat2];
+    mockController.categories.value = [cat1, cat2, cat3];
     mockController.myTransaction.value = [
       AppTransaction(
         id: '1',
@@ -326,27 +328,30 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Sadece 1. kategori görünmeli, 2. kategori gizli olmalı
+    // İlk 2 kategori görünmeli, 3. kategori gizli olmalı
     expect(find.text('Aylık Bütçe Takibi'), findsOneWidget);
     expect(find.text('Eğlence'), findsOneWidget);
-    expect(find.text('Faturalar'), findsNothing);
+    expect(find.text('Faturalar'), findsOneWidget);
+    expect(find.text('Market'), findsNothing);
     expect(find.text('Diğer 1 Kategoriyi Gör'), findsOneWidget);
 
-    // Başlığa tıklandığında aşağı doğru genişlemeli
-    await tester.tap(find.text('Aylık Bütçe Takibi'));
+    // Butona tıklandığında aşağı doğru genişlemeli
+    await tester.tap(find.text('Diğer 1 Kategoriyi Gör'));
     await tester.pumpAndSettle();
 
-    // Artık her iki kategori de görünmeli
+    // Artık her üç kategori de görünmeli
     expect(find.text('Eğlence'), findsOneWidget);
     expect(find.text('Faturalar'), findsOneWidget);
+    expect(find.text('Market'), findsOneWidget);
     expect(find.text('Daha Az Göster'), findsOneWidget);
 
     // Tekrar tıklandığında geri daralmalı
-    await tester.tap(find.text('Aylık Bütçe Takibi'));
+    await tester.tap(find.text('Daha Az Göster'));
     await tester.pumpAndSettle();
 
     expect(find.text('Eğlence'), findsOneWidget);
-    expect(find.text('Faturalar'), findsNothing);
+    expect(find.text('Faturalar'), findsOneWidget);
+    expect(find.text('Market'), findsNothing);
     expect(find.text('Diğer 1 Kategoriyi Gör'), findsOneWidget);
   });
 
@@ -391,6 +396,77 @@ void main() {
 
     expect(find.text('Eğlence'), findsOneWidget);
     expect(find.text('Daha Az Göster'), findsNothing);
+  });
+
+  testWidgets('BudgetOverviewCard expands inside fixed-height carousel page without errors', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime.now();
+    final cats = [
+      AppCategory(id: 'c1', name: 'Eğlence', type: 'expense'),
+      AppCategory(id: 'c2', name: 'Ulaşım', type: 'expense'),
+      AppCategory(id: 'c3', name: 'Faturalar', type: 'expense'),
+    ];
+    await budgetService.setBudget('c1', 1000.0);
+    await budgetService.setBudget('c2', 750.0);
+    await budgetService.setBudget('c3', 500.0);
+
+    final mockController = Get.put<DashboardController>(_MockDashboardController());
+    mockController.categories.value = cats;
+    mockController.myTransaction.value = [
+      AppTransaction(
+        id: '1',
+        amount: '500',
+        type: 'expense',
+        categoryId: 'c1',
+        userId: 'u1',
+        createdAt: '',
+        updatedAt: '',
+        date: now.toIso8601String(),
+        description: '',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: SizedBox(
+              height: 280,
+              child: PageView(
+                children: const [
+                  BudgetOverviewCard(
+                    fillHeight: true,
+                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Diğer 1 Kategoriyi Gör'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Diğer 1 Kategoriyi Gör'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Diğer 1 Kategoriyi Gör'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(find.text('Daha Az Göster'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Daha Az Göster'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Diğer 1 Kategoriyi Gör'), findsOneWidget);
   });
 }
 

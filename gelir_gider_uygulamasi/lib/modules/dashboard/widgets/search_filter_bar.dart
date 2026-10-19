@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/widgets/filter_bottom_sheet.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
@@ -29,11 +30,15 @@ class SearchFilterBar extends GetView<DashboardController> {
                     color: isDark ? AppColors.darkSurface : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.2 : 0.04,
+                        ),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -47,7 +52,9 @@ class SearchFilterBar extends GetView<DashboardController> {
                         fontSize: 14,
                         color: isDark
                             ? AppColors.darkTextSecondary.withValues(alpha: 0.7)
-                            : AppColors.lightTextSecondary.withValues(alpha: 0.7),
+                            : AppColors.lightTextSecondary.withValues(
+                                alpha: 0.7,
+                              ),
                       ),
                       prefixIcon: const Icon(Icons.search_rounded, size: 22),
                       suffixIcon: Obx(() {
@@ -85,11 +92,15 @@ class SearchFilterBar extends GetView<DashboardController> {
                         border: Border.all(
                           color: hasFilters
                               ? AppColors.primary
-                              : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                              : (isDark
+                                    ? AppColors.darkBorder
+                                    : AppColors.lightBorder),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.2 : 0.04,
+                            ),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -116,7 +127,9 @@ class SearchFilterBar extends GetView<DashboardController> {
                             color: Colors.red.shade600,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isDark ? AppColors.darkSurface : Colors.white,
+                              color: isDark
+                                  ? AppColors.darkSurface
+                                  : Colors.white,
                               width: 1.5,
                             ),
                           ),
@@ -156,7 +169,9 @@ class SearchFilterBar extends GetView<DashboardController> {
                 _buildQuickChip(
                   label: "Gelir",
                   icon: Icons.arrow_upward_rounded,
-                  activeColor: isDark ? Colors.green.shade700 : AppColors.income,
+                  activeColor: isDark
+                      ? Colors.green.shade700
+                      : AppColors.income,
                   isSelected: controller.selectedType.value == 'income',
                   onTap: () => controller.setTypeFilter('income'),
                   isDark: isDark,
@@ -182,7 +197,8 @@ class SearchFilterBar extends GetView<DashboardController> {
                 // Date Filter Chips
                 _buildQuickChip(
                   label: "Bu Ay",
-                  isSelected: controller.selectedDateRange.value == 'this_month',
+                  isSelected:
+                      controller.selectedDateRange.value == 'this_month',
                   onTap: () => controller.setDateRangeFilter('this_month'),
                   isDark: isDark,
                 ),
@@ -196,7 +212,8 @@ class SearchFilterBar extends GetView<DashboardController> {
                 const SizedBox(width: 6),
                 _buildQuickChip(
                   label: "Geçen Ay",
-                  isSelected: controller.selectedDateRange.value == 'last_month',
+                  isSelected:
+                      controller.selectedDateRange.value == 'last_month',
                   onTap: () => controller.setDateRangeFilter('last_month'),
                   isDark: isDark,
                 ),
@@ -233,6 +250,21 @@ class SearchFilterBar extends GetView<DashboardController> {
                   ),
                 ],
 
+                // Active Account Filter Indicator Chip
+                if (controller.selectedAccountFilter.value != 'all') ...[
+                  const SizedBox(width: 6),
+                  _buildRemovableChip(
+                    label: PaymentMethod.fromKey(
+                      controller.selectedAccountFilter.value,
+                    ).title,
+                    icon: PaymentMethod.fromKey(
+                      controller.selectedAccountFilter.value,
+                    ).icon,
+                    onRemove: () => controller.setAccountFilter('all'),
+                    isDark: isDark,
+                  ),
+                ],
+
                 // Clear All Filters Chip
                 if (controller.hasActiveFilters) ...[
                   const SizedBox(width: 6),
@@ -240,7 +272,10 @@ class SearchFilterBar extends GetView<DashboardController> {
                     onTap: controller.clearFilters,
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: isDark ? 0.2 : 0.1),
                         borderRadius: BorderRadius.circular(16),
@@ -251,7 +286,11 @@ class SearchFilterBar extends GetView<DashboardController> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.refresh_rounded, size: 14, color: Colors.red.shade400),
+                          Icon(
+                            Icons.refresh_rounded,
+                            size: 14,
+                            color: Colors.red.shade400,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             "Sıfırla",
@@ -298,7 +337,9 @@ class SearchFilterBar extends GetView<DashboardController> {
         decoration: BoxDecoration(
           color: isSelected
               ? effectiveActiveColor.withValues(alpha: isDark ? 0.3 : 0.12)
-              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100),
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.grey.shade100),
           border: Border.all(
             color: isSelected
                 ? effectiveActiveColor
@@ -316,7 +357,9 @@ class SearchFilterBar extends GetView<DashboardController> {
                 size: 14,
                 color: isSelected
                     ? effectiveActiveColor
-                    : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                    : (isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary),
               ),
               const SizedBox(width: 4),
             ],
@@ -327,7 +370,9 @@ class SearchFilterBar extends GetView<DashboardController> {
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 color: isSelected
                     ? effectiveActiveColor
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                    : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary),
               ),
             ),
           ],
@@ -347,9 +392,7 @@ class SearchFilterBar extends GetView<DashboardController> {
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -369,7 +412,11 @@ class SearchFilterBar extends GetView<DashboardController> {
             onTap: onRemove,
             child: const Padding(
               padding: EdgeInsets.all(2.0),
-              child: Icon(Icons.close_rounded, size: 14, color: AppColors.primary),
+              child: Icon(
+                Icons.close_rounded,
+                size: 14,
+                color: AppColors.primary,
+              ),
             ),
           ),
         ],

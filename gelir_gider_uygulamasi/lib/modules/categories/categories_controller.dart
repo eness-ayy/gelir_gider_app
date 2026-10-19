@@ -5,10 +5,14 @@ import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.da
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/controllers/transaction_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
+import 'package:gelir_gider_uygulamasi/utils/turkish_string_helper.dart';
 import 'package:get/get.dart';
 
 class CategoriesController extends BaseController {
   late final CategoryRepository _categoryRepository;
+
+  static List<AppCategory> get recommendedCategories =>
+      CategoryRepository.defaultCategories;
 
   final categories = <AppCategory>[].obs;
   final selectedFilterType = 'all'.obs; // 'all', 'income', 'expense'
@@ -122,6 +126,71 @@ class CategoriesController extends BaseController {
       _syncOtherControllers();
       showSuccessSnackbar(message: "Kategori kaldırıldı");
       return true;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Eksik Önerilen Kategoriler
+  List<AppCategory> get missingRecommendedCategories {
+    return recommendedCategories.where((rec) {
+      final normRec = TurkishStringHelper.normalizeForSearch(rec.name ?? '');
+      return !categories.any((c) {
+        final normC = TurkishStringHelper.normalizeForSearch(c.name ?? '');
+        return normC == normRec ||
+            (normC.isNotEmpty && normRec.contains(normC)) ||
+            (normRec.isNotEmpty && normC.contains(normRec));
+      });
+    }).toList();
+  }
+
+  bool get hasMissingRecommendedCategories =>
+      missingRecommendedCategories.isNotEmpty;
+
+  // Önerilen Kategorileri Toplu Ekleme
+  Future<int> addRecommendedCategories({bool showSnackbar = true}) async {
+    final toAdd = missingRecommendedCategories;
+    if (toAdd.isEmpty) {
+      if (showSnackbar) {
+        showSuccessSnackbar(message: "Önerilen kategorilerin tümü zaten ekli");
+      }
+      return 0;
+    }
+
+    try {
+      setLoading(true);
+      int addedCount = 0;
+      for (final cat in toAdd) {
+        try {
+          final created = await _categoryRepository.createCategory(
+            AppCategory(
+              name: cat.name,
+              type: cat.type,
+              icon: cat.icon,
+              isSystem: false,
+            ),
+          );
+          categories.add(created);
+          addedCount++;
+        } catch (e) {
+          debugPrint("Önerilen kategori eklenemedi (${cat.name}): $e");
+        }
+      }
+
+      if (addedCount > 0) {
+        _syncOtherControllers();
+        if (showSnackbar) {
+          showSuccessSnackbar(
+            message: "$addedCount adet önerilen kategori başarıyla eklendi",
+          );
+        }
+      }
+      return addedCount;
+    } catch (e) {
+      if (showSnackbar) {
+        showErrorSnackbar(message: "Önerilen kategoriler eklenirken hata oluştu");
+      }
+      return 0;
     } finally {
       setLoading(false);
     }

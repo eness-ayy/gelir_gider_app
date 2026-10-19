@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
+import 'package:gelir_gider_uygulamasi/models/account_balances.dart';
 import 'package:gelir_gider_uygulamasi/models/app_category.dart';
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
+import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/utils/turkish_string_helper.dart';
 import 'package:get/get.dart';
 
 class DashboardController extends BaseController {
   late final TransactionRepostory _transactionRepostory;
   late final CategoryRepository _categoryRepository;
+  AccountService get accountService => Get.isRegistered<AccountService>()
+      ? Get.find<AccountService>()
+      : Get.put(AccountService());
 
   final myTransaction = <AppTransaction>[].obs;
   final categories = <AppCategory>[].obs;
@@ -18,6 +24,7 @@ class DashboardController extends BaseController {
   final searchController = TextEditingController();
   final searchQuery = ''.obs;
   final selectedType = 'all'.obs; // 'all', 'income', 'expense'
+  final selectedAccountFilter = 'all'.obs; // 'all', 'cash', 'bank_card', 'credit_card'
   final selectedDateRange = 'this_month'.obs; // 'this_month', 'this_week', 'last_month', 'all', 'custom'
   final customStartDate = Rxn<DateTime>();
   final customEndDate = Rxn<DateTime>();
@@ -87,6 +94,7 @@ class DashboardController extends BaseController {
       final transactionsResult = await _transactionRepostory.deleteTransaction(id);
       if (transactionsResult) {
         myTransaction.removeWhere((element) => element.id == id);
+        await accountService.removePaymentMethod(id);
         aylikOzet();
         showSuccessSnackbar(message: "İşlem başarıyla silindi");
         return true;
@@ -123,11 +131,25 @@ class DashboardController extends BaseController {
     }
   }
 
+  // MARK: - Account Balances (Cebimdeki Nakit, Bankadaki Para, Kredi Kartı)
+
+  AccountBalances get overallAccountBalances =>
+      accountService.calculateBalances(myTransaction);
+
+  AccountBalances get filteredAccountBalances =>
+      accountService.calculateBalances(filteredTransactions);
+
+  double get cashBalance => overallAccountBalances.cashBalance;
+  double get bankBalance => overallAccountBalances.bankBalance;
+  double get creditCardExpense => overallAccountBalances.creditCardExpense;
+  double get totalLiquidAssets => overallAccountBalances.totalLiquidAssets;
+
   // MARK: - Filtering & Search Getters
 
   bool get hasActiveFilters {
     return searchQuery.value.trim().isNotEmpty ||
         selectedType.value != 'all' ||
+        selectedAccountFilter.value != 'all' ||
         selectedDateRange.value != 'this_month' ||
         selectedCategoryId.value != null ||
         selectedSort.value != 'date_desc';
@@ -136,6 +158,7 @@ class DashboardController extends BaseController {
   int get activeFilterCount {
     int count = 0;
     if (selectedType.value != 'all') count++;
+    if (selectedAccountFilter.value != 'all') count++;
     if (selectedDateRange.value != 'this_month') count++;
     if (selectedCategoryId.value != null) count++;
     if (selectedSort.value != 'date_desc') count++;
@@ -154,6 +177,19 @@ class DashboardController extends BaseController {
       // 2. Kategori Filtresi
       if (selectedCategoryId.value != null && selectedCategoryId.value!.isNotEmpty) {
         if (tr.categoryId != selectedCategoryId.value) {
+          return false;
+        }
+      }
+
+      // 2.5 Hesap / Ödeme Türü Filtresi (Nakit, Banka Kartı, Kredi Kartı)
+      if (selectedAccountFilter.value != 'all') {
+        PaymentMethod method;
+        if (tr.paymentMethod != null && tr.paymentMethod!.isNotEmpty) {
+          method = PaymentMethod.fromKey(tr.paymentMethod);
+        } else {
+          method = accountService.getPaymentMethod(tr.id);
+        }
+        if (method.key != selectedAccountFilter.value) {
           return false;
         }
       }
@@ -321,6 +357,14 @@ class DashboardController extends BaseController {
     selectedSort.value = sort;
   }
 
+  void setAccountFilter(String accountKey) {
+    if (selectedAccountFilter.value == accountKey) {
+      selectedAccountFilter.value = 'all';
+    } else {
+      selectedAccountFilter.value = accountKey;
+    }
+  }
+
   void clearSearch() {
     searchController.clear();
     searchQuery.value = '';
@@ -329,6 +373,7 @@ class DashboardController extends BaseController {
   void clearFilters() {
     clearSearch();
     selectedType.value = 'all';
+    selectedAccountFilter.value = 'all';
     selectedDateRange.value = 'this_month';
     customStartDate.value = null;
     customEndDate.value = null;

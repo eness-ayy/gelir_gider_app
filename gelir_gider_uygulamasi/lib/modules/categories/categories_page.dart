@@ -104,6 +104,78 @@ class CategoriesPage extends GetView<CategoriesController> {
             );
           }),
 
+          // 2.2. Önerilen Kategoriler Bannerı (Eksik önerilen kategori varsa gösterilir)
+          Obx(() {
+            if (!controller.hasMissingRecommendedCategories) {
+              return const SizedBox.shrink();
+            }
+            final missingCount =
+                controller.missingRecommendedCategories.length;
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: isDark ? 0.16 : 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.auto_awesome_rounded,
+                        color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Önerilen Kategoriler ($missingCount)",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "Alışveriş, Kira & Ev, Abonelikler vb.",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: const Size(0, 32),
+                      textStyle: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () => controller.addRecommendedCategories(),
+                    icon: const Icon(Icons.add_task_rounded, size: 15),
+                    label: const Text("Tümünü Ekle"),
+                  ),
+                ],
+              ),
+            );
+          }),
+
           // 3. Kategori Listesi (RefreshIndicator doğrudan ListView sarmalar)
           Expanded(
             child: Obx(() {
@@ -230,6 +302,7 @@ class CategoriesPage extends GetView<CategoriesController> {
                                     iconName: category.icon ?? 'receipt',
                                     isSystem: category.isSystem ?? false,
                                     type: category.type ?? 'expense',
+                                    categoryName: category.name,
                                   ),
                                   color: color,
                                 ),

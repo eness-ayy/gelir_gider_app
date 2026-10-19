@@ -46,6 +46,7 @@ class CategoryDropdown extends GetView<TransactionController> {
                           iconName: category.icon ?? 'receipt',
                           isSystem: category.isSystem ?? false,
                           type: category.type ?? '',
+                          categoryName: category.name,
                         ),
                       ),
                       const SizedBox(width: 8),

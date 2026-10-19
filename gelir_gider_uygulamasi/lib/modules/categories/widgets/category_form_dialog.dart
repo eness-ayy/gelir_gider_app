@@ -44,19 +44,7 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
   late String _selectedType;
   late String _selectedIcon;
 
-  final List<String> availableIcons = [
-    'wallet',
-    'cash',
-    'trending-up',
-    'cart',
-    'receipt',
-    'bus',
-    'medical',
-    'school',
-    'game-controller',
-    'restaurant',
-    'family',
-  ];
+  List<String> get availableIcons => icons;
 
   @override
   void initState() {
@@ -183,7 +171,72 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              if (!isEditing) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome_rounded,
+                        size: 14, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    const Text(
+                      "Önerilen Kategoriler",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: (_selectedType == 'expense'
+                            ? const [
+                                ('Alışveriş / Giyim', 'shopping-bag'),
+                                ('Kira & Ev', 'home'),
+                                ('Abonelikler', 'autorenew'),
+                                ('Borç / Kredi', 'credit-card'),
+                                ('Kişisel Bakım', 'content-cut'),
+                                ('Diğer / Çeşitli', 'more'),
+                              ]
+                            : const [
+                                ('Burs / Harçlık', 'school'),
+                                ('İade / Alacak', 'call-received'),
+                                ('Maaş', 'cash'),
+                                ('Ek Gelir', 'trending-up'),
+                                ('Yatırım Geliri', 'trending-up'),
+                              ])
+                        .map((item) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ActionChip(
+                          avatar: Icon(
+                            getCategoryIcon(
+                              iconName: item.$2,
+                              isSystem: true,
+                              type: _selectedType,
+                            ),
+                            size: 15,
+                          ),
+                          label: Text(
+                            item.$1,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _nameController.text = item.$1;
+                              _selectedIcon = item.$2;
+                            });
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
 
               // 2. Kategori Adı
               TextFormField(

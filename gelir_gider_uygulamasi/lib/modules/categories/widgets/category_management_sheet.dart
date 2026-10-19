@@ -254,6 +254,7 @@ class CategoryManagementSheet extends StatelessWidget {
                               iconName: cat.icon ?? 'receipt',
                               isSystem: cat.isSystem ?? false,
                               type: cat.type ?? '',
+                              categoryName: cat.name,
                             ),
                             color: tintColor,
                             size: 22,

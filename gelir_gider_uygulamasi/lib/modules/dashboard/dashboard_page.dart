@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
-import 'package:gelir_gider_uygulamasi/modules/dashboard/widgets/budget_overview_card.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/widgets/dashboard_overview_carousel.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/widgets/search_filter_bar.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/widgets/summary_card.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/widgets/transaction_list.dart';
@@ -74,8 +74,8 @@ class DashboardPage extends GetView<DashboardController> {
                         ),
                       ),
 
-                      // 2. Kategori Bütçe Takip Kartı
-                      const BudgetOverviewCard(),
+                      // 2. Cüzdan & Bütçe Takip Kartları (Sola Kaydırmalı / Carousel)
+                      const DashboardOverviewCarousel(),
 
                       // 3. Arama ve Filtreleme Çubuğu
                       const SearchFilterBar(),

@@ -3,10 +3,12 @@ import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/models/app_category.dart';
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 import 'package:gelir_gider_uygulamasi/models/category_budget_status.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
+import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:get/get.dart';
 
@@ -14,10 +16,14 @@ class TransactionController extends BaseController {
   final CategoryRepository _categoryRepository = Get.find<CategoryRepository>();
   final TransactionRepostory _transactionRepostory =
       Get.find<TransactionRepostory>();
+  AccountService get _accountService => Get.isRegistered<AccountService>()
+      ? Get.find<AccountService>()
+      : Get.put(AccountService());
 
   final categories = <AppCategory>[].obs;
   final selectedCategoryId = "".obs;
   final transactionType = "expense".obs;
+  final selectedPaymentMethod = PaymentMethod.cash.obs;
   final formKey = GlobalKey<FormState>();
   final date = DateTime.now().obs;
 
@@ -48,6 +54,11 @@ class TransactionController extends BaseController {
       descriptionController.text = tr.description;
       transactionType.value = tr.type.isNotEmpty ? tr.type : "expense";
       selectedCategoryId.value = tr.categoryId;
+      if (tr.paymentMethod != null && tr.paymentMethod!.isNotEmpty) {
+        selectedPaymentMethod.value = PaymentMethod.fromKey(tr.paymentMethod);
+      } else {
+        selectedPaymentMethod.value = _accountService.getPaymentMethod(tr.id);
+      }
       final parsedDate = DateTime.tryParse(tr.date);
       if (parsedDate != null) {
         date.value = parsedDate;
@@ -66,6 +77,11 @@ class TransactionController extends BaseController {
         }
       } else {
         selectedCategoryId.value = "";
+      }
+
+      // Gelir türünde kredi kartı geçerli olmadığı için Banka Kartı'na geç
+      if (type == 'income' && selectedPaymentMethod.value == PaymentMethod.creditCard) {
+        selectedPaymentMethod.value = PaymentMethod.bankCard;
       }
     });
   }
@@ -118,6 +134,7 @@ class TransactionController extends BaseController {
         date: date.value.toIso8601String(),
         categoryId: selectedCategoryId.value,
         userId: '',
+        paymentMethod: selectedPaymentMethod.value.key,
       );
 
       if (isEditing.value && (editingTransactionId?.isNotEmpty ?? false)) {
@@ -125,13 +142,26 @@ class TransactionController extends BaseController {
           editingTransactionId!,
           transaction,
         );
+        await _accountService.setPaymentMethod(
+          editingTransactionId!,
+          selectedPaymentMethod.value.key,
+        );
         showSuccessSnackbar(message: "İşlem başarıyla güncellendi");
       } else {
-        await _transactionRepostory.createTransaction(transaction);
+        final created = await _transactionRepostory.createTransaction(transaction);
+        final targetId = created.id.isNotEmpty ? created.id : (editingTransactionId ?? '');
+        if (targetId.isNotEmpty) {
+          await _accountService.setPaymentMethod(
+            targetId,
+            selectedPaymentMethod.value.key,
+          );
+        }
         showSuccessSnackbar(message: "İşlem başarıyla oluşturuldu");
       }
 
-      await Get.find<DashboardController>().refreshDashboard();
+      if (Get.isRegistered<DashboardController>()) {
+        await Get.find<DashboardController>().refreshDashboard();
+      }
       Get.back();
       clearForm();
     } catch (e) {
@@ -163,6 +193,7 @@ class TransactionController extends BaseController {
     descriptionController.clear();
     date.value = DateTime.now();
     transactionType.value = "expense";
+    selectedPaymentMethod.value = PaymentMethod.cash;
     selectedCategoryId.value = "";
     enteredAmount.value = 0.0;
     isEditing.value = false;

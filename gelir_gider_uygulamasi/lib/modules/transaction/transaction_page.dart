@@ -6,6 +6,7 @@ import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/budget_warnin
 import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/category_dropdown.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/date_input.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/description_input.dart';
+import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/payment_account_selector.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/save_button.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/transaction_type_selector.dart';
 import 'package:get/get.dart';
@@ -51,6 +52,8 @@ class TransactionPage extends GetView<TransactionController> {
                         ],
                       ),
                       const BudgetWarningBanner(),
+                      const SizedBox(height: 14),
+                      const PaymentAccountSelector(),
                       const SizedBox(height: 16),
                       const AmountInput(),
                       const SizedBox(height: 16),

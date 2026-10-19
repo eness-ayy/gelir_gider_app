@@ -1,5 +1,7 @@
 
 
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
+
 class AppTransaction {
   String id;
   String amount;
@@ -11,6 +13,7 @@ class AppTransaction {
   String createdAt;
   String updatedAt;
   Category? category; // Null olabilmesi için '?' eklendi
+  String? paymentMethod; // 'cash', 'bank_card', 'credit_card'
 
   AppTransaction({
     required this.id,
@@ -23,7 +26,10 @@ class AppTransaction {
     required this.createdAt,
     required this.updatedAt,
     this.category, // required kaldırıldı, opsiyonel yapıldı
+    this.paymentMethod,
   });
+
+  PaymentMethod get paymentMethodEnum => PaymentMethod.fromKey(paymentMethod);
 
   factory AppTransaction.fromJson(Map<String, dynamic> json) {
     return AppTransaction(
@@ -39,6 +45,8 @@ class AppTransaction {
       category: json['Category'] != null
           ? Category.fromJson(json['Category'] as Map<String, dynamic>)
           : null,
+      paymentMethod:
+          json['payment_method'] ?? json['paymentMethod'] ?? json['account'],
     );
   }
 
@@ -53,6 +61,9 @@ class AppTransaction {
     data['category_id'] = categoryId;
     data['createdAt'] = createdAt;
     data['updatedAt'] = updatedAt;
+    if (paymentMethod != null) {
+      data['payment_method'] = paymentMethod;
+    }
     if (category != null) {
       data['Category'] = category!.toJson();
     }

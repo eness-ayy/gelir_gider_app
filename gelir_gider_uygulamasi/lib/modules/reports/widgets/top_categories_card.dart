@@ -147,6 +147,7 @@ class TopCategoriesCard extends GetView<ReportsController> {
                                     iconName: item.icon,
                                     isSystem: true,
                                     type: 'expense',
+                                    categoryName: item.categoryName,
                                   ),
                                   color: item.color,
                                   size: 18,

@@ -1,8 +1,10 @@
 // ignore_for_file: must_call_super
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gelir_gider_uygulamasi/models/app_category.dart';
 import 'package:gelir_gider_uygulamasi/modules/categories/categories_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
+import 'package:gelir_gider_uygulamasi/utils/icon_helper.dart';
 import 'package:get/get.dart';
 
 class FakeCategoryRepository extends CategoryRepository {
@@ -141,5 +143,110 @@ void main() {
       icon: 'receipt',
     );
     expect(success, isFalse);
+  });
+
+  test('recommended categories detection and batch addition', () async {
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    expect(controller.hasMissingRecommendedCategories, isTrue);
+    expect(controller.missingRecommendedCategories.length, equals(8));
+
+    // Toplu ekleme
+    final added = await controller.addRecommendedCategories(showSnackbar: false);
+    expect(added, equals(8));
+    expect(controller.hasMissingRecommendedCategories, isFalse);
+
+    // Tüm yeni kategorilerin adları mevcut mu?
+    final catNames = controller.categories.map((c) => c.name).toList();
+    expect(catNames, contains('Alışveriş / Giyim'));
+    expect(catNames, contains('Kira & Ev'));
+    expect(catNames, contains('Abonelikler'));
+    expect(catNames, contains('Borç / Kredi'));
+    expect(catNames, contains('Kişisel Bakım'));
+    expect(catNames, contains('Diğer / Çeşitli'));
+    expect(catNames, contains('Burs / Harçlık'));
+    expect(catNames, contains('İade / Alacak'));
+  });
+
+  test('getCategoryIcon returns appropriate icons for all 8 categories', () {
+    // 1. Alışveriş / Giyim
+    expect(
+      getCategoryIcon(iconName: 'shopping-bag', isSystem: false, type: 'expense'),
+      equals(Icons.shopping_bag_rounded),
+    );
+    expect(
+      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Alışveriş / Giyim'),
+      equals(Icons.shopping_bag_rounded),
+    );
+
+    // 2. Kira & Ev
+    expect(
+      getCategoryIcon(iconName: 'home', isSystem: false, type: 'expense'),
+      equals(Icons.home_rounded),
+    );
+    expect(
+      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Kira & Ev'),
+      equals(Icons.home_rounded),
+    );
+
+    // 3. Abonelikler
+    expect(
+      getCategoryIcon(iconName: 'autorenew', isSystem: false, type: 'expense'),
+      equals(Icons.autorenew_rounded),
+    );
+    expect(
+      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Abonelikler'),
+      equals(Icons.autorenew_rounded),
+    );
+
+    // 4. Borç / Kredi
+    expect(
+      getCategoryIcon(iconName: 'credit-card', isSystem: false, type: 'expense'),
+      equals(Icons.credit_card_rounded),
+    );
+    expect(
+      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Borç / Kredi'),
+      equals(Icons.credit_card_rounded),
+    );
+
+    // 5. Kişisel Bakım
+    expect(
+      getCategoryIcon(iconName: 'content-cut', isSystem: false, type: 'expense'),
+      equals(Icons.content_cut_rounded),
+    );
+    expect(
+      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Kişisel Bakım'),
+      equals(Icons.content_cut_rounded),
+    );
+
+    // 6. Diğer / Çeşitli
+    expect(
+      getCategoryIcon(iconName: 'more', isSystem: false, type: 'expense'),
+      equals(Icons.more_horiz_rounded),
+    );
+    expect(
+      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Diğer / Çeşitli'),
+      equals(Icons.more_horiz_rounded),
+    );
+
+    // 7. Burs / Harçlık
+    expect(
+      getCategoryIcon(iconName: 'school', isSystem: false, type: 'income'),
+      equals(Icons.school_rounded),
+    );
+    expect(
+      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'income', categoryName: 'Burs / Harçlık'),
+      equals(Icons.school_rounded),
+    );
+
+    // 8. İade / Alacak
+    expect(
+      getCategoryIcon(iconName: 'call-received', isSystem: false, type: 'income'),
+      equals(Icons.call_received_rounded),
+    );
+    expect(
+      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'income', categoryName: 'İade / Alacak'),
+      equals(Icons.call_received_rounded),
+    );
   });
 }

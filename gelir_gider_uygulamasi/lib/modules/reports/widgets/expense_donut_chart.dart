@@ -227,6 +227,7 @@ class ExpenseDonutChart extends GetView<ReportsController> {
                                   iconName: item.icon,
                                   isSystem: true,
                                   type: 'expense',
+                                  categoryName: item.categoryName,
                                 ),
                                 size: 16,
                                 color: item.color,

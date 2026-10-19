@@ -1,8 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
+import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:get/get.dart';
+
+class PaymentMethodExpenseSummary {
+  final PaymentMethod method;
+  final double totalAmount;
+  final double percentage;
+  final int transactionCount;
+
+  PaymentMethodExpenseSummary({
+    required this.method,
+    required this.totalAmount,
+    required this.percentage,
+    required this.transactionCount,
+  });
+}
 
 class CategoryExpenseSummary {
   final String categoryId;
@@ -241,5 +257,56 @@ class ReportsController extends BaseController {
     }
 
     return trend;
+  }
+
+  // MARK: - Ödeme Yöntemi / Hesap Dağılımı (Nakit, Banka Kartı, Kredi Kartı)
+  List<PaymentMethodExpenseSummary> get expensePaymentMethodsSummary {
+    final expenses = selectedMonthExpenses;
+    final total = totalExpense;
+    if (expenses.isEmpty || total <= 0) return [];
+
+    final accountService = Get.isRegistered<AccountService>()
+        ? Get.find<AccountService>()
+        : Get.put(AccountService());
+
+    final Map<PaymentMethod, double> totals = {
+      PaymentMethod.cash: 0.0,
+      PaymentMethod.bankCard: 0.0,
+      PaymentMethod.creditCard: 0.0,
+    };
+    final Map<PaymentMethod, int> counts = {
+      PaymentMethod.cash: 0,
+      PaymentMethod.bankCard: 0,
+      PaymentMethod.creditCard: 0,
+    };
+
+    for (var tr in expenses) {
+      PaymentMethod method;
+      if (tr.paymentMethod != null && tr.paymentMethod!.isNotEmpty) {
+        method = PaymentMethod.fromKey(tr.paymentMethod);
+      } else {
+        method = accountService.getPaymentMethod(tr.id);
+      }
+      final amount = double.tryParse(tr.amount) ?? 0.0;
+      totals[method] = (totals[method] ?? 0.0) + amount;
+      counts[method] = (counts[method] ?? 0) + 1;
+    }
+
+    final list = <PaymentMethodExpenseSummary>[];
+    totals.forEach((method, sum) {
+      if (sum > 0) {
+        list.add(
+          PaymentMethodExpenseSummary(
+            method: method,
+            totalAmount: sum,
+            percentage: (sum / total) * 100,
+            transactionCount: counts[method] ?? 0,
+          ),
+        );
+      }
+    });
+
+    list.sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
+    return list;
   }
 }

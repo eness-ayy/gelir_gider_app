@@ -71,6 +71,7 @@ class _SetBudgetDialogState extends State<SetBudgetDialog> {
                 iconName: cat.icon ?? 'receipt',
                 isSystem: cat.isSystem ?? false,
                 type: cat.type ?? '',
+                categoryName: cat.name,
               ),
               color: AppColors.primary,
               size: 24,

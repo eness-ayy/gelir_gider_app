@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
@@ -23,7 +24,9 @@ class TransactionList extends GetView<DashboardController> {
         return Center(
           child: Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: Column(
@@ -40,21 +43,21 @@ class TransactionList extends GetView<DashboardController> {
                   Text(
                     "Henüz kayıtlı bir işlem yok",
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
-                        ),
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "Aşağıdaki + butonuna dokunarak ilk gelirinizi veya giderinizi ekleyebilirsiniz.",
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                        ),
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -68,7 +71,9 @@ class TransactionList extends GetView<DashboardController> {
         return Center(
           child: Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: Column(
@@ -83,21 +88,21 @@ class TransactionList extends GetView<DashboardController> {
                   Text(
                     "Eşleşen işlem bulunamadı",
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "Arama veya filtre kriterlerinize uyan bir kayıt bulunamadı. Filtreleri temizleyerek tüm işlemleri görebilirsiniz.",
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                        ),
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
@@ -132,19 +137,19 @@ class TransactionList extends GetView<DashboardController> {
                 Text(
                   "İşlemler",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   controller.hasActiveFilters
                       ? "$filteredCount / $totalCount işlem"
                       : "$filteredCount işlem",
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -153,7 +158,9 @@ class TransactionList extends GetView<DashboardController> {
           // İşlem Listesi
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -190,7 +197,9 @@ class TransactionList extends GetView<DashboardController> {
                   key: ValueKey(oankiTransaction.id),
                   direction: DismissDirection.endToStart,
                   confirmDismiss: (direction) async {
-                    return await controller.deleteTransactions(oankiTransaction.id);
+                    return await controller.deleteTransactions(
+                      oankiTransaction.id,
+                    );
                   },
                   background: Container(
                     color: Colors.red.shade600,
@@ -213,7 +222,10 @@ class TransactionList extends GetView<DashboardController> {
                   ),
                   child: ListTile(
                     onTap: () {
-                      Get.toNamed(AppRoutes.transaction, arguments: oankiTransaction);
+                      Get.toNamed(
+                        AppRoutes.transaction,
+                        arguments: oankiTransaction,
+                      );
                     },
                     leading: Container(
                       width: 46,
@@ -227,6 +239,7 @@ class TransactionList extends GetView<DashboardController> {
                           iconName: category?.icon ?? 'receipt',
                           isSystem: true,
                           type: category?.type ?? oankiTransaction.type,
+                          categoryName: category?.name,
                         ),
                         color: isIncome ? incomeColor : expenseColor,
                       ),
@@ -235,12 +248,53 @@ class TransactionList extends GetView<DashboardController> {
                       category?.name ?? 'İsimsiz Kategori',
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    subtitle: Text(
-                      oankiTransaction.description.isNotEmpty
-                          ? oankiTransaction.description
-                          : 'Açıklama yok',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    subtitle: Builder(
+                      builder: (context) {
+                        final method =
+                            oankiTransaction.paymentMethod != null &&
+                                oankiTransaction.paymentMethod!.isNotEmpty
+                            ? PaymentMethod.fromKey(
+                                oankiTransaction.paymentMethod,
+                              )
+                            : controller.accountService.getPaymentMethod(
+                                oankiTransaction.id,
+                              );
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (oankiTransaction.description.isNotEmpty) ...[
+                              Text(
+                                oankiTransaction.description,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                            ],
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  method.icon,
+                                  size: 13,
+                                  color: method.color,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  method.title,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : method.color,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -257,7 +311,8 @@ class TransactionList extends GetView<DashboardController> {
                         const SizedBox(height: 4),
                         Text(
                           DateFormat('dd.MM.yyyy').format(parsedDate),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: isDark
                                     ? AppColors.darkTextSecondary
                                     : AppColors.lightTextSecondary,

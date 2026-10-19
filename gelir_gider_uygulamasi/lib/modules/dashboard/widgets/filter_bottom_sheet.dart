@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:gelir_gider_uygulamasi/utils/icon_helper.dart';
@@ -21,8 +22,12 @@ class FilterBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<DashboardController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
-    final textColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final surfaceColor = isDark
+        ? AppColors.darkSurface
+        : AppColors.lightSurface;
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
 
     return Container(
       decoration: BoxDecoration(
@@ -68,9 +73,9 @@ class FilterBottomSheet extends StatelessWidget {
                       Text(
                         "Filtreler & Sıralama",
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
                       ),
                     ],
                   ),
@@ -83,177 +88,272 @@ class FilterBottomSheet extends StatelessWidget {
               const Divider(height: 24),
 
               // 1. Transaction Type
-              _buildSectionTitle(context, "İşlem Türü", Icons.swap_vert_rounded),
+              _buildSectionTitle(
+                context,
+                "İşlem Türü",
+                Icons.swap_vert_rounded,
+              ),
               const SizedBox(height: 8),
-              Obx(() => Row(
-                    children: [
-                      _buildSelectableChip(
-                        label: "Tümü",
-                        isSelected: controller.selectedType.value == 'all',
-                        onTap: () => controller.setTypeFilter('all'),
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildSelectableChip(
-                        label: "Gelir",
-                        icon: Icons.arrow_upward_rounded,
-                        activeColor: isDark ? Colors.green.shade700 : AppColors.income,
-                        isSelected: controller.selectedType.value == 'income',
-                        onTap: () => controller.setTypeFilter('income'),
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildSelectableChip(
-                        label: "Gider",
-                        icon: Icons.arrow_downward_rounded,
-                        activeColor: isDark ? Colors.red.shade700 : AppColors.expense,
-                        isSelected: controller.selectedType.value == 'expense',
-                        onTap: () => controller.setTypeFilter('expense'),
-                        isDark: isDark,
-                      ),
-                    ],
-                  )),
+              Obx(
+                () => Row(
+                  children: [
+                    _buildSelectableChip(
+                      label: "Tümü",
+                      isSelected: controller.selectedType.value == 'all',
+                      onTap: () => controller.setTypeFilter('all'),
+                      isDark: isDark,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSelectableChip(
+                      label: "Gelir",
+                      icon: Icons.arrow_upward_rounded,
+                      activeColor: isDark
+                          ? Colors.green.shade700
+                          : AppColors.income,
+                      isSelected: controller.selectedType.value == 'income',
+                      onTap: () => controller.setTypeFilter('income'),
+                      isDark: isDark,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSelectableChip(
+                      label: "Gider",
+                      icon: Icons.arrow_downward_rounded,
+                      activeColor: isDark
+                          ? Colors.red.shade700
+                          : AppColors.expense,
+                      isSelected: controller.selectedType.value == 'expense',
+                      onTap: () => controller.setTypeFilter('expense'),
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 20),
 
-              // 2. Date Range
-              _buildSectionTitle(context, "Tarih Aralığı", Icons.calendar_today_rounded),
+              // 2. Account / Payment Method Filter
+              _buildSectionTitle(
+                context,
+                "Hesap / Ödeme Türü",
+                Icons.account_balance_wallet_rounded,
+              ),
               const SizedBox(height: 8),
-              Obx(() => Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildSelectableChip(
-                        label: "Bu Ay",
-                        isSelected: controller.selectedDateRange.value == 'this_month',
-                        onTap: () => controller.setDateRangeFilter('this_month'),
-                        isDark: isDark,
+              Obx(
+                () => Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildSelectableChip(
+                      label: "Tüm Hesaplar",
+                      isSelected:
+                          controller.selectedAccountFilter.value == 'all',
+                      onTap: () => controller.setAccountFilter('all'),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "Nakit",
+                      icon: Icons.payments_outlined,
+                      activeColor: const Color(0xFF00897B),
+                      isSelected:
+                          controller.selectedAccountFilter.value ==
+                          PaymentMethod.cash.key,
+                      onTap: () =>
+                          controller.setAccountFilter(PaymentMethod.cash.key),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "Banka Kartı",
+                      icon: Icons.account_balance_outlined,
+                      activeColor: const Color(0xFF1E88E5),
+                      isSelected:
+                          controller.selectedAccountFilter.value ==
+                          PaymentMethod.bankCard.key,
+                      onTap: () => controller.setAccountFilter(
+                        PaymentMethod.bankCard.key,
                       ),
-                      _buildSelectableChip(
-                        label: "Bu Hafta",
-                        isSelected: controller.selectedDateRange.value == 'this_week',
-                        onTap: () => controller.setDateRangeFilter('this_week'),
-                        isDark: isDark,
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "Kredi Kartı",
+                      icon: Icons.credit_card_outlined,
+                      activeColor: const Color(0xFF8E24AA),
+                      isSelected:
+                          controller.selectedAccountFilter.value ==
+                          PaymentMethod.creditCard.key,
+                      onTap: () => controller.setAccountFilter(
+                        PaymentMethod.creditCard.key,
                       ),
-                      _buildSelectableChip(
-                        label: "Geçen Ay",
-                        isSelected: controller.selectedDateRange.value == 'last_month',
-                        onTap: () => controller.setDateRangeFilter('last_month'),
-                        isDark: isDark,
-                      ),
-                      _buildSelectableChip(
-                        label: "Tüm Zamanlar",
-                        isSelected: controller.selectedDateRange.value == 'all',
-                        onTap: () => controller.setDateRangeFilter('all'),
-                        isDark: isDark,
-                      ),
-                      _buildSelectableChip(
-                        label: controller.selectedDateRange.value == 'custom' &&
-                                controller.customStartDate.value != null &&
-                                controller.customEndDate.value != null
-                            ? "${DateFormat('dd.MM').format(controller.customStartDate.value!)} - ${DateFormat('dd.MM').format(controller.customEndDate.value!)}"
-                            : "Özel Tarih Seç",
-                        icon: Icons.date_range_rounded,
-                        isSelected: controller.selectedDateRange.value == 'custom',
-                        onTap: () async {
-                          final picked = await showDateRangePicker(
-                            context: context,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                            initialDateRange: controller.customStartDate.value != null &&
-                                    controller.customEndDate.value != null
-                                ? DateTimeRange(
-                                    start: controller.customStartDate.value!,
-                                    end: controller.customEndDate.value!,
-                                  )
-                                : DateTimeRange(
-                                    start: DateTime.now().subtract(const Duration(days: 7)),
-                                    end: DateTime.now(),
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 3. Date Range
+              _buildSectionTitle(
+                context,
+                "Tarih Aralığı",
+                Icons.calendar_today_rounded,
+              ),
+              const SizedBox(height: 8),
+              Obx(
+                () => Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildSelectableChip(
+                      label: "Bu Ay",
+                      isSelected:
+                          controller.selectedDateRange.value == 'this_month',
+                      onTap: () => controller.setDateRangeFilter('this_month'),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "Bu Hafta",
+                      isSelected:
+                          controller.selectedDateRange.value == 'this_week',
+                      onTap: () => controller.setDateRangeFilter('this_week'),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "Geçen Ay",
+                      isSelected:
+                          controller.selectedDateRange.value == 'last_month',
+                      onTap: () => controller.setDateRangeFilter('last_month'),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "Tüm Zamanlar",
+                      isSelected: controller.selectedDateRange.value == 'all',
+                      onTap: () => controller.setDateRangeFilter('all'),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label:
+                          controller.selectedDateRange.value == 'custom' &&
+                              controller.customStartDate.value != null &&
+                              controller.customEndDate.value != null
+                          ? "${DateFormat('dd.MM').format(controller.customStartDate.value!)} - ${DateFormat('dd.MM').format(controller.customEndDate.value!)}"
+                          : "Özel Tarih Seç",
+                      icon: Icons.date_range_rounded,
+                      isSelected:
+                          controller.selectedDateRange.value == 'custom',
+                      onTap: () async {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
+                          initialDateRange:
+                              controller.customStartDate.value != null &&
+                                  controller.customEndDate.value != null
+                              ? DateTimeRange(
+                                  start: controller.customStartDate.value!,
+                                  end: controller.customEndDate.value!,
+                                )
+                              : DateTimeRange(
+                                  start: DateTime.now().subtract(
+                                    const Duration(days: 7),
                                   ),
+                                  end: DateTime.now(),
+                                ),
+                        );
+                        if (picked != null) {
+                          controller.setCustomDateRange(
+                            picked.start,
+                            picked.end,
                           );
-                          if (picked != null) {
-                            controller.setCustomDateRange(picked.start, picked.end);
-                          }
-                        },
-                        isDark: isDark,
-                      ),
-                    ],
-                  )),
+                        }
+                      },
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 20),
 
               // 3. Category Filter
               _buildSectionTitle(context, "Kategori", Icons.category_rounded),
               const SizedBox(height: 8),
-              Obx(() => Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildSelectableChip(
-                        label: "Tüm Kategoriler",
-                        isSelected: controller.selectedCategoryId.value == null,
-                        onTap: () => controller.setCategoryFilter(null),
+              Obx(
+                () => Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildSelectableChip(
+                      label: "Tüm Kategoriler",
+                      isSelected: controller.selectedCategoryId.value == null,
+                      onTap: () => controller.setCategoryFilter(null),
+                      isDark: isDark,
+                    ),
+                    ...controller.categories.map((cat) {
+                      final isSelected =
+                          controller.selectedCategoryId.value == cat.id;
+                      return _buildSelectableChip(
+                        label: cat.name ?? '',
+                        icon: getCategoryIcon(
+                          iconName: cat.icon ?? 'receipt',
+                          isSystem: cat.isSystem ?? true,
+                          type: cat.type ?? 'expense',
+                          categoryName: cat.name,
+                        ),
+                        isSelected: isSelected,
+                        onTap: () {
+                          if (isSelected) {
+                            controller.setCategoryFilter(null);
+                          } else {
+                            controller.setCategoryFilter(cat.id);
+                          }
+                        },
                         isDark: isDark,
-                      ),
-                      ...controller.categories.map((cat) {
-                        final isSelected = controller.selectedCategoryId.value == cat.id;
-                        return _buildSelectableChip(
-                          label: cat.name ?? '',
-                          icon: getCategoryIcon(
-                            iconName: cat.icon ?? 'receipt',
-                            isSystem: cat.isSystem ?? true,
-                            type: cat.type ?? 'expense',
-                          ),
-                          isSelected: isSelected,
-                          onTap: () {
-                            if (isSelected) {
-                              controller.setCategoryFilter(null);
-                            } else {
-                              controller.setCategoryFilter(cat.id);
-                            }
-                          },
-                          isDark: isDark,
-                        );
-                      }),
-                    ],
-                  )),
+                      );
+                    }),
+                  ],
+                ),
+              ),
               const SizedBox(height: 20),
 
               // 4. Sort
               _buildSectionTitle(context, "Sıralama", Icons.sort_rounded),
               const SizedBox(height: 8),
-              Obx(() => Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildSelectableChip(
-                        label: "En Yeni",
-                        icon: Icons.calendar_today_outlined,
-                        isSelected: controller.selectedSort.value == 'date_desc',
-                        onTap: () => controller.setSort('date_desc'),
-                        isDark: isDark,
-                      ),
-                      _buildSelectableChip(
-                        label: "En Eski",
-                        icon: Icons.history_rounded,
-                        isSelected: controller.selectedSort.value == 'date_asc',
-                        onTap: () => controller.setSort('date_asc'),
-                        isDark: isDark,
-                      ),
-                      _buildSelectableChip(
-                        label: "En Yüksek Tutar",
-                        icon: Icons.trending_up_rounded,
-                        isSelected: controller.selectedSort.value == 'amount_desc',
-                        onTap: () => controller.setSort('amount_desc'),
-                        isDark: isDark,
-                      ),
-                      _buildSelectableChip(
-                        label: "En Düşük Tutar",
-                        icon: Icons.trending_down_rounded,
-                        isSelected: controller.selectedSort.value == 'amount_asc',
-                        onTap: () => controller.setSort('amount_asc'),
-                        isDark: isDark,
-                      ),
-                    ],
-                  )),
+              Obx(
+                () => Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildSelectableChip(
+                      label: "En Yeni",
+                      icon: Icons.calendar_today_outlined,
+                      isSelected: controller.selectedSort.value == 'date_desc',
+                      onTap: () => controller.setSort('date_desc'),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "En Eski",
+                      icon: Icons.history_rounded,
+                      isSelected: controller.selectedSort.value == 'date_asc',
+                      onTap: () => controller.setSort('date_asc'),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "En Yüksek Tutar",
+                      icon: Icons.trending_up_rounded,
+                      isSelected:
+                          controller.selectedSort.value == 'amount_desc',
+                      onTap: () => controller.setSort('amount_desc'),
+                      isDark: isDark,
+                    ),
+                    _buildSelectableChip(
+                      label: "En Düşük Tutar",
+                      icon: Icons.trending_down_rounded,
+                      isSelected: controller.selectedSort.value == 'amount_asc',
+                      onTap: () => controller.setSort('amount_asc'),
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 28),
 
               // Action Buttons
@@ -305,9 +405,9 @@ class FilterBottomSheet extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -331,7 +431,9 @@ class FilterBottomSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? effectiveActiveColor.withValues(alpha: isDark ? 0.25 : 0.12)
-              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100),
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.grey.shade100),
           border: Border.all(
             color: isSelected
                 ? effectiveActiveColor
@@ -349,7 +451,9 @@ class FilterBottomSheet extends StatelessWidget {
                 size: 16,
                 color: isSelected
                     ? effectiveActiveColor
-                    : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                    : (isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary),
               ),
               const SizedBox(width: 6),
             ],
@@ -360,7 +464,9 @@ class FilterBottomSheet extends StatelessWidget {
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 color: isSelected
                     ? effectiveActiveColor
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                    : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary),
               ),
             ),
           ],

@@ -57,7 +57,21 @@ class AddCategoryDialog extends StatelessWidget {
                       .map(
                         (icon) => DropdownMenuItem<String>(
                           value: icon,
-                          child: Text(icon),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                getCategoryIcon(
+                                  iconName: icon,
+                                  isSystem: true,
+                                  type: controller.categoryType.value,
+                                ),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(getCategoryIconLabel(icon)),
+                            ],
+                          ),
                         ),
                       )
                       .toList(),
