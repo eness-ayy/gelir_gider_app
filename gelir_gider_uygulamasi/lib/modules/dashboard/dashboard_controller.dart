@@ -195,53 +195,8 @@ class DashboardController extends BaseController {
       }
 
       // 3. Tarih Aralığı Filtresi
-      final parsedDate = DateTime.tryParse(tr.date);
-      if (parsedDate != null) {
-        switch (selectedDateRange.value) {
-          case 'this_month':
-            if (parsedDate.year != now.year || parsedDate.month != now.month) {
-              return false;
-            }
-            break;
-          case 'last_month':
-            final targetYear = now.month == 1 ? now.year - 1 : now.year;
-            final targetMonth = now.month == 1 ? 12 : now.month - 1;
-            if (parsedDate.year != targetYear || parsedDate.month != targetMonth) {
-              return false;
-            }
-            break;
-          case 'this_week':
-            final startOfWeek = DateTime(now.year, now.month, now.day)
-                .subtract(Duration(days: now.weekday - 1));
-            final endOfWeek = startOfWeek.add(const Duration(days: 7));
-            if (parsedDate.isBefore(startOfWeek) || !parsedDate.isBefore(endOfWeek)) {
-              return false;
-            }
-            break;
-          case 'custom':
-            if (customStartDate.value != null && customEndDate.value != null) {
-              final start = DateTime(
-                customStartDate.value!.year,
-                customStartDate.value!.month,
-                customStartDate.value!.day,
-              );
-              final end = DateTime(
-                customEndDate.value!.year,
-                customEndDate.value!.month,
-                customEndDate.value!.day,
-                23,
-                59,
-                59,
-              );
-              if (parsedDate.isBefore(start) || parsedDate.isAfter(end)) {
-                return false;
-              }
-            }
-            break;
-          case 'all':
-          default:
-            break;
-        }
+      if (!_matchesDateRange(tr, now)) {
+        return false;
       }
 
       // 4. Arama Sorgusu (Türkçe karakter ve toleranslı arama destekli)
@@ -293,6 +248,71 @@ class DashboardController extends BaseController {
 
     return list;
   }
+
+  bool _matchesDateRange(AppTransaction tr, DateTime now) {
+    final parsedDate = DateTime.tryParse(tr.date);
+    if (parsedDate == null) return false;
+
+    switch (selectedDateRange.value) {
+      case 'this_month':
+        return parsedDate.year == now.year && parsedDate.month == now.month;
+      case 'last_month':
+        final targetYear = now.month == 1 ? now.year - 1 : now.year;
+        final targetMonth = now.month == 1 ? 12 : now.month - 1;
+        return parsedDate.year == targetYear && parsedDate.month == targetMonth;
+      case 'this_week':
+        final startOfWeek = DateTime(now.year, now.month, now.day)
+            .subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 7));
+        return !parsedDate.isBefore(startOfWeek) && parsedDate.isBefore(endOfWeek);
+      case 'custom':
+        if (customStartDate.value != null && customEndDate.value != null) {
+          final start = DateTime(
+            customStartDate.value!.year,
+            customStartDate.value!.month,
+            customStartDate.value!.day,
+          );
+          final end = DateTime(
+            customEndDate.value!.year,
+            customEndDate.value!.month,
+            customEndDate.value!.day,
+            23,
+            59,
+            59,
+          );
+          return !parsedDate.isBefore(start) && !parsedDate.isAfter(end);
+        }
+        return true;
+      case 'all':
+      default:
+        return true;
+    }
+  }
+
+  // Üst Özet Kartları için Dönemsel Toplamlar (Hesap veya arama filtresinden etkilenmez, her zaman gerçek dönemsel özeti gösterir)
+  double get summaryGelir {
+    final now = DateTime.now();
+    double total = 0.0;
+    for (var tr in myTransaction) {
+      if (tr.type == 'income' && _matchesDateRange(tr, now)) {
+        total += double.tryParse(tr.amount) ?? 0.0;
+      }
+    }
+    return total;
+  }
+
+  double get summaryGider {
+    final now = DateTime.now();
+    double total = 0.0;
+    for (var tr in myTransaction) {
+      if (tr.type == 'expense' && _matchesDateRange(tr, now)) {
+        total += double.tryParse(tr.amount) ?? 0.0;
+      }
+    }
+    return total;
+  }
+
+  double get summaryBakiye => summaryGelir - summaryGider;
 
   // Dinamik Özet Değerleri (Filtrelenmiş İşlemlere Göre)
   double get filteredGelir {

@@ -9,6 +9,8 @@ class SummaryCard extends StatelessWidget {
   final List<Color> gradientColors;
   final bool isaretGosterilsinMi;
 
+  final double? width;
+
   const SummaryCard({
     super.key,
     required this.title,
@@ -17,51 +19,74 @@ class SummaryCard extends StatelessWidget {
     required this.color,
     required this.gradientColors,
     this.isaretGosterilsinMi = false,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final amountFormat = NumberFormat.currency(symbol: "₺", decimalDigits: 2);
+    final textColor = isDark ? Colors.white : Colors.black87;
     return Container(
-      width: 150,
-      margin: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      width: width,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: gradientColors,
           begin: Alignment.topLeft,
-          end: Alignment.bottomLeft,
+          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 16, color: Colors.white),
-                SizedBox(width: 4),
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+                const SizedBox(width: 4),
                 Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontSize: 14,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
-            Spacer(),
-            Text(
-              '${isaretGosterilsinMi && amount > 0 ? '+' : ''} ${amountFormat.format(amount)}',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+            const Spacer(),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${isaretGosterilsinMi && amount > 0 ? '+' : ''}${amountFormat.format(amount)}',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: textColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],

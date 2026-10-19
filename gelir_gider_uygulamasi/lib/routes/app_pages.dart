@@ -1,13 +1,16 @@
+import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_binding.dart';
+import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_page.dart';
+import 'package:gelir_gider_uygulamasi/modules/groups/groups_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/home/home_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/home/home_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/login/login_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/login/login_page.dart';
-import 'package:gelir_gider_uygulamasi/modules/splash/splash_binding.dart';
-import 'package:gelir_gider_uygulamasi/modules/splash/splash_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_page.dart';
+import 'package:gelir_gider_uygulamasi/modules/splash/splash_binding.dart';
+import 'package:gelir_gider_uygulamasi/modules/splash/splash_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/transaction_bindings.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/transaction_page.dart';
 import 'package:get/get_navigation/src/routes/get_route.dart';
@@ -20,6 +23,8 @@ abstract class AppRoutes {
   static const profile = '/profile';
   static const transaction = '/transactions';
   static const reports = '/reports';
+  static const groups = '/groups';
+  static const groupDetail = '/group-detail';
 
   // Geriye dönük uyumluluk
   // ignore: constant_identifier_names
@@ -36,6 +41,10 @@ abstract class AppRoutes {
   static const TRANSACTION = transaction;
   // ignore: constant_identifier_names
   static const REPORTS = reports;
+  // ignore: constant_identifier_names
+  static const GROUPS = groups;
+  // ignore: constant_identifier_names
+  static const GROUP_DETAIL = groupDetail;
 }
 
 class AppPages {
@@ -69,6 +78,16 @@ class AppPages {
       name: AppRoutes.profile,
       page: () => const ProfilePage(),
       binding: ProfileBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.groups,
+      page: () => const GroupsPage(),
+      binding: HomeBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.groupDetail,
+      page: () => const GroupDetailPage(),
+      binding: GroupDetailBinding(),
     ),
   ];
 }

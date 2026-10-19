@@ -209,17 +209,12 @@ class _BudgetOverviewCardState extends State<BudgetOverviewCard> {
             else
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 2, 14, 14),
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOut,
-                  alignment: Alignment.topCenter,
-                  child: _buildStatusList(
-                    context,
-                    statuses: statuses,
-                    displayedStatuses: displayedStatuses,
-                    hasMoreThanTwo: hasMoreThanTwo,
-                    isDark: isDark,
-                  ),
+                child: _buildStatusList(
+                  context,
+                  statuses: statuses,
+                  displayedStatuses: displayedStatuses,
+                  hasMoreThanTwo: hasMoreThanTwo,
+                  isDark: isDark,
                 ),
               ),
           ],

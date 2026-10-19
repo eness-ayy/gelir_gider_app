@@ -384,18 +384,18 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Cüzdan & Hesap Bakiyeleri'), findsOneWidget);
-      expect(find.text('Cebimdeki Nakit'), findsOneWidget);
-      expect(find.text('Bankadaki Para'), findsOneWidget);
+      expect(find.text('Nakit'), findsOneWidget);
+      expect(find.text('Banka'), findsOneWidget);
       expect(find.text('Kredi Kartı'), findsOneWidget);
-      expect(find.textContaining('Toplam Hazır Para'), findsOneWidget);
+      expect(find.textContaining('Toplam Para'), findsOneWidget);
 
-      // Tapping "Cebimdeki Nakit" activates account filter
-      await tester.tap(find.text('Cebimdeki Nakit'));
+      // Tapping "Nakit" activates account filter
+      await tester.tap(find.text('Nakit'));
       await tester.pumpAndSettle();
       expect(dashboardController.selectedAccountFilter.value, equals('cash'));
 
       // Tapping again clears filter
-      await tester.tap(find.text('Cebimdeki Nakit'));
+      await tester.tap(find.text('Nakit'));
       await tester.pumpAndSettle();
       expect(dashboardController.selectedAccountFilter.value, equals('all'));
     });
@@ -431,23 +431,24 @@ void main() {
       FlutterError.onError = (details) {
         caughtDetails = details;
       };
-      addTearDown(() {
-        FlutterError.onError = originalOnError;
-      });
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: AccountBalancesCard(),
+      try {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: AccountBalancesCard(),
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(caughtDetails, isNull);
-      expect(find.textContaining('Toplam Hazır Para'), findsOneWidget);
+        expect(caughtDetails, isNull);
+        expect(find.textContaining('Toplam Para'), findsOneWidget);
+      } finally {
+        FlutterError.onError = originalOnError;
+      }
     });
 
     testWidgets('DashboardOverviewCarousel displays wallet card initially and swipes to budget overview card', (tester) async {
@@ -474,7 +475,7 @@ void main() {
 
       // İlk başta Cüzdan & Hesap Bakiyeleri kartı görünmeli
       expect(find.text('Cüzdan & Hesap Bakiyeleri'), findsOneWidget);
-      expect(find.text('Cebimdeki Nakit'), findsOneWidget);
+      expect(find.text('Nakit'), findsOneWidget);
 
       // Sola kaydırma (drag left) işlemi yapılarak Aylık Bütçe Takibi sayfasına geçilir
       await tester.fling(find.byType(PageView), const Offset(-300, 0), 1000);

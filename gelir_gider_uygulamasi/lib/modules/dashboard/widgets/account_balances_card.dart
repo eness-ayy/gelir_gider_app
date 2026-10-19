@@ -116,7 +116,7 @@ class AccountBalancesCard extends GetView<DashboardController> {
                   Expanded(
                     child: _buildAccountTile(
                       context: context,
-                      title: "Cebimdeki Nakit",
+                      title: "Nakit",
                       subtitle: "Eldeki Para",
                       amount: balances.cashBalance,
                       method: PaymentMethod.cash,
@@ -132,7 +132,7 @@ class AccountBalancesCard extends GetView<DashboardController> {
                   Expanded(
                     child: _buildAccountTile(
                       context: context,
-                      title: "Bankadaki Para",
+                      title: "Banka",
                       subtitle: "Vadesiz Hesap",
                       amount: balances.bankBalance,
                       method: PaymentMethod.bankCard,
@@ -191,11 +191,12 @@ class AccountBalancesCard extends GetView<DashboardController> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        "Toplam Hazır Para (Nakit + Banka):",
-                        maxLines: 1,
+                        "Toplam Para:",
+                        maxLines: 2,
+                        softWrap: true,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: isDark ? Colors.white70 : Colors.black87,
                           fontWeight: FontWeight.w500,
                         ),
@@ -297,7 +298,7 @@ class AccountBalancesCard extends GetView<DashboardController> {
               const SizedBox(height: 4),
               Text(
                 title,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 11,

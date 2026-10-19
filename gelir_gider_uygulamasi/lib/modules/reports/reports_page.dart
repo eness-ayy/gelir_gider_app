@@ -21,7 +21,7 @@ class ReportsPage extends GetView<ReportsController> {
         return RefreshIndicator(
           onRefresh: controller.loadData,
           child: ListView(
-            padding: const EdgeInsets.only(top: 8, bottom: 80),
+            padding: const EdgeInsets.only(top: 8, bottom: 120),
             children: const [
               // 1. Ay / Dönem Seçici
               PeriodSelector(),

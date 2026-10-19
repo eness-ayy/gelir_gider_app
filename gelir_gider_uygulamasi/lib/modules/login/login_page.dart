@@ -47,24 +47,28 @@ class LoginPage extends GetView<LoginController> {
                 ),
                 const SizedBox(height: 48),
                 Obx(
-                  () => ElevatedButton.icon(
-                    onPressed: controller.isLoading
-                        ? null
-                        : () => controller.googleIleGirisYap(),
-                    icon: controller.isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.login),
-                    label: Text(
-                      controller.isLoading
-                          ? "Giriş Yapılıyor..."
-                          : "Google ile Giriş Yap",
+                  () => SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: controller.isLoading
+                          ? null
+                          : () => controller.googleIleGirisYap(),
+                      icon: controller.isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.login),
+                      label: Text(
+                        controller.isLoading
+                            ? "Giriş Yapılıyor..."
+                            : "Google ile Giriş Yap",
+                      ),
                     ),
                   ),
                 ),

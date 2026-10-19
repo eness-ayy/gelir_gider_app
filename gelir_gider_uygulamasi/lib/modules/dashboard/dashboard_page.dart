@@ -28,48 +28,55 @@ class DashboardPage extends GetView<DashboardController> {
                       const SizedBox(height: 6),
 
                       // 1. Özet Kartları
-                      SizedBox(
-                        height: 105,
-                        child: Obx(
-                          () => ListView(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            children: [
-                              SummaryCard(
-                                title: "${controller.periodTitle} Gelir",
-                                amount: controller.filteredGelir,
-                                icon: Icons.arrow_drop_up,
-                                color: isDark
-                                    ? Colors.green.shade500
-                                    : Colors.green.shade200,
-                                gradientColors: isDark
-                                    ? AppColors.darkIncomeGradient
-                                    : AppColors.incomeGradient,
-                              ),
-                              SummaryCard(
-                                title: "${controller.periodTitle} Gider",
-                                amount: controller.filteredGider,
-                                icon: Icons.arrow_drop_down,
-                                color: isDark
-                                    ? Colors.red.shade500
-                                    : Colors.red.shade200,
-                                gradientColors: isDark
-                                    ? AppColors.darkExpenseGradient
-                                    : AppColors.expenseGradient,
-                              ),
-                              SummaryCard(
-                                title: "${controller.periodTitle} Bakiye",
-                                amount: controller.filteredBakiye,
-                                icon: Icons.account_balance_wallet,
-                                color: isDark
-                                    ? AppColors.balanceDark
-                                    : AppColors.balanceLight,
-                                gradientColors: isDark
-                                    ? AppColors.darkBalanceGradient
-                                    : AppColors.balanceGradient,
-                                isaretGosterilsinMi: true,
-                              ),
-                            ],
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: SizedBox(
+                          height: 100,
+                          child: Obx(
+                            () => Row(
+                              children: [
+                                Expanded(
+                                  child: SummaryCard(
+                                    title: "${controller.periodTitle} Gelir",
+                                    amount: controller.summaryGelir,
+                                    icon: Icons.arrow_drop_up,
+                                    color: isDark
+                                        ? Colors.green.shade500
+                                        : Colors.green.shade200,
+                                    gradientColors: isDark
+                                        ? AppColors.darkIncomeGradient
+                                        : AppColors.incomeGradient,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: SummaryCard(
+                                    title: "${controller.periodTitle} Gider",
+                                    amount: controller.summaryGider,
+                                    icon: Icons.arrow_drop_down,
+                                    color: isDark
+                                        ? Colors.red.shade500
+                                        : Colors.red.shade200,
+                                    gradientColors: isDark
+                                        ? AppColors.darkExpenseGradient
+                                        : AppColors.expenseGradient,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: SummaryCard(
+                                    title: "${controller.periodTitle} Bakiye",
+                                    amount: controller.summaryBakiye,
+                                    icon: Icons.account_balance_wallet,
+                                    color: isDark
+                                        ? AppColors.balanceDark
+                                        : AppColors.balanceLight,
+                                    gradientColors: isDark
+                                        ? AppColors.darkBalanceGradient
+                                        : AppColors.balanceGradient,
+                                    isaretGosterilsinMi: true,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

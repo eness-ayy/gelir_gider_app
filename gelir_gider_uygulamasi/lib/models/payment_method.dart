@@ -4,7 +4,7 @@ enum PaymentMethod {
   cash(
     key: 'cash',
     title: 'Nakit',
-    subtitle: 'Cebimdeki Nakit',
+    subtitle: 'Nakit',
     icon: Icons.payments_outlined,
     color: Color(0xFF00897B), // Teal / Zümrüt
   ),
@@ -37,7 +37,10 @@ enum PaymentMethod {
     required this.color,
   });
 
-  static PaymentMethod fromKey(String? rawKey, {PaymentMethod defaultMethod = PaymentMethod.cash}) {
+  static PaymentMethod fromKey(
+    String? rawKey, {
+    PaymentMethod defaultMethod = PaymentMethod.cash,
+  }) {
     if (rawKey == null || rawKey.trim().isEmpty) return defaultMethod;
     final normalized = rawKey.toLowerCase().trim();
 
@@ -66,14 +69,14 @@ enum PaymentMethod {
 
   /// Harcama için uygun tüm ödeme yöntemleri
   static List<PaymentMethod> get expenseMethods => [
-        PaymentMethod.cash,
-        PaymentMethod.bankCard,
-        PaymentMethod.creditCard,
-      ];
+    PaymentMethod.cash,
+    PaymentMethod.bankCard,
+    PaymentMethod.creditCard,
+  ];
 
   /// Gelir için uygun ödeme / aktarım yöntemleri (Nakit & Banka)
   static List<PaymentMethod> get incomeMethods => [
-        PaymentMethod.cash,
-        PaymentMethod.bankCard,
-      ];
+    PaymentMethod.cash,
+    PaymentMethod.bankCard,
+  ];
 }

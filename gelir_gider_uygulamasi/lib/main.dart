@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/app_bindings.dart';
+import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
+import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/api_services.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
+import 'package:gelir_gider_uygulamasi/services/group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_theme.dart';
@@ -31,11 +34,18 @@ void main(List<String> args) async {
   // 4. Tema servisini ayağa kaldır
   Get.put<ThemeServices>(ThemeServices(), permanent: true);
 
+  // Repositories
+  Get.lazyPut<CategoryRepository>(() => CategoryRepository(), fenix: true);
+  Get.lazyPut<TransactionRepostory>(() => TransactionRepostory(), fenix: true);
+
   // 5. Bütçe servisini ayağa kaldır
   Get.put<BudgetService>(BudgetService(), permanent: true);
 
   // 6. Hesap & Ödeme Yöntemi servisini ayağa kaldır
   Get.put<AccountService>(AccountService(), permanent: true);
+
+  // 7. Grup & Bölüştürme servisini ayağa kaldır
+  Get.put<GroupService>(GroupService(), permanent: true);
 
   runApp(const MyApp());
 }
