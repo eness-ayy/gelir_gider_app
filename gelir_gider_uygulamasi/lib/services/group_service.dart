@@ -61,6 +61,11 @@ class GroupService extends GetxService {
     }
   }
 
+  Future<void> restoreGroups(List<ExpenseGroup> newGroups) async {
+    groups.assignAll(newGroups);
+    await _persist();
+  }
+
   Future<void> _persist() async {
     try {
       final listMap = groups.map((g) => g.toJson()).toList();

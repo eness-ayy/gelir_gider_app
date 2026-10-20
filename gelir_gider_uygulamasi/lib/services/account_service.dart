@@ -59,6 +59,11 @@ class AccountService extends GetxService {
     await _persistPaymentMethods();
   }
 
+  Future<void> restorePaymentMethods(Map<String, String> newMethods) async {
+    transactionPaymentMethods.assignAll(newMethods);
+    await _persistPaymentMethods();
+  }
+
   Future<void> removePaymentMethod(String transactionId) async {
     if (transactionPaymentMethods.containsKey(transactionId)) {
       transactionPaymentMethods.remove(transactionId);

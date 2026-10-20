@@ -21,8 +21,23 @@ class AppUser {
     this.profilePhoto,
   });
 
+  AppUser copyWith({
+    String? id,
+    String? email,
+    String? firstName,
+    String? lastName,
+    String? profilePhoto,
+    bool clearPhoto = false,
+  }) => AppUser(
+    id: id ?? this.id,
+    email: email ?? this.email,
+    firstName: firstName ?? this.firstName,
+    lastName: lastName ?? this.lastName,
+    profilePhoto: clearPhoto ? null : (profilePhoto ?? this.profilePhoto),
+  );
+
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
-    id: json['id'],
+    id: json['id']?.toString() ?? json['_id']?.toString(),
     email: json['email'],
     firstName: json['first_name'] ?? json['firstName'],
     lastName: json['last_name'] ?? json['lastName'],
@@ -35,5 +50,8 @@ class AppUser {
     "firstName": firstName,
     "lastName": lastName,
     "profilePhoto": profilePhoto,
+    "first_name": firstName,
+    "last_name": lastName,
+    "profile_photo": profilePhoto,
   };
 }

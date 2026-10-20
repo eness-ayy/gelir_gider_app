@@ -19,6 +19,7 @@ class HomePage extends GetView<HomeController> {
           () => Text(
             controller.pageTitle,
             style: TextStyle(
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
@@ -27,6 +28,37 @@ class HomePage extends GetView<HomeController> {
           ),
         ),
         centerTitle: false,
+        actions: [
+          Obx(() {
+            if (controller.currentIndex.value == 3) {
+              return IconButton(
+                tooltip: "Çıkış Yap",
+                icon: Icon(
+                  Icons.logout_rounded,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.lightTextPrimary,
+                ),
+                onPressed: () {
+                  Get.defaultDialog(
+                    title: "Çıkış Yap",
+                    middleText:
+                        "Hesabınızdan çıkış yapmak istediğinize emin misiniz?",
+                    textConfirm: "Evet, Çıkış Yap",
+                    textCancel: "Vazgeç",
+                    confirmTextColor: Colors.white,
+                    buttonColor: Colors.redAccent,
+                    onConfirm: () {
+                      Get.back();
+                      controller.cikisYap();
+                    },
+                  );
+                },
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+        ],
       ),
       body: Obx(
         () => IndexedStack(

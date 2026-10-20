@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/categories/widgets/category_management_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
-import 'package:gelir_gider_uygulamasi/modules/profile/widget/info_card.dart';
+import 'package:gelir_gider_uygulamasi/modules/profile/widgets/edit_profile_dialog.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
+import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
 
 class ProfilePage extends GetView<ProfileController> {
@@ -10,7 +11,10 @@ class ProfilePage extends GetView<ProfileController> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Obx(
@@ -18,36 +22,185 @@ class ProfilePage extends GetView<ProfileController> {
             final user = controller.user.value;
             final photoUrl = user?.profile_photo;
 
+            final fullName = [user?.first_name, user?.last_name]
+                .where((s) => s != null && s.trim().isNotEmpty)
+                .join(' ')
+                .trim();
+            final displayName = fullName.isNotEmpty ? fullName : "Enes Ay";
+            final displayEmail = (user?.email != null && user!.email!.isNotEmpty)
+                ? user.email!
+                : "eay105707@gmail.com";
+
+            final initial = (user?.first_name != null &&
+                    user!.first_name!.trim().isNotEmpty)
+                ? user.first_name!.trim()[0].toUpperCase()
+                : 'E';
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                      ? NetworkImage(photoUrl)
-                      : null,
-                  child: (photoUrl == null || photoUrl.isEmpty)
-                      ? Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Theme.of(context).colorScheme.primary,
-                        )
-                      : null,
+                const SizedBox(height: 8),
+                // Yeşil renkli dairesel avatar ("E") - Tıklanabilir ve Kamera İkonlu
+                GestureDetector(
+                  onTap: () => EditProfileDialog.show(context),
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF10B981), Color(0xFF059669)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: (photoUrl != null && photoUrl.isNotEmpty)
+                            ? ClipOval(
+                                child: Image.network(
+                                  photoUrl,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Text(
+                                    initial,
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                initial,
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? AppColors.darkSurface : Colors.white,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.25),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 24),
-                InfoCard(
-                  title: 'Adı',
-                  value: user?.first_name ?? '-',
+                const SizedBox(height: 12),
+                // Ad Soyad (Büyük ve Kalın)
+                Text(
+                  displayName,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                    letterSpacing: -0.3,
+                  ),
                 ),
-                InfoCard(
-                  title: 'Soyad',
-                  value: user?.last_name ?? '-',
+                const SizedBox(height: 4),
+                // Email (Daha küçük ve sönük gri)
+                Text(
+                  displayEmail,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: isDark ? Colors.white54 : Colors.grey.shade600,
+                  ),
                 ),
-                InfoCard(
-                  title: 'Email',
-                  value: user?.email ?? '-',
+                const SizedBox(height: 10),
+                // Profili Düzenle Hızlı Butonu
+                InkWell(
+                  onTap: () => EditProfileDialog.show(context),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.edit_rounded,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          "Profili Düzenle",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 20),
+                // Profili Düzenle Kartı
+                Card(
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.person_outline_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    title: const Text(
+                      "Profili Düzenle",
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text("Ad, soyad, e-posta ve fotoğrafı güncelle"),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => EditProfileDialog.show(context),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 SettingsCard(),
                 Card(
                   child: ListTile(
