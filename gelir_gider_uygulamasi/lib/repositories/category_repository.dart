@@ -51,10 +51,31 @@ class CategoryRepository extends GetxService {
           }
         }
 
-        // Yalnızca geçerli ada sahip kategorileri listeye al
-        validCategories = allCategories
-            .where((c) => c.name != null && c.name!.trim().isNotEmpty)
-            .toList();
+        // Yalnızca geçerli ada sahip kategorileri al ve kopyaları tespit et
+        final seenKeys = <String>{};
+        final duplicates = <AppCategory>[];
+
+        for (final cat in allCategories) {
+          if (cat.name == null || cat.name!.trim().isEmpty) continue;
+          final key =
+              '${TurkishStringHelper.normalizeForSearch(cat.name ?? "")}_${(cat.type ?? "").toLowerCase().trim()}';
+          if (!seenKeys.add(key)) {
+            duplicates.add(cat);
+          } else {
+            validCategories.add(cat);
+          }
+        }
+
+        // Kopyaları arkaplanda sunucudan temizle
+        if (duplicates.isNotEmpty) {
+          for (final dup in duplicates) {
+            if (dup.id != null &&
+                dup.id!.isNotEmpty &&
+                !dup.id!.startsWith('local_')) {
+              deleteCategory(dup.id!).catchError((_) => false);
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint("Kategoriler sunucudan alınamadı: $e");
@@ -77,6 +98,17 @@ class CategoryRepository extends GetxService {
     // Eksik olanları sunucuya kaydetmeye çalış ve listeye ekle
     if (missing.isNotEmpty) {
       for (final cat in missing) {
+        // Önceden eklenmişse çift ekleme yapma
+        final normCat = TurkishStringHelper.normalizeForSearch(cat.name ?? '');
+        final catType = (cat.type ?? '').toLowerCase().trim();
+        final alreadyExists = validCategories.any((c) {
+          final cType = (c.type ?? '').toLowerCase().trim();
+          final normC = TurkishStringHelper.normalizeForSearch(c.name ?? '');
+          return cType == catType && normC == normCat;
+        });
+
+        if (alreadyExists) continue;
+
         AppCategory? created;
         try {
           created = await createCategory(AppCategory(
@@ -100,7 +132,18 @@ class CategoryRepository extends GetxService {
       }
     }
 
-    return validCategories;
+    // Son güvenlik filtresi: Listeyi kesin olarak tekilleştir
+    final uniqueResult = <AppCategory>[];
+    final finalKeys = <String>{};
+    for (final c in validCategories) {
+      final key =
+          '${TurkishStringHelper.normalizeForSearch(c.name ?? "")}_${(c.type ?? "").toLowerCase().trim()}';
+      if (finalKeys.add(key)) {
+        uniqueResult.add(c);
+      }
+    }
+
+    return uniqueResult;
   }
 
   Future<AppCategory> createCategory(AppCategory category) async {

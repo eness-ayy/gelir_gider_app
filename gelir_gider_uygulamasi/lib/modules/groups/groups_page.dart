@@ -14,6 +14,13 @@ class GroupsPage extends GetView<GroupsController> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          "Gruplar & Etkinlikler",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+      ),
       body: Obx(() {
         final groups = controller.groups;
         final hasGroups = groups.isNotEmpty;

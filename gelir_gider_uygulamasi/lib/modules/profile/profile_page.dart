@@ -7,7 +7,8 @@ import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
 
 class ProfilePage extends GetView<ProfileController> {
-  const ProfilePage({super.key});
+  final bool showAppBar;
+  const ProfilePage({super.key, this.showAppBar = true});
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +16,20 @@ class ProfilePage extends GetView<ProfileController> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      appBar: showAppBar
+          ? AppBar(
+              title: const Text(
+                "Profil & Ayarlar",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              centerTitle: false,
+            )
+          : null,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, showAppBar ? 40 : 100),
         child: Obx(() {
           final user = controller.user.value;
           final photoUrl = user?.profile_photo;
@@ -240,3 +253,6 @@ class SettingsCard extends StatelessWidget {
     );
   }
 }
+
+// ProfileView alias desteği
+typedef ProfileView = ProfilePage;

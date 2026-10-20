@@ -1,3 +1,8 @@
+import 'package:gelir_gider_uygulamasi/modules/extra/debts/debts_page.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/extra_binding.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/extra_view.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/recurring/recurring_transactions_page.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/savings/savings_goals_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/groups_page.dart';
@@ -25,6 +30,10 @@ abstract class AppRoutes {
   static const reports = '/reports';
   static const groups = '/groups';
   static const groupDetail = '/group-detail';
+  static const extra = '/extra';
+  static const savingsGoals = '/savings-goals';
+  static const debts = '/debts';
+  static const recurringTransactions = '/recurring-transactions';
 
   // Geriye dönük uyumluluk
   // ignore: constant_identifier_names
@@ -45,6 +54,14 @@ abstract class AppRoutes {
   static const GROUPS = groups;
   // ignore: constant_identifier_names
   static const GROUP_DETAIL = groupDetail;
+  // ignore: constant_identifier_names
+  static const EXTRA = extra;
+  // ignore: constant_identifier_names
+  static const SAVINGS_GOALS = savingsGoals;
+  // ignore: constant_identifier_names
+  static const DEBTS = debts;
+  // ignore: constant_identifier_names
+  static const RECURRING_TRANSACTIONS = recurringTransactions;
 }
 
 class AppPages {
@@ -88,6 +105,23 @@ class AppPages {
       name: AppRoutes.groupDetail,
       page: () => const GroupDetailPage(),
       binding: GroupDetailBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.extra,
+      page: () => const ExtraView(),
+      binding: ExtraBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.savingsGoals,
+      page: () => const SavingsGoalsPage(),
+    ),
+    GetPage(
+      name: AppRoutes.debts,
+      page: () => const DebtsPage(),
+    ),
+    GetPage(
+      name: AppRoutes.recurringTransactions,
+      page: () => const RecurringTransactionsPage(),
     ),
   ];
 }

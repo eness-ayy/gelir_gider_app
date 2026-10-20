@@ -28,10 +28,90 @@ class CategoriesController extends BaseController {
     try {
       setLoading(true);
       final list = await _categoryRepository.getCategories();
-      categories.value = list;
+      categories.value = _deduplicate(list);
     } catch (e) {
       debugPrint("Kategoriler alınırken hata: $e");
       showErrorSnackbar(message: "Kategoriler yüklenirken hata oluştu");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  List<AppCategory> _deduplicate(List<AppCategory> list) {
+    final seen = <String>{};
+    final unique = <AppCategory>[];
+    for (final c in list) {
+      if (c.name == null || c.name!.trim().isEmpty) continue;
+      final key =
+          '${TurkishStringHelper.normalizeForSearch(c.name ?? "")}_${(c.type ?? "").toLowerCase().trim()}';
+      if (seen.add(key)) {
+        unique.add(c);
+      }
+    }
+    return unique;
+  }
+
+  // Mükerrer / Yinelenen Kategori Tespiti
+  bool get hasDuplicateCategories {
+    final seen = <String>{};
+    for (final c in categories) {
+      if (c.name == null || c.name!.trim().isEmpty) continue;
+      final key =
+          '${TurkishStringHelper.normalizeForSearch(c.name ?? "")}_${(c.type ?? "").toLowerCase().trim()}';
+      if (!seen.add(key)) return true;
+    }
+    return false;
+  }
+
+  int get duplicateCategoriesCount {
+    final seen = <String>{};
+    int count = 0;
+    for (final c in categories) {
+      if (c.name == null || c.name!.trim().isEmpty) continue;
+      final key =
+          '${TurkishStringHelper.normalizeForSearch(c.name ?? "")}_${(c.type ?? "").toLowerCase().trim()}';
+      if (!seen.add(key)) count++;
+    }
+    return count;
+  }
+
+  Future<void> cleanDuplicateCategories() async {
+    try {
+      setLoading(true);
+      final seen = <String>{};
+      final duplicates = <AppCategory>[];
+      final unique = <AppCategory>[];
+
+      for (var c in categories) {
+        if (c.name == null || c.name!.trim().isEmpty) continue;
+        final key =
+            '${TurkishStringHelper.normalizeForSearch(c.name ?? "")}_${(c.type ?? "").toLowerCase().trim()}';
+        if (!seen.add(key)) {
+          duplicates.add(c);
+        } else {
+          unique.add(c);
+        }
+      }
+
+      int deletedCount = 0;
+      for (var dup in duplicates) {
+        if (dup.id != null && dup.id!.isNotEmpty && !dup.id!.startsWith('local_')) {
+          try {
+            await _categoryRepository.deleteCategory(dup.id!);
+            deletedCount++;
+          } catch (e) {
+            debugPrint("Kategori silme hatası: $e");
+          }
+        }
+      }
+
+      categories.value = unique;
+      _syncOtherControllers();
+      showSuccessSnackbar(
+        message: "$deletedCount adet mükerrer kategori başarıyla temizlendi",
+      );
+    } catch (e) {
+      showErrorSnackbar(message: "Kategoriler temizlenirken hata oluştu");
     } finally {
       setLoading(false);
     }

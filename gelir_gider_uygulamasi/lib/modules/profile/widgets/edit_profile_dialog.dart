@@ -52,8 +52,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     final first = _firstNameController.text.trim();
     if (first.isNotEmpty) return first[0].toUpperCase();
     final userFirst = _controller.user.value?.first_name?.trim();
-    if (userFirst != null && userFirst.isNotEmpty)
+    if (userFirst != null && userFirst.isNotEmpty) {
       return userFirst[0].toUpperCase();
+    }
     return 'E';
   }
 
@@ -293,35 +294,41 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                                 height: 50,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF10B981),
-                                      Color(0xFF059669),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
                                   border: Border.all(
                                     color: isInitialSelected
                                         ? AppColors.primary
                                         : Colors.transparent,
-                                    width: 3,
+                                    width: 2.5,
                                   ),
                                 ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  _avatarInitial,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                padding: const EdgeInsets.all(3.5),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFF10B981),
+                                        Color(0xFF059669),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    _avatarInitial,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
                               if (isInitialSelected)
                                 Container(
-                                  width: 50,
-                                  height: 50,
+                                  width: 43,
+                                  height: 43,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Colors.black.withValues(alpha: 0.35),
@@ -329,7 +336,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                                   child: const Icon(
                                     Icons.check_rounded,
                                     color: Colors.white,
-                                    size: 24,
+                                    size: 20,
                                   ),
                                 ),
                             ],
@@ -341,9 +348,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                   ),
 
                   // 2. Hazır Avatar Seçenekleri
-                  ...AvatarHelper.availableAvatars.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final avatarPath = entry.value;
+                  ...AvatarHelper.availableAvatars.map((avatarPath) {
                     final isSelected = effectiveAvatar == avatarPath;
 
                     return GestureDetector(
@@ -370,21 +375,22 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                                       color: isSelected
                                           ? AppColors.primary
                                           : Colors.transparent,
-                                      width: 3,
+                                      width: 2.5,
                                     ),
                                   ),
+                                  padding: const EdgeInsets.all(3.5),
                                   child: ClipOval(
                                     child: _buildAvatarImage(
                                       avatarPath,
-                                      50,
+                                      43,
                                       fontSize: 18,
                                     ),
                                   ),
                                 ),
                                 if (isSelected)
                                   Container(
-                                    width: 50,
-                                    height: 50,
+                                    width: 43,
+                                    height: 43,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: Colors.black.withValues(
@@ -394,7 +400,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                                     child: const Icon(
                                       Icons.check_rounded,
                                       color: Colors.white,
-                                      size: 24,
+                                      size: 20,
                                     ),
                                   ),
                               ],

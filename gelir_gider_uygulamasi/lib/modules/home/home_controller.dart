@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/extra_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/widgets/create_group_dialog.dart';
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_controller.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
@@ -16,9 +17,13 @@ class HomeController extends BaseController {
     if (currentIndex.value == index) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       currentIndex.value = index;
-      // Raporlar sekmesine geçildiğinde verileri güncelle
-      if (index == 2 && Get.isRegistered<ReportsController>()) {
+      // İstatistikler sekmesine geçildiğinde verileri güncelle
+      if (index == 1 && Get.isRegistered<ReportsController>()) {
         Get.find<ReportsController>().loadData();
+      }
+      // Ekstra sekmesine geçildiğinde özetleri güncelle
+      if (index == 2 && Get.isRegistered<ExtraController>()) {
+        Get.find<ExtraController>().refreshSummaryData();
       }
     });
   }
@@ -26,11 +31,11 @@ class HomeController extends BaseController {
   String get pageTitle {
     switch (currentIndex.value) {
       case 0:
-        return "Gelir Gider App";
+        return "Cüzdan";
       case 1:
-        return "Gruplar";
+        return "İstatistik";
       case 2:
-        return "İstatistikler & Raporlar";
+        return "Ekstra Araçlar";
       case 3:
         return "Profil & Ayarlar";
       default:
@@ -54,7 +59,7 @@ class HomeController extends BaseController {
   }
 
   void goToProfile() {
-    currentIndex.value = 3;
+    changePage(3);
   }
 
   /// Ortadaki (+) butonuna basıldığında açılan seçim modalı:

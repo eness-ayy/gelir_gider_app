@@ -1,10 +1,11 @@
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_page.dart';
-import 'package:gelir_gider_uygulamasi/modules/groups/groups_page.dart';
-import 'package:gelir_gider_uygulamasi/modules/home/home_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/extra_view.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_page.dart';
+import 'package:gelir_gider_uygulamasi/modules/home/home_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_page.dart';
+import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
 
@@ -28,24 +29,32 @@ class HomePage extends GetView<HomeController> {
           ),
         ),
         centerTitle: false,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: _buildProfileAvatar(context),
+            ),
+          ),
+        ],
       ),
       body: Obx(
         () => IndexedStack(
           index: controller.currentIndex.value,
           children: const [
-            DashboardPage(), // Sekme 0: Ana Sayfa / Cüzdan
-            GroupsPage(), // Sekme 1: Gruplar & Etkinlikler [YENİ]
-            ReportsPage(), // Sekme 2: İstatistikler & Raporlar
-            ProfilePage(), // Sekme 3: Profil & Ayarlar
+            DashboardPage(), // Sekme 0: Cüzdan
+            ReportsPage(), // Sekme 1: İstatistik
+            ExtraView(), // Sekme 2: Ekstra
+            ProfilePage(showAppBar: false), // Sekme 3: Profil
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => controller.showAddActionSheet(context),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.primary, // Canlı mavi
         shape: const CircleBorder(),
         elevation: 4,
-        child: const Icon(Icons.add_rounded, size: 32, color: Colors.white),
+        child: const Icon(Icons.add, size: 30, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: Obx(
@@ -58,18 +67,35 @@ class HomePage extends GetView<HomeController> {
                 : (isDark ? Colors.white54 : Colors.black45);
 
             const navItems = [
-              (icon: Icons.dashboard_rounded, label: "Dashboard"),
-              (icon: Icons.diversity_3_rounded, label: "Gruplar"),
-              (icon: Icons.pie_chart_rounded, label: "İstatistikler"),
-              (icon: Icons.person_rounded, label: "Profil"),
+              (
+                inactiveIcon: Icons.account_balance_wallet_outlined,
+                activeIcon: Icons.account_balance_wallet,
+                label: "Cüzdan",
+              ),
+              (
+                inactiveIcon: Icons.pie_chart_outline_rounded,
+                activeIcon: Icons.pie_chart_rounded,
+                label: "İstatistik",
+              ),
+              (
+                inactiveIcon: Icons.widgets_outlined,
+                activeIcon: Icons.widgets,
+                label: "Ekstra",
+              ),
+              (
+                inactiveIcon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                label: "Profil",
+              ),
             ];
             final item = navItems[index];
+            final icon = isActive ? item.activeIcon : item.inactiveIcon;
 
             return Column(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(item.icon, size: 20, color: color),
+                Icon(icon, size: 21, color: color),
                 const SizedBox(height: 3),
                 Text(
                   item.label,
@@ -99,4 +125,96 @@ class HomePage extends GetView<HomeController> {
       ),
     );
   }
+
+  /// AppBar sağ üst köşesindeki yeşil zeminli baş harf avatarı ("E")
+  Widget _buildProfileAvatar(BuildContext context) {
+    return Tooltip(
+      message: "Profil & Ayarlar",
+      child: GestureDetector(
+        onTap: () => controller.changePage(3),
+        child: Obx(() {
+          final authService = Get.isRegistered<AuthService>()
+              ? Get.find<AuthService>()
+              : null;
+          final user = authService?.currentUser.value;
+          final photoUrl = user?.profile_photo;
+
+          final initial =
+              (user?.first_name != null && user!.first_name!.trim().isNotEmpty)
+                  ? user.first_name!.trim()[0].toUpperCase()
+                  : 'E';
+
+          return Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF10B981), Color(0xFF059669)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.25),
+                width: 1.5,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: (photoUrl != null && photoUrl.isNotEmpty)
+                ? ClipOval(
+                    child: photoUrl.startsWith('assets/')
+                        ? Image.asset(
+                            photoUrl,
+                            width: 38,
+                            height: 38,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Text(
+                              initial,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : Image.network(
+                            photoUrl,
+                            width: 38,
+                            height: 38,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Text(
+                              initial,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                  )
+                : Text(
+                    initial,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0,
+                    ),
+                  ),
+          );
+        }),
+      ),
+    );
+  }
 }
+
+// MainNavigationWrapper alias desteği
+typedef MainNavigationWrapper = HomePage;
+

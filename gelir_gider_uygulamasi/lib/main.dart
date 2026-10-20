@@ -7,7 +7,10 @@ import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/api_services.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
+import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
+import 'package:gelir_gider_uygulamasi/services/savings_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_theme.dart';
@@ -46,6 +49,19 @@ void main(List<String> args) async {
 
   // 7. Grup & Bölüştürme servisini ayağa kaldır
   Get.put<GroupService>(GroupService(), permanent: true);
+
+  // 8. Ekstra Modül Servisleri: Birikim, Borç/Alacak ve Tekrarlayan Ödemeler
+  final savingsService = SavingsService();
+  await savingsService.init();
+  Get.put<SavingsService>(savingsService, permanent: true);
+
+  final debtService = DebtService();
+  await debtService.init();
+  Get.put<DebtService>(debtService, permanent: true);
+
+  final recurringService = RecurringService();
+  await recurringService.init();
+  Get.put<RecurringService>(recurringService, permanent: true);
 
   runApp(const MyApp());
 }

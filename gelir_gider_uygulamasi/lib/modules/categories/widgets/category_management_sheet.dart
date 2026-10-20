@@ -182,6 +182,42 @@ class CategoryManagementSheet extends StatelessWidget {
             );
           }),
 
+          // Mükerrer / Yinelenen Kategori Uyarısı
+          Obx(() {
+            if (!controller.hasDuplicateCategories) return const SizedBox.shrink();
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.copy_rounded, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "${controller.duplicateCategoriesCount} adet mükerrer kategori tespit edildi",
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: controller.cleanDuplicateCategories,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.orange.shade800,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    child: const Text("Tekilleştir"),
+                  ),
+                ],
+              ),
+            );
+          }),
+
           const Divider(height: 16),
 
           // Kategori Listesi

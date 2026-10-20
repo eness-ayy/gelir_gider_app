@@ -174,17 +174,17 @@ void main() {
     expect(find.text("Profil Fotoğrafını Değiştir"), findsNothing);
     expect(find.text("veya Fotoğraf Bağlantısı (URL)"), findsNothing);
 
-    // Verify Avatar selection section and "Baş Harf" option
+    // Verify Avatar selection section exists
     expect(find.text("Avatarınızı Seçin"), findsOneWidget);
-    expect(find.text("Baş Harf"), findsOneWidget);
-    expect(find.text("Avatar 1"), findsOneWidget);
 
-    // Tap "Avatar 1"
-    await tester.tap(find.text("Avatar 1"));
+    // Tap the first avatar image in the list
+    final firstAvatar = find.byType(Image).first;
+    await tester.tap(firstAvatar);
     await tester.pumpAndSettle();
 
-    // Tap "Baş Harf"
-    await tester.tap(find.text("Baş Harf"));
+    // Tap the initial letter avatar option in the list
+    final initialOption = find.text("E").last;
+    await tester.tap(initialOption);
     await tester.pumpAndSettle();
 
     // Save
