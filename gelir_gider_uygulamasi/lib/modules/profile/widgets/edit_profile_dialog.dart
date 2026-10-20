@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
+import 'package:gelir_gider_uygulamasi/utils/avatar_helper.dart';
 import 'package:get/get.dart';
 
 class EditProfileDialog extends StatefulWidget {
@@ -25,21 +26,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _emailController;
-  late final TextEditingController _photoUrlController;
 
-  String? _selectedPhotoUrl;
+  String? _selectedAvatar;
   bool _clearPhoto = false;
-  bool _isPhotoSectionExpanded = false;
-
-  // Modern preset avatars for quick selection
-  static const List<String> presetAvatars = [
-    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=200&auto=format&fit=crop&q=80',
-  ];
 
   @override
   void initState() {
@@ -48,8 +37,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     _firstNameController = TextEditingController(text: user?.first_name ?? '');
     _lastNameController = TextEditingController(text: user?.last_name ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
-    _photoUrlController = TextEditingController(text: user?.profile_photo ?? '');
-    _selectedPhotoUrl = user?.profile_photo;
+    _selectedAvatar = user?.profile_photo;
   }
 
   @override
@@ -57,7 +45,6 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
-    _photoUrlController.dispose();
     super.dispose();
   }
 
@@ -65,7 +52,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     final first = _firstNameController.text.trim();
     if (first.isNotEmpty) return first[0].toUpperCase();
     final userFirst = _controller.user.value?.first_name?.trim();
-    if (userFirst != null && userFirst.isNotEmpty) return userFirst[0].toUpperCase();
+    if (userFirst != null && userFirst.isNotEmpty)
+      return userFirst[0].toUpperCase();
     return 'E';
   }
 
@@ -89,7 +77,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       firstName: firstName,
       lastName: lastName,
       email: email,
-      profilePhoto: _clearPhoto ? null : _selectedPhotoUrl,
+      profilePhoto: _clearPhoto ? null : _selectedAvatar,
       clearPhoto: _clearPhoto,
     );
 
@@ -98,12 +86,59 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     }
   }
 
+  Widget _buildAvatarImage(String path, double size, {double fontSize = 28}) {
+    if (AvatarHelper.isAsset(path)) {
+      return Image.asset(
+        path,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildInitialWidget(size, fontSize),
+      );
+    }
+    return Image.network(
+      path,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) =>
+          _buildInitialWidget(size, fontSize),
+    );
+  }
+
+  Widget _buildInitialWidget(double size, double fontSize) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Color(0xFF10B981), Color(0xFF059669)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _avatarInitial,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    final effectivePhoto = _clearPhoto ? null : _selectedPhotoUrl;
+    final effectiveAvatar = _clearPhoto ? null : _selectedAvatar;
+    final isInitialSelected =
+        effectiveAvatar == null || effectiveAvatar.isEmpty;
 
     return Container(
       constraints: BoxConstraints(
@@ -152,12 +187,14 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.lightTextPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "Bilgilerinizi ve fotoğrafınızı güncelleyin",
+                        "Bilgilerinizi ve avatarınızı güncelleyin",
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark ? Colors.white54 : Colors.grey.shade600,
@@ -173,177 +210,160 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Profile Photo Interactive Preview
+            // Profile Avatar Preview (Temiz Dairesel Avatar)
             Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
+              child: Container(
+                width: 86,
+                height: 86,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: (effectiveAvatar != null && effectiveAvatar.isNotEmpty)
+                    ? ClipOval(
+                        child: _buildAvatarImage(
+                          effectiveAvatar,
+                          86,
+                          fontSize: 34,
+                        ),
+                      )
+                    : Text(
+                        _avatarInitial,
+                        style: const TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // Avatar Seçim Bölümü
+            Text(
+              "Avatarınızı Seçin",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Yatay Avatar Listesi
+            SizedBox(
+              height: 72,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
                 children: [
+                  // 1. Seçenek: İsmin Baş Harfi (Varsayılan)
                   GestureDetector(
                     onTap: () {
                       setState(() {
-                        _isPhotoSectionExpanded = !_isPhotoSectionExpanded;
+                        _selectedAvatar = null;
+                        _clearPhoto = true;
                       });
                     },
-                    child: Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF10B981), Color(0xFF059669)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.35),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: (effectivePhoto != null && effectivePhoto.isNotEmpty)
-                          ? ClipOval(
-                              child: Image.network(
-                                effectivePhoto,
-                                width: 90,
-                                height: 90,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Text(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF10B981),
+                                      Color(0xFF059669),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  border: Border.all(
+                                    color: isInitialSelected
+                                        ? AppColors.primary
+                                        : Colors.transparent,
+                                    width: 3,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
                                   _avatarInitial,
                                   style: const TextStyle(
-                                    fontSize: 36,
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
                                 ),
                               ),
-                            )
-                          : Text(
-                              _avatarInitial,
-                              style: const TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isPhotoSectionExpanded = !_isPhotoSectionExpanded;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark ? AppColors.darkSurface : Colors.white,
-                          width: 2.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+                              if (isInitialSelected)
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.black.withValues(alpha: 0.35),
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                            ],
                           ),
+                          const SizedBox(height: 4),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.camera_alt_rounded,
-                        size: 16,
-                        color: Colors.white,
-                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
 
-            // Toggle Photo Section Button
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isPhotoSectionExpanded = !_isPhotoSectionExpanded;
-                  });
-                },
-                icon: Icon(
-                  _isPhotoSectionExpanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.add_photo_alternate_outlined,
-                  size: 18,
-                  color: AppColors.primary,
-                ),
-                label: Text(
-                  _isPhotoSectionExpanded
-                    ? "Fotoğraf Seçeneklerini Gizle"
-                    : "Profil Fotoğrafını Değiştir",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ),
+                  // 2. Hazır Avatar Seçenekleri
+                  ...AvatarHelper.availableAvatars.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final avatarPath = entry.value;
+                    final isSelected = effectiveAvatar == avatarPath;
 
-            // Expandable Photo Options Section
-            if (_isPhotoSectionExpanded) ...[
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? Colors.white12 : Colors.grey.shade300,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Hazır Avatarlardan Seç",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white70 : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    // Preset Avatar Row
-                    SizedBox(
-                      height: 56,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: presetAvatars.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 10),
-                        itemBuilder: (context, index) {
-                          final avatarUrl = presetAvatars[index];
-                          final isSelected = effectivePhoto == avatarUrl;
-
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedPhotoUrl = avatarUrl;
-                                _photoUrlController.text = avatarUrl;
-                                _clearPhoto = false;
-                              });
-                            },
-                            child: Stack(
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedAvatar = avatarPath;
+                          _clearPhoto = false;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Stack(
                               alignment: Alignment.center,
                               children: [
                                 Container(
-                                  width: 52,
-                                  height: 52,
+                                  width: 50,
+                                  height: 50,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
@@ -354,19 +374,22 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                                     ),
                                   ),
                                   child: ClipOval(
-                                    child: Image.network(
-                                      avatarUrl,
-                                      fit: BoxFit.cover,
+                                    child: _buildAvatarImage(
+                                      avatarPath,
+                                      50,
+                                      fontSize: 18,
                                     ),
                                   ),
                                 ),
                                 if (isSelected)
                                   Container(
-                                    width: 52,
-                                    height: 52,
+                                    width: 50,
+                                    height: 50,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: Colors.black.withValues(alpha: 0.4),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.35,
+                                      ),
                                     ),
                                     child: const Icon(
                                       Icons.check_rounded,
@@ -376,83 +399,17 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                                   ),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Custom URL input
-                    Text(
-                      "veya Fotoğraf Bağlantısı (URL)",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white70 : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _photoUrlController,
-                      decoration: InputDecoration(
-                        hintText: "https://... (Resim linki yapıştırın)",
-                        hintStyle: TextStyle(
-                          fontSize: 13,
-                          color: isDark ? Colors.white30 : Colors.black38,
-                        ),
-                        isDense: true,
-                        filled: true,
-                        fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDark ? Colors.white24 : Colors.grey.shade300,
-                          ),
-                        ),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.check_circle_outline, color: AppColors.primary),
-                          onPressed: () {
-                            setState(() {
-                              _selectedPhotoUrl = _photoUrlController.text.trim();
-                              _clearPhoto = false;
-                            });
-                          },
+                            const SizedBox(height: 4),
+                          ],
                         ),
                       ),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedPhotoUrl = val.trim();
-                          _clearPhoto = false;
-                        });
-                      },
-                    ),
-
-                    if (effectivePhoto != null && effectivePhoto.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _clearPhoto = true;
-                              _selectedPhotoUrl = null;
-                              _photoUrlController.clear();
-                            });
-                          },
-                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
-                          label: const Text(
-                            "Fotoğrafı Kaldır",
-                            style: TextStyle(color: Colors.redAccent, fontSize: 12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                    );
+                  }),
+                ],
               ),
-            ],
+            ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             // Adı (First Name) Field
             Text(
@@ -470,7 +427,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
                 hintText: "Adınız",
                 filled: true,
-                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.grey.shade100,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -496,7 +455,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 prefixIcon: const Icon(Icons.badge_outlined, size: 20),
                 hintText: "Soyadınız",
                 filled: true,
-                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.grey.shade100,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -522,7 +483,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
                 hintText: "ornek@email.com",
                 filled: true,
-                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.grey.shade100,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -560,7 +523,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                   flex: 2,
                   child: Obx(
                     () => ElevatedButton(
-                      onPressed: _controller.isUpdating.value ? null : _handleSave,
+                      onPressed: _controller.isUpdating.value
+                          ? null
+                          : _handleSave,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,

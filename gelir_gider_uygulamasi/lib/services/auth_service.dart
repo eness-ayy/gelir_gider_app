@@ -71,8 +71,10 @@ class AuthService extends GetxController {
         );
 
         final user = AppUser.fromJson(response.data['user']);
-        await saveLocalUser(user);
-        return user;
+        // Kullanıcı giriş yaptığında ilk önce eskisi gibi sadece isminin baş harfi olsun
+        final userWithInitialOnly = user.copyWith(clearPhoto: true);
+        await saveLocalUser(userWithInitialOnly);
+        return userWithInitialOnly;
       } else {
         return null;
       }

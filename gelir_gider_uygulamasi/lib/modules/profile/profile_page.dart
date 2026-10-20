@@ -17,255 +17,204 @@ class ProfilePage extends GetView<ProfileController> {
       backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        child: Obx(
-          () {
-            final user = controller.user.value;
-            final photoUrl = user?.profile_photo;
+        child: Obx(() {
+          final user = controller.user.value;
+          final photoUrl = user?.profile_photo;
 
-            final fullName = [user?.first_name, user?.last_name]
-                .where((s) => s != null && s.trim().isNotEmpty)
-                .join(' ')
-                .trim();
-            final displayName = fullName.isNotEmpty ? fullName : "Enes Ay";
-            final displayEmail = (user?.email != null && user!.email!.isNotEmpty)
-                ? user.email!
-                : "eay105707@gmail.com";
+          final fullName = [
+            user?.first_name,
+            user?.last_name,
+          ].where((s) => s != null && s.trim().isNotEmpty).join(' ').trim();
+          final displayName = fullName.isNotEmpty ? fullName : "Enes Ay";
+          final displayEmail = (user?.email != null && user!.email!.isNotEmpty)
+              ? user.email!
+              : "eay105707@gmail.com";
 
-            final initial = (user?.first_name != null &&
-                    user!.first_name!.trim().isNotEmpty)
-                ? user.first_name!.trim()[0].toUpperCase()
-                : 'E';
+          final initial =
+              (user?.first_name != null && user!.first_name!.trim().isNotEmpty)
+              ? user.first_name!.trim()[0].toUpperCase()
+              : 'E';
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 8),
-                // Yeşil renkli dairesel avatar ("E") - Tıklanabilir ve Kamera İkonlu
-                GestureDetector(
-                  onTap: () => EditProfileDialog.show(context),
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF10B981), Color(0xFF059669)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.3),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        child: (photoUrl != null && photoUrl.isNotEmpty)
-                            ? ClipOval(
-                                child: Image.network(
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 8),
+              // Yeşil renkli dairesel avatar ("E" veya seçilen avatar)
+              GestureDetector(
+                onTap: () => EditProfileDialog.show(context),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: (photoUrl != null && photoUrl.isNotEmpty)
+                      ? ClipOval(
+                          child: photoUrl.startsWith('assets/')
+                              ? Image.asset(
                                   photoUrl,
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Text(
-                                    initial,
-                                    style: const TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Text(
+                                        initial,
+                                        style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                )
+                              : Image.network(
+                                  photoUrl,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Text(
+                                        initial,
+                                        style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                 ),
-                              )
-                            : Text(
-                                initial,
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? AppColors.darkSurface : Colors.white,
-                            width: 2,
+                        )
+                      : Text(
+                          initial,
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.25),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
                         ),
-                        child: const Icon(
-                          Icons.camera_alt_rounded,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-                const SizedBox(height: 12),
-                // Ad Soyad (Büyük ve Kalın)
-                Text(
-                  displayName,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    letterSpacing: -0.3,
-                  ),
+              ),
+              const SizedBox(height: 12),
+              // Ad Soyad (Büyük ve Kalın)
+              Text(
+                displayName,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                  letterSpacing: -0.3,
                 ),
-                const SizedBox(height: 4),
-                // Email (Daha küçük ve sönük gri)
-                Text(
-                  displayEmail,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: isDark ? Colors.white54 : Colors.grey.shade600,
-                  ),
+              ),
+              const SizedBox(height: 4),
+              // Email (Daha küçük ve sönük gri)
+              Text(
+                displayEmail,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: isDark ? Colors.white54 : Colors.grey.shade600,
                 ),
-                const SizedBox(height: 10),
-                // Profili Düzenle Hızlı Butonu
-                InkWell(
-                  onTap: () => EditProfileDialog.show(context),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              ),
+              const SizedBox(height: 24),
+              // Profili Düzenle Kartı
+              Card(
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.25),
-                      ),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.edit_rounded,
-                          size: 14,
-                          color: AppColors.primary,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          "Profili Düzenle",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
+                    child: const Icon(
+                      Icons.person_outline_rounded,
+                      color: AppColors.primary,
+                      size: 20,
                     ),
+                  ),
+                  title: const Text(
+                    "Profili Düzenle",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => EditProfileDialog.show(context),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SettingsCard(),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.category_outlined),
+                  title: const Text("Kategori Yönetimi"),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => CategoryManagementSheet.show(context),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                color: Colors.redAccent.withValues(alpha: 0.08),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Colors.redAccent.withValues(alpha: 0.25),
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Profili Düzenle Kartı
-                Card(
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.person_outline_rounded,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    title: const Text(
-                      "Profili Düzenle",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: const Text("Ad, soyad, e-posta ve fotoğrafı güncelle"),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => EditProfileDialog.show(context),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SettingsCard(),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.category_outlined),
-                    title: const Text("Kategori Yönetimi"),
-                    subtitle: const Text("Kategorileri düzenle, sil veya ekle"),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => CategoryManagementSheet.show(context),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Card(
-                  color: Colors.redAccent.withValues(alpha: 0.08),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Colors.redAccent.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.logout_rounded,
-                        color: Colors.redAccent,
-                        size: 20,
-                      ),
-                    ),
-                    title: const Text(
-                      "Çıkış Yap",
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: const Text("Hesabınızdan güvenli şekilde çıkış yapın"),
-                    trailing: const Icon(
-                      Icons.chevron_right_rounded,
+                    child: const Icon(
+                      Icons.logout_rounded,
                       color: Colors.redAccent,
+                      size: 20,
                     ),
-                    onTap: () {
-                      Get.defaultDialog(
-                        title: "Çıkış Yap",
-                        middleText:
-                            "Hesabınızdan çıkış yapmak istediğinize emin misiniz?",
-                        textConfirm: "Evet, Çıkış Yap",
-                        textCancel: "Vazgeç",
-                        confirmTextColor: Colors.white,
-                        buttonColor: Colors.redAccent,
-                        onConfirm: () {
-                          Get.back();
-                          controller.cikisYap();
-                        },
-                      );
-                    },
                   ),
+                  title: const Text(
+                    "Çıkış Yap",
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.redAccent,
+                  ),
+                  onTap: () {
+                    Get.defaultDialog(
+                      title: "Çıkış Yap",
+                      middleText:
+                          "Hesabınızdan çıkış yapmak istediğinize emin misiniz?",
+                      textConfirm: "Evet, Çıkış Yap",
+                      textCancel: "Vazgeç",
+                      confirmTextColor: Colors.white,
+                      buttonColor: Colors.redAccent,
+                      onConfirm: () {
+                        Get.back();
+                        controller.cikisYap();
+                      },
+                    );
+                  },
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+        }),
       ),
     );
   }

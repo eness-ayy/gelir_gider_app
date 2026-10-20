@@ -83,8 +83,8 @@ void main() {
     expect(find.text("Kategori Yönetimi"), findsOneWidget);
     expect(find.text("Tema"), findsOneWidget);
 
-    // Verify Profili Duzenle entry points
-    expect(find.text("Profili Düzenle"), findsWidgets);
+    // Verify Profili Duzenle card exists
+    expect(find.text("Profili Düzenle"), findsOneWidget);
   });
 
   testWidgets('EditProfileDialog opens and updates user name, email and photo', (tester) async {
@@ -122,7 +122,7 @@ void main() {
     expect(find.text("Ahmet Ay"), findsOneWidget);
   });
 
-  testWidgets('HomeController pageTitle and AppBar actions behave correctly on profile tab', (tester) async {
+  testWidgets('HomeController pageTitle behaves correctly and AppBar has no top-right logout button', (tester) async {
     final homeController = Get.put<HomeController>(HomeController());
     homeController.currentIndex.value = 3;
 
@@ -140,18 +140,6 @@ void main() {
               ),
             ),
             centerTitle: false,
-            actions: [
-              Obx(() {
-                if (homeController.currentIndex.value == 3) {
-                  return IconButton(
-                    tooltip: "Çıkış Yap",
-                    icon: const Icon(Icons.logout_rounded),
-                    onPressed: () {},
-                  );
-                }
-                return const SizedBox.shrink();
-              }),
-            ],
           ),
         ),
       ),
@@ -161,8 +149,53 @@ void main() {
     // Verify AppBar Title
     expect(find.text("Profil & Ayarlar"), findsOneWidget);
 
-    // Verify Logout icon button in AppBar
-    expect(find.byTooltip("Çıkış Yap"), findsOneWidget);
-    expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
+    // Verify no Logout icon button in AppBar
+    expect(find.byTooltip("Çıkış Yap"), findsNothing);
+  });
+
+  testWidgets('Profile and EditProfileDialog have no camera icon or photo url field, and support avatar selection', (tester) async {
+    await tester.pumpWidget(
+      GetMaterialApp(
+        theme: AppTheme.dark,
+        home: const ProfilePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify no camera icon exists in ProfilePage
+    expect(find.byIcon(Icons.camera_alt_rounded), findsNothing);
+
+    // Open EditProfileDialog
+    await tester.tap(find.text("Profili Düzenle").first);
+    await tester.pumpAndSettle();
+
+    // Verify no camera icon and no photo url input exists
+    expect(find.byIcon(Icons.camera_alt_rounded), findsNothing);
+    expect(find.text("Profil Fotoğrafını Değiştir"), findsNothing);
+    expect(find.text("veya Fotoğraf Bağlantısı (URL)"), findsNothing);
+
+    // Verify Avatar selection section and "Baş Harf" option
+    expect(find.text("Avatarınızı Seçin"), findsOneWidget);
+    expect(find.text("Baş Harf"), findsOneWidget);
+    expect(find.text("Avatar 1"), findsOneWidget);
+
+    // Tap "Avatar 1"
+    await tester.tap(find.text("Avatar 1"));
+    await tester.pumpAndSettle();
+
+    // Tap "Baş Harf"
+    await tester.tap(find.text("Baş Harf"));
+    await tester.pumpAndSettle();
+
+    // Save
+    final saveBtn = find.text("Değişiklikleri Kaydet");
+    await tester.ensureVisible(saveBtn);
+    await tester.tap(saveBtn);
+    await tester.pumpAndSettle();
+
+    // Verify dialog dismissed and still displays initial "E"
+    expect(find.byType(EditProfileDialog), findsNothing);
+    expect(find.text("E"), findsOneWidget);
   });
 }
+
