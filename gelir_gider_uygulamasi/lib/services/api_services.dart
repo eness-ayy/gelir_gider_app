@@ -17,14 +17,34 @@ class ApiServices extends GetxService {
   late StorgeService _storgeService;
   late Dio _dio;
 
+  static String formatError(dynamic error) {
+    if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return "Sunucu yanıt vermedi (Zaman aşımı)";
+        case DioExceptionType.connectionError:
+          return "İnternet bağlantısı yok veya sunucuya erişilemiyor";
+        case DioExceptionType.badResponse:
+          return "Sunucu hatası (${error.response?.statusCode})";
+        case DioExceptionType.cancel:
+          return "İstek iptal edildi";
+        default:
+          return error.message ?? "Ağ bağlantı hatası";
+      }
+    }
+    return error.toString();
+  }
+
   Future<ApiServices> init() async {
     _storgeService = Get.find<StorgeService>();
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 45),
-        receiveTimeout: const Duration(seconds: 45),
-        sendTimeout: const Duration(seconds: 45),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
         contentType: "application/json",
       ),
     );
@@ -60,7 +80,7 @@ class ApiServices extends GetxService {
         options: options,
       );
     } catch (e) {
-      debugPrint("Dio get error $e");
+      debugPrint("[API GET $path] ${formatError(e)}");
       rethrow;
     }
   }
@@ -79,7 +99,7 @@ class ApiServices extends GetxService {
         options: options,
       );
     } catch (e) {
-      debugPrint("Dio post error $e");
+      debugPrint("[API POST $path] ${formatError(e)}");
       rethrow;
     }
   }
@@ -98,7 +118,7 @@ class ApiServices extends GetxService {
         options: options,
       );
     } catch (e) {
-      debugPrint("Dio put error $e");
+      debugPrint("[API PUT $path] ${formatError(e)}");
       rethrow;
     }
   }
@@ -117,7 +137,7 @@ class ApiServices extends GetxService {
         options: options,
       );
     } catch (e) {
-      debugPrint("Dio delete error: $e");
+      debugPrint("[API DELETE $path] ${formatError(e)}");
       rethrow;
     }
   }

@@ -80,7 +80,7 @@ class CategoryRepository extends GetxService {
         }
       }
     } catch (e) {
-      debugPrint("Kategoriler sunucudan alınamadı: $e");
+      debugPrint("Kategoriler sunucudan alınamadı: ${ApiServices.formatError(e)}");
     }
 
     // Sunucuya bağlanılamadıysa (zaman aşımı veya çevrimdışı):

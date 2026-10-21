@@ -153,30 +153,34 @@ class AuthService extends GetxController {
         await saveLocalUser(user);
         return currentUser.value;
       }
-      return null;
+      return currentUser.value;
     } catch (e) {
-      debugPrint("get profile error: $e");
-      return null;
+      debugPrint("Profil bilgisi sunucudan alınamadı: ${ApiServices.formatError(e)}");
+      return currentUser.value;
     }
   }
 
   Future<bool> isAuthenticated() async {
     try {
       final token = _storgeService.getValue<String>(StorageKeys.userToken);
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         currentUser.value = null;
         return false;
+      }
+      if (currentUser.value != null) {
+        // Arka planda sunucudan tazelemeyi dene
+        getProfile().catchError((_) => currentUser.value);
+        return true;
       }
       final response = await getProfile();
       if (response != null) {
         currentUser.value = response;
         return true;
       }
-      return false;
+      return token.isNotEmpty;
     } catch (e) {
-      await _storgeService.remove(StorageKeys.userToken);
-      currentUser.value = null;
-      return false;
+      final token = _storgeService.getValue<String>(StorageKeys.userToken);
+      return token != null && token.isNotEmpty;
     }
   }
 }

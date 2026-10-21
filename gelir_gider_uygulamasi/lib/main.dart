@@ -1,5 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/app_bindings.dart';
+import 'package:gelir_gider_uygulamasi/firebase_options.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
@@ -72,6 +74,8 @@ void main(List<String> args) async {
   final creditCardService = CreditCardService();
   await creditCardService.init();
   Get.put<CreditCardService>(creditCardService, permanent: true);
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const MyApp());
 }
