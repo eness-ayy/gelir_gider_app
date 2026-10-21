@@ -18,141 +18,170 @@ class ExtraView extends GetView<ExtraController> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // B. Modül Kartları (ListTile / Card Yapısı)
-            Obx(
-              () => Column(
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Sol hizalı büyük fintech başlık alanı & sağ üst köşe ikonları
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Ekstra\nAraçlar",
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.lightTextPrimary,
+                              height: 1.15,
+                              letterSpacing: -0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Gelişmiş finansal yönetim araçları",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark
+                                  ? Colors.white54
+                                  : AppColors.lightTextSecondary,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+
+              // B. Modül Kartları (ListTile / Card Yapısı)
+              Column(
                 children: [
-                  // 1. Gruplar & Ortak Harcamalar
+                  // 1. Grup Harcamaları
                   ExtraModuleCard(
                     icon: Icons.groups_rounded,
-                    iconColor: const Color(0xFF10B981), // Canlı Zümrüt Yeşili
-                    iconBgColor: const Color(
-                      0xFF10B981,
-                    ).withValues(alpha: 0.16),
-                    title: "Gruplar & Ortak Harcamalar",
-                    subtitle:
-                        "Arkadaşlarınızla ortak etkinlikleri, seyahatleri ve hesaplaşmaları bölün.",
-                    badgeText: controller.groupBadgeText,
-                    badgeTextColor: const Color(0xFF34D399),
-                    badgeBgColor: const Color(
-                      0xFF10B981,
-                    ).withValues(alpha: 0.15),
+                    iconColor: Colors.white,
+                    iconBgColor: const Color(0xFF2563EB), // Canlı Mavi
+                    title: "Grup Harcamaları",
+                    subtitle: "Arkadaşlarınızla ortak harcamaları bölüşün.",
                     onTap: controller.goToGroups,
                   ),
 
-                  // 2. Birikim Hedefleri (Kumbara)
+                  // 2. Birikim Hedefleri
                   ExtraModuleCard(
-                    icon: Icons.savings_outlined,
-                    iconColor: const Color(0xFF3B82F6), // Mavi
-                    iconBgColor: const Color(
-                      0xFF3B82F6,
-                    ).withValues(alpha: 0.16),
+                    icon: Icons.savings_rounded,
+                    iconColor: Colors.white,
+                    iconBgColor: const Color(0xFF10B981), // Canlı Yeşil
                     title: "Birikim Hedefleri",
                     subtitle:
                         "Hedefler belirleyin, kumbara oluşturun ve ilerlemenizi izleyin.",
-                    badgeText: controller.savingsBadgeText,
-                    badgeTextColor: const Color(0xFF60A5FA),
-                    badgeBgColor: const Color(
-                      0xFF3B82F6,
-                    ).withValues(alpha: 0.15),
                     onTap: controller.goToSavingsGoals,
                   ),
 
-                  // 2. Borç & Alacak Takibi
+                  // 3. Borç & Alacak Defteri
                   ExtraModuleCard(
-                    icon: Icons.account_balance_wallet_outlined,
-                    iconColor: const Color(0xFFF97316), // Turuncu
-                    iconBgColor: const Color(
-                      0xFFF97316,
-                    ).withValues(alpha: 0.16),
+                    icon: Icons.account_balance_wallet_rounded,
+                    iconColor: Colors.white,
+                    iconBgColor: const Color(0xFFF97316), // Canlı Turuncu
                     title: "Borç & Alacak Defteri",
                     subtitle:
                         "Kime ne kadar borcunuz var, kimden ne alacağınız var takip edin.",
-                    badgeText: controller.netDebtBadgeText,
-                    badgeTextColor: controller.netDebtBalance >= 0
-                        ? const Color(0xFF10B981) // Pozitif ise yeşil
-                        : const Color(0xFFEF4444), // Negatif ise kırmızı
-                    badgeBgColor: controller.netDebtBalance >= 0
-                        ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                        : const Color(0xFFEF4444).withValues(alpha: 0.15),
                     onTap: controller.goToDebts,
                   ),
 
-                  // 3. Tekrarlayan İşlemler & Abonelikler
+                  // 4. Tekrarlayan Ödemeler
                   ExtraModuleCard(
                     icon: Icons.event_repeat_rounded,
-                    iconColor: const Color(0xFFA855F7), // Mor
-                    iconBgColor: const Color(
-                      0xFFA855F7,
-                    ).withValues(alpha: 0.16),
+                    iconColor: Colors.white,
+                    iconBgColor: const Color(0xFFA855F7), // Canlı Mor
                     title: "Tekrarlayan Ödemeler",
                     subtitle:
                         "Kira, fatura ve abonelik periyotlarını otomatikleştirin.",
-                    badgeText: controller.recurringBadgeText,
-                    badgeTextColor: const Color(0xFFC084FC),
-                    badgeBgColor: const Color(
-                      0xFFA855F7,
-                    ).withValues(alpha: 0.15),
                     onTap: controller.goToRecurringTransactions,
                   ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 12),
-
-            // Bilgi & İpucu Kutusu (Premium Görünüm)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF171717)
-                    : AppColors.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : AppColors.primary.withValues(alpha: 0.12),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.lightbulb_outline_rounded,
-                      color: AppColors.primary,
-                      size: 20,
+                  // 5. Kredi Kartları & Taksitler
+                  Obx(
+                    () => ExtraModuleCard(
+                      icon: Icons.credit_card_rounded,
+                      iconColor: Colors.white,
+                      iconBgColor: const Color(0xFF4F46E5), // Koyu Mavi / İndigo
+                      title: "Kredi Kartları & Taksitler",
+                      subtitle:
+                          "Hesap kesim tarihleri, kart limitleri ve taksit yükü takibi.",
+                      badgeText: controller.creditCardBadgeText,
+                      badgeTextColor: const Color(0xFF818CF8),
+                      badgeBgColor:
+                          const Color(0xFF6366F1).withValues(alpha: 0.15),
+                      onTap: controller.goToCreditCards,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "İpucu: Düzenli harcamalarınızı tekrarlayan ödemelere bağlayarak bütçe tahminlerinizi otomatik hale getirebilirsiniz.",
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Bilgi & İpucu Kutusu (Premium Görünüm)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF171717)
+                      : AppColors.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : AppColors.primary.withValues(alpha: 0.12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.lightbulb_outline_rounded,
+                        color: AppColors.primary,
+                        size: 20,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "İpucu: Düzenli harcamalarınızı tekrarlayan ödemelere bağlayarak bütçe tahminlerinizi otomatik hale getirebilirsiniz.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -28,11 +28,13 @@ class CategoryRepository extends GetxService {
 
   Future<List<AppCategory>> getCategories() async {
     List<AppCategory> validCategories = [];
+    bool serverFetchSuccess = false;
 
     try {
       final response = await _apiService.get(ApiConstants.categories);
 
       if (response.statusCode == 200) {
+        serverFetchSuccess = true;
         var gelenVeri = response.data as List;
         final allCategories = gelenVeri
             .map((category) => AppCategory.fromJson(category))
@@ -81,7 +83,19 @@ class CategoryRepository extends GetxService {
       debugPrint("Kategoriler sunucudan alınamadı: $e");
     }
 
-    // Eksik önerilen kategorileri tespit et
+    // Sunucuya bağlanılamadıysa (zaman aşımı veya çevrimdışı):
+    // Sunucuya tek tek ekleme döngüsüne girmeden doğrudan yerel varsayılanları döndür.
+    if (!serverFetchSuccess) {
+      return defaultCategories.map((cat) => AppCategory(
+        id: 'local_${cat.name.hashCode.abs()}',
+        name: cat.name,
+        type: cat.type,
+        icon: cat.icon,
+        isSystem: false,
+      )).toList();
+    }
+
+    // Eksik önerilen kategorileri tespit et (yalnızca sunucuya başarıyla bağlanıldıysa)
     final missing = defaultCategories.where((def) {
       final normDef = TurkishStringHelper.normalizeForSearch(def.name ?? '');
       final defType = (def.type ?? '').toLowerCase().trim();

@@ -1,3 +1,6 @@
+import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_detail_view.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_view.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/debts/debts_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/extra_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/extra_view.dart';
@@ -18,7 +21,7 @@ import 'package:gelir_gider_uygulamasi/modules/splash/splash_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/splash/splash_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/transaction_bindings.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/transaction_page.dart';
-import 'package:get/get_navigation/src/routes/get_route.dart';
+import 'package:get/get.dart';
 
 abstract class AppRoutes {
   static const initial = splash;
@@ -34,6 +37,8 @@ abstract class AppRoutes {
   static const savingsGoals = '/savings-goals';
   static const debts = '/debts';
   static const recurringTransactions = '/recurring-transactions';
+  static const creditCards = '/credit-cards';
+  static const creditCardDetail = '/credit-card-detail';
 
   // Geriye dönük uyumluluk
   // ignore: constant_identifier_names
@@ -122,6 +127,17 @@ class AppPages {
     GetPage(
       name: AppRoutes.recurringTransactions,
       page: () => const RecurringTransactionsPage(),
+    ),
+    GetPage(
+      name: AppRoutes.creditCards,
+      page: () => const CreditCardView(),
+    ),
+    GetPage(
+      name: AppRoutes.creditCardDetail,
+      page: () {
+        final card = Get.arguments as CreditCardModel;
+        return CreditCardDetailView(card: card);
+      },
     ),
   ];
 }

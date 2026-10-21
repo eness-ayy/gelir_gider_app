@@ -1,5 +1,6 @@
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
@@ -18,6 +19,10 @@ class ExtraController extends BaseController {
           : null;
   GroupService? get _groupService =>
       Get.isRegistered<GroupService>() ? Get.find<GroupService>() : null;
+  CreditCardService? get _creditCardService =>
+      Get.isRegistered<CreditCardService>()
+          ? Get.find<CreditCardService>()
+          : null;
 
   // Reaktif Sekme / Navigasyon İndeksi
   final rxNavIndex = 0.obs;
@@ -40,6 +45,11 @@ class ExtraController extends BaseController {
   // 3. Tekrarlayan İşlemler & Abonelikler Dinamik Verileri
   int get upcomingRecurringCount => _recurringService?.activeCount ?? 0;
   double get monthlyRecurringTotal => _recurringService?.monthlyTotal ?? 0.0;
+
+  // 4. Kredi Kartları & Taksitler Dinamik Verileri
+  int get activeInstallmentCount =>
+      _creditCardService?.activeInstallmentCount ?? 0;
+  String get creditCardBadgeText => "$activeInstallmentCount Taksit";
 
   // Formatlı Görsel Metin Getter'ları
   String get savingsBadgeText => "$activeSavingsCount Aktif";
@@ -70,11 +80,16 @@ class ExtraController extends BaseController {
     Get.toNamed(AppRoutes.recurringTransactions);
   }
 
+  void goToCreditCards() {
+    Get.toNamed(AppRoutes.creditCards);
+  }
+
   /// Özet verileri yenileme
   Future<void> refreshSummaryData() async {
     _savingsService?.loadGoals();
     _debtService?.loadDebts();
     _recurringService?.loadItems();
     _groupService?.loadGroups();
+    _creditCardService?.loadData();
   }
 }

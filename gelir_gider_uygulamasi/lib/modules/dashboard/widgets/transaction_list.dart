@@ -174,6 +174,28 @@ class TransactionList extends GetView<DashboardController> {
                 final category = oankiTransaction.category;
                 final isIncome = oankiTransaction.type == "income";
 
+                // Grup harcaması tespiti: [grup_adi] aciklama formatı
+                final groupMatch = RegExp(r'^\[(.*?)\]\s*(.*)$').firstMatch(
+                  oankiTransaction.description.trim(),
+                );
+                final isGroupTransaction = groupMatch != null;
+                final groupName = groupMatch?.group(1)?.trim() ?? '';
+                final expenseDesc = groupMatch?.group(2)?.trim() ?? '';
+
+                String displayTitle;
+                if (isGroupTransaction) {
+                  if (expenseDesc.isNotEmpty) {
+                    displayTitle =
+                        expenseDesc[0].toUpperCase() + expenseDesc.substring(1);
+                  } else if (groupName.isNotEmpty) {
+                    displayTitle = '$groupName Harcaması';
+                  } else {
+                    displayTitle = 'Grup Harcaması';
+                  }
+                } else {
+                  displayTitle = category?.name ?? 'İsimsiz Kategori';
+                }
+
                 final incomeBg = isDark
                     ? Colors.green.withValues(alpha: 0.15)
                     : Colors.green.shade50;
@@ -235,17 +257,21 @@ class TransactionList extends GetView<DashboardController> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        getCategoryIcon(
-                          iconName: category?.icon ?? 'receipt',
-                          isSystem: true,
-                          type: category?.type ?? oankiTransaction.type,
-                          categoryName: category?.name,
-                        ),
+                        isGroupTransaction
+                            ? Icons.groups_rounded
+                            : getCategoryIcon(
+                                iconName: category?.icon ?? 'receipt',
+                                isSystem: true,
+                                type: category?.type ?? oankiTransaction.type,
+                                categoryName: category?.name,
+                              ),
                         color: isIncome ? incomeColor : expenseColor,
                       ),
                     ),
                     title: Text(
-                      category?.name ?? 'İsimsiz Kategori',
+                      displayTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: Builder(
@@ -260,38 +286,58 @@ class TransactionList extends GetView<DashboardController> {
                                 oankiTransaction.id,
                               );
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (oankiTransaction.description.isNotEmpty) ...[
-                              Text(
-                                oankiTransaction.description,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                            ],
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  method.icon,
-                                  size: 13,
-                                  color: method.color,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  method.title,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.white70
-                                        : method.color,
-                                  ),
-                                ),
-                              ],
+                            Icon(
+                              method.icon,
+                              size: 13,
+                              color: method.color,
                             ),
+                            const SizedBox(width: 4),
+                            Text(
+                              method.title,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white70
+                                    : method.color,
+                              ),
+                            ),
+                            if (isGroupTransaction &&
+                                groupName.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3ECE0),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.groups_rounded,
+                                      size: 13,
+                                      color: Color(0xFF1E1E1E),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      groupName,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF1E1E1E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         );
                       },
@@ -301,7 +347,7 @@ class TransactionList extends GetView<DashboardController> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '${isIncome ? '+' : '-'} ${NumberFormat.currency(symbol: '₺', decimalDigits: 2).format(parsedAmount)}',
+                          '${isIncome ? '+' : '-'} ${NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2).format(parsedAmount)}',
                           style: TextStyle(
                             color: isIncome ? incomeColor : expenseColor,
                             fontSize: 15,

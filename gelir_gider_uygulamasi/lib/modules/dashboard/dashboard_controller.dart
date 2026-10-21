@@ -202,10 +202,17 @@ class DashboardController extends BaseController {
       // 4. Arama Sorgusu (Türkçe karakter ve toleranslı arama destekli)
       final query = searchQuery.value.trim();
       if (query.isNotEmpty) {
+        final groupMatch = RegExp(r'^\[(.*?)\]\s*(.*)$').firstMatch(tr.description.trim());
+        final groupTitle = groupMatch?.group(1);
+        final expenseDesc = groupMatch?.group(2);
+        final groupTitleMatch = groupTitle != null &&
+            TurkishStringHelper.containsSearch(groupTitle, query);
+        final expenseDescMatch = expenseDesc != null &&
+            TurkishStringHelper.containsSearch(expenseDesc, query);
         final descMatch = TurkishStringHelper.containsSearch(tr.description, query);
         final catMatch = TurkishStringHelper.containsSearch(tr.category?.name, query);
         final amountMatch = tr.amount.contains(query);
-        if (!descMatch && !catMatch && !amountMatch) {
+        if (!descMatch && !catMatch && !amountMatch && !groupTitleMatch && !expenseDescMatch) {
           return false;
         }
       }

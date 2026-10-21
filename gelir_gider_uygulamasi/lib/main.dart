@@ -7,6 +7,7 @@ import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/api_services.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
@@ -15,9 +16,14 @@ import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_theme.dart';
 import 'package:get/get.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Tarih ve yerelleştirme verilerini başlat
+  await initializeDateFormatting('tr_TR', null);
+  await initializeDateFormatting('tr', null);
 
   // 1. SharedPreferences'ı ayağa kaldır
   final storageService = StorgeService();
@@ -62,6 +68,10 @@ void main(List<String> args) async {
   final recurringService = RecurringService();
   await recurringService.init();
   Get.put<RecurringService>(recurringService, permanent: true);
+
+  final creditCardService = CreditCardService();
+  await creditCardService.init();
+  Get.put<CreditCardService>(creditCardService, permanent: true);
 
   runApp(const MyApp());
 }

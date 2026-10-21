@@ -19,11 +19,8 @@ class ProfilePage extends GetView<ProfileController> {
       appBar: showAppBar
           ? AppBar(
               title: const Text(
-                "Profil & Ayarlar",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                "Profilim",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               centerTitle: false,
             )

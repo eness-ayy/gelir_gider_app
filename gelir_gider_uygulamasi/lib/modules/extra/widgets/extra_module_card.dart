@@ -7,7 +7,7 @@ class ExtraModuleCard extends StatelessWidget {
   final Color iconBgColor;
   final String title;
   final String subtitle;
-  final String badgeText;
+  final String? badgeText;
   final Color? badgeTextColor;
   final Color? badgeBgColor;
   final VoidCallback onTap;
@@ -19,7 +19,7 @@ class ExtraModuleCard extends StatelessWidget {
     required this.iconBgColor,
     required this.title,
     required this.subtitle,
-    required this.badgeText,
+    this.badgeText,
     this.badgeTextColor,
     this.badgeBgColor,
     required this.onTap,
@@ -32,7 +32,7 @@ class ExtraModuleCard extends StatelessWidget {
     // Koyu tema için özel #1E1E1E zemin
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
+        ? Colors.white.withValues(alpha: 0.06)
         : Colors.grey.shade200;
 
     final effectiveBadgeBg = badgeBgColor ??
@@ -113,33 +113,35 @@ class ExtraModuleCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
 
-                // Sağ Taraf: Mini Sayaç / Durum Rozeti ve Chevron
+                // Sağ Taraf: Mini Sayaç / Durum Rozeti (varsa) ve Chevron
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: effectiveBadgeBg,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: effectiveBadgeText.withValues(alpha: 0.2),
-                          width: 0.8,
+                    if (badgeText != null && badgeText!.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: effectiveBadgeBg,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: effectiveBadgeText.withValues(alpha: 0.2),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          badgeText!,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: effectiveBadgeText,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        badgeText,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: effectiveBadgeText,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
+                      const SizedBox(width: 8),
+                    ],
                     Icon(
                       Icons.chevron_right_rounded,
                       size: 22,

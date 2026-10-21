@@ -41,7 +41,10 @@ class CategoriesController extends BaseController {
     final seen = <String>{};
     final unique = <AppCategory>[];
     for (final c in list) {
-      if (c.name == null || c.name!.trim().isEmpty) continue;
+      if (c.name == null || c.name!.trim().isEmpty) {
+        unique.add(c);
+        continue;
+      }
       final key =
           '${TurkishStringHelper.normalizeForSearch(c.name ?? "")}_${(c.type ?? "").toLowerCase().trim()}';
       if (seen.add(key)) {
