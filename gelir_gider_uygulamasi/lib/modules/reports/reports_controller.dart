@@ -86,11 +86,20 @@ class ReportsController extends BaseController {
 
   Future<void> loadData() async {
     try {
-      setLoading(true);
+      final cached = _transactionRepository.getCachedTransactions();
+      if (cached.isNotEmpty && transactions.isEmpty) {
+        transactions.value = cached;
+      }
+      if (transactions.isEmpty) {
+        setLoading(true);
+      }
       final list = await _transactionRepository.getTransactions();
       transactions.value = list;
     } catch (e) {
-      showErrorSnackbar(message: "Rapor verileri yüklenirken hata oluştu");
+      debugPrint("Rapor verileri yüklenirken hata: $e");
+      if (transactions.isEmpty) {
+        showErrorSnackbar(message: "Rapor verileri yüklenirken hata oluştu");
+      }
     } finally {
       setLoading(false);
     }

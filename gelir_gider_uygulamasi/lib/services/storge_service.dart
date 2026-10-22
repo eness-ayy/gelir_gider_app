@@ -6,6 +6,9 @@ abstract class StorageKeys {
   static const String userToken = "user_token";
   static const String themeMod = "theme_mod";
   static const String userData = "user_data";
+  static const String groupNickname = "group_nickname";
+  static const String cachedTransactions = "cached_transactions";
+  static const String cachedCategories = "cached_categories";
 }
 
 class StorgeService extends GetxController {

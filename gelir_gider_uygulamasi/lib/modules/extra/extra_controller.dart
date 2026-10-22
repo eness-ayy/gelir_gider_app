@@ -84,6 +84,10 @@ class ExtraController extends BaseController {
     Get.toNamed(AppRoutes.creditCards);
   }
 
+  void goToSharedBudget() {
+    Get.toNamed(AppRoutes.sharedBudget);
+  }
+
   /// Özet verileri yenileme
   Future<void> refreshSummaryData() async {
     _savingsService?.loadGoals();

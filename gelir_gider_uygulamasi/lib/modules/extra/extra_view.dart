@@ -71,14 +71,29 @@ class ExtraView extends GetView<ExtraController> {
               // B. Modül Kartları (ListTile / Card Yapısı)
               Column(
                 children: [
-                  // 1. Grup Harcamaları
+                  // 1. Grup Harcamaları (Etkinlik & Arkadaşlar)
                   ExtraModuleCard(
                     icon: Icons.groups_rounded,
                     iconColor: Colors.white,
                     iconBgColor: const Color(0xFF2563EB), // Canlı Mavi
                     title: "Grup Harcamaları",
-                    subtitle: "Arkadaşlarınızla ortak harcamaları bölüşün.",
+                    subtitle: "Arkadaşlarınızla etkinlik ve gezi harcamalarını bölüşün.",
                     onTap: controller.goToGroups,
+                  ),
+
+                  // 2. Ortak Ev & Yurt Bütçesi (Ev / Yurt Arkadaşları - Canlı)
+                  ExtraModuleCard(
+                    icon: Icons.cottage_rounded,
+                    iconColor: Colors.white,
+                    iconBgColor: const Color(0xFF0D9488), // Canlı Teal
+                    title: "Ortak Ev & Yurt Bütçesi",
+                    subtitle:
+                        "Ev ve yurt arkadaşlarınızla canlı ortak kasa ve bütçe tutun.",
+                    badgeText: "Canlı",
+                    badgeTextColor: const Color(0xFF14B8A6),
+                    badgeBgColor:
+                        const Color(0xFF0D9488).withValues(alpha: 0.15),
+                    onTap: controller.goToSharedBudget,
                   ),
 
                   // 2. Birikim Hedefleri

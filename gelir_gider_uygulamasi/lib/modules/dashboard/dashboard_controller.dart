@@ -45,7 +45,15 @@ class DashboardController extends BaseController {
       searchQuery.value = searchController.text;
     });
 
-    getTransactions();
+    // 1. Önce yerel hafızadaki (cache) verileri 0 ms bekleme ile anında göster
+    final cached = _transactionRepostory.getCachedTransactions();
+    if (cached.isNotEmpty) {
+      myTransaction.value = cached;
+      aylikOzet();
+    }
+
+    // 2. Ardından sunucudan taze verileri çek
+    getTransactions(isBackground: cached.isNotEmpty);
     loadCategories();
   }
 
@@ -66,7 +74,7 @@ class DashboardController extends BaseController {
 
   Future<void> refreshDashboard() async {
     await Future.wait([
-      getTransactions(),
+      getTransactions(isBackground: false),
       loadCategories(),
     ]);
   }
@@ -76,14 +84,23 @@ class DashboardController extends BaseController {
     await refreshDashboard();
   }
 
-  Future<void> getTransactions() async {
+  Future<void> getTransactions({bool isBackground = false}) async {
     try {
-      setLoading(true);
+      if (!isBackground && myTransaction.isEmpty) {
+        setLoading(true);
+      }
       final transactions = await _transactionRepostory.getTransactions();
       myTransaction.value = transactions;
       aylikOzet();
     } catch (e) {
-      showErrorSnackbar(message: "Veriler getirilirken hata oluştu");
+      debugPrint("İşlemler yüklenirken hata: $e");
+      // Sadece ekranda gösterilecek hiçbir veri yoksa hata uyarısı ver
+      if (myTransaction.isEmpty) {
+        showErrorSnackbar(
+          message:
+              "Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
+        );
+      }
     } finally {
       setLoading(false);
     }

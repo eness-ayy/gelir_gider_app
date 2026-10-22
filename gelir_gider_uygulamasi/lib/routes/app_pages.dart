@@ -17,6 +17,10 @@ import 'package:gelir_gider_uygulamasi/modules/profile/profile_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_page.dart';
+import 'package:gelir_gider_uygulamasi/modules/shared_budget/detail/shared_budget_detail_binding.dart';
+import 'package:gelir_gider_uygulamasi/modules/shared_budget/detail/shared_budget_detail_page.dart';
+import 'package:gelir_gider_uygulamasi/modules/shared_budget/shared_budget_binding.dart';
+import 'package:gelir_gider_uygulamasi/modules/shared_budget/shared_budget_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/splash/splash_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/splash/splash_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/transaction_bindings.dart';
@@ -39,6 +43,8 @@ abstract class AppRoutes {
   static const recurringTransactions = '/recurring-transactions';
   static const creditCards = '/credit-cards';
   static const creditCardDetail = '/credit-card-detail';
+  static const sharedBudget = '/shared-budget';
+  static const sharedBudgetDetail = '/shared-budget-detail';
 
   // Geriye dönük uyumluluk
   // ignore: constant_identifier_names
@@ -138,6 +144,16 @@ class AppPages {
         final card = Get.arguments as CreditCardModel;
         return CreditCardDetailView(card: card);
       },
+    ),
+    GetPage(
+      name: AppRoutes.sharedBudget,
+      page: () => const SharedBudgetPage(),
+      binding: SharedBudgetBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.sharedBudgetDetail,
+      page: () => const SharedBudgetDetailPage(),
+      binding: SharedBudgetDetailBinding(),
     ),
   ];
 }
