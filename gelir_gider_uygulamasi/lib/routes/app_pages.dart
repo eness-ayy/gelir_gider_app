@@ -1,4 +1,6 @@
 import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
+import 'package:gelir_gider_uygulamasi/modules/auth/auth_binding.dart';
+import 'package:gelir_gider_uygulamasi/modules/auth/auth_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_detail_view.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_view.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/debts/debts_page.dart';
@@ -11,8 +13,7 @@ import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_
 import 'package:gelir_gider_uygulamasi/modules/groups/groups_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/home/home_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/home/home_page.dart';
-import 'package:gelir_gider_uygulamasi/modules/login/login_binding.dart';
-import 'package:gelir_gider_uygulamasi/modules/login/login_page.dart';
+
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/reports/reports_binding.dart';
@@ -45,6 +46,7 @@ abstract class AppRoutes {
   static const creditCardDetail = '/credit-card-detail';
   static const sharedBudget = '/shared-budget';
   static const sharedBudgetDetail = '/shared-budget-detail';
+  static const auth = '/auth';
 
   // Geriye dönük uyumluluk
   // ignore: constant_identifier_names
@@ -53,6 +55,8 @@ abstract class AppRoutes {
   static const SPLASH = splash;
   // ignore: constant_identifier_names
   static const LOGIN = login;
+  // ignore: constant_identifier_names
+  static const AUTH = auth;
   // ignore: constant_identifier_names
   static const HOME = home;
   // ignore: constant_identifier_names
@@ -84,8 +88,13 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.login,
-      page: () => const LoginPage(),
-      binding: LoginBinding(),
+      page: () => const AuthPage(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.auth,
+      page: () => const AuthPage(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: AppRoutes.home,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/shared_budget/shared_budget_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/shared_budget/widgets/shared_budget_card.dart';
+import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:get/get.dart';
 
 /// Ortak Ev & Yurt Bütçesi Ana / Lobi Sayfası
@@ -18,6 +19,22 @@ class SharedBudgetPage extends GetView<SharedBudgetController> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(
+            Navigator.canPop(context)
+                ? Icons.arrow_back_ios_new_rounded
+                : Icons.home_rounded,
+            size: 22,
+          ),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Get.back();
+            } else {
+              Get.offAllNamed(AppRoutes.home);
+            }
+          },
+          tooltip: Navigator.canPop(context) ? "Geri" : "Ana Sayfa",
+        ),
         title: const Text(
           "Ortak Ev & Yurt Bütçesi",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),

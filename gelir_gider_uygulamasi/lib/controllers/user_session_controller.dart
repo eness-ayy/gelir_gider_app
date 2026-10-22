@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
+import 'package:gelir_gider_uygulamasi/models/app_user.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_model.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/services/firestore_group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
@@ -138,6 +141,14 @@ class UserSessionController extends BaseController {
   /// Yerel hafızadan takma adı yükler
   void _loadCachedUserName() {
     try {
+      final fbUser = _auth.currentUser;
+      if (fbUser != null &&
+          fbUser.displayName != null &&
+          fbUser.displayName!.trim().isNotEmpty) {
+        currentUserName.value = fbUser.displayName!.trim();
+        return;
+      }
+
       final savedName =
           _storageService.getValue<String>(StorageKeys.groupNickname);
       if (savedName != null && savedName.trim().isNotEmpty) {
@@ -171,6 +182,16 @@ class UserSessionController extends BaseController {
       debugPrint("Takma ad kaydedilirken hata: $e");
       return false;
     }
+  }
+
+  /// Dış servislerin (örn. AuthService) kullanıcı adını senkronize edebilmesi için
+  Future<bool> persistUserName(String name) async {
+    return _persistUserName(name);
+  }
+
+  /// Grup dinleyicisini dışarıdan tetiklemek için
+  void bindUserGroups(String memberName) {
+    _bindUserGroups(memberName);
   }
 
   // ---------------------------------------------------------------------------
@@ -233,6 +254,8 @@ class UserSessionController extends BaseController {
   /// Kullanıcının takma adını (rumuzunu) belirler veya günceller:
   /// - SharedPreferences'a kaydeder
   /// - Firebase Auth displayName alanını günceller
+  /// - Firestore 'users' koleksiyonunda günceller
+  /// - AuthService ile yerel profili eşitler
   /// - Grubu/grupları bu isim üzerinden canlı dinlemeye bağlar
   Future<bool> saveUserName(String name) async {
     final cleanName = name.trim();
@@ -256,7 +279,44 @@ class UserSessionController extends BaseController {
       // 3. Firebase Auth displayName alanını güncelle
       await _syncDisplayNameWithFirebase(cleanName);
 
-      // 4. Bu isimle dahil olunan grupların canlı dinlemesini başlat
+      // 4. Firestore users koleksiyonuna kalıcı olarak yaz
+      final user = _auth.currentUser;
+      if (user != null) {
+        try {
+          final parts = cleanName.split(' ');
+          final fName = parts.first;
+          final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+            'uid': user.uid,
+            'firstName': fName,
+            'lastName': lName,
+            'fullName': cleanName,
+            'email': user.email,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint("saveUserName Firestore yazma hatası: $e");
+        }
+      }
+
+      // 5. AuthService ile senkronize et
+      if (Get.isRegistered<AuthService>()) {
+        final authService = Get.find<AuthService>();
+        final parts = cleanName.split(' ');
+        final fName = parts.first;
+        final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+        final current = authService.currentUser.value;
+        final updated = (current ?? AppUser(id: user?.uid, email: user?.email)).copyWith(
+          firstName: fName,
+          lastName: lName,
+        );
+        await authService.saveLocalUser(updated);
+      }
+
+      // 6. Bu isimle dahil olunan grupların canlı dinlemesini başlat
       _bindUserGroups(cleanName);
 
       return true;
@@ -338,19 +398,336 @@ class UserSessionController extends BaseController {
     activeGroup.value = group;
   }
 
+  // ---------------------------------------------------------------------------
+  // 5. FIREBASE E-POSTA & ŞİFRE KİMLİK DOĞRULAMA (Email & Password Auth)
+  // ---------------------------------------------------------------------------
+
+  /// Kayıt Ol: createUserWithEmailAndPassword ile hesap açar, displayName günceller
+  /// ve SharedPreferences ile currentUserName'e yazar.
+  Future<User?> registerWithEmail({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    final cleanName = fullName.trim();
+    final cleanEmail = email.trim();
+
+    try {
+      setLoading(true);
+      final userCredential = await _auth
+          .createUserWithEmailAndPassword(
+            email: cleanEmail,
+            password: password,
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final user = userCredential.user;
+      if (user != null) {
+        // Önceki kullanıcının olası oturum/token/işlem artıklarını temizle
+        await _storageService.remove(StorageKeys.userToken);
+        await _storageService.remove(StorageKeys.cachedTransactions);
+        await _storageService.remove(StorageKeys.cachedCategories);
+
+        if (Get.isRegistered<DashboardController>()) {
+          try {
+            final dash = Get.find<DashboardController>();
+            dash.myTransaction.clear();
+            dash.categories.clear();
+            dash.aylikGelir.value = 0.0;
+            dash.aylikGider.value = 0.0;
+          } catch (_) {}
+        }
+
+        // 1. Firebase Auth displayName güncelle
+        try {
+          await user.updateDisplayName(cleanName);
+          await user.reload();
+        } catch (e) {
+          debugPrint("displayName güncelleme hatası (ihmal edilebilir): $e");
+        }
+        final refreshedUser = _auth.currentUser;
+        firebaseUser.value = refreshedUser;
+        isAnonymous.value = false;
+
+        // 2. Takma adı ve profil bilgisini yerel state ve SharedPreferences'a yaz
+        currentUserName.value = cleanName;
+        await _persistUserName(cleanName);
+
+        final parts = cleanName.split(' ');
+        final fName = parts.first;
+        final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+        // 3. Firestore 'users' koleksiyonuna kalıcı olarak kaydet
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+            'uid': user.uid,
+            'firstName': fName,
+            'lastName': lName,
+            'fullName': cleanName,
+            'email': user.email ?? cleanEmail,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint("Kayıtta Firestore profil yazma hatası: $e");
+        }
+
+        // 4. AuthService ile senkronize et (Profil sayfası ve cüzdan için)
+        if (Get.isRegistered<AuthService>()) {
+          final authService = Get.find<AuthService>();
+          final appUser = AppUser(
+            id: user.uid,
+            email: user.email ?? cleanEmail,
+            firstName: fName,
+            lastName: lName,
+          );
+          await authService.saveLocalUser(appUser);
+        }
+
+        // 5. Grupları dinlemeye başla ve arka planda tazele
+        _bindUserGroups(cleanName);
+        unawaited(refreshGroups().catchError((e) {
+          debugPrint("Arka plan grup yenileme hatası: $e");
+          return null;
+        }));
+
+        // 6. Cüzdan / Dashboard verilerini bu yeni kullanıcı için tazele
+        if (Get.isRegistered<DashboardController>()) {
+          unawaited(Get.find<DashboardController>().refreshDashboard().catchError((_) {}));
+        }
+      }
+      return user;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /// Giriş Yap: signInWithEmailAndPassword ile oturum açar, Firestore'daki güncel adı çeker ve ayarlar.
+  Future<User?> loginWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    final cleanEmail = email.trim();
+
+    try {
+      setLoading(true);
+      final userCredential = await _auth
+          .signInWithEmailAndPassword(
+            email: cleanEmail,
+            password: password,
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final user = userCredential.user;
+      if (user != null) {
+        // Önceki kullanıcıdan kalan backend token'ı ve eski önbellekleri kaldır
+        await _storageService.remove(StorageKeys.userToken);
+        await _storageService.remove(StorageKeys.cachedTransactions);
+        await _storageService.remove(StorageKeys.cachedCategories);
+
+        if (Get.isRegistered<DashboardController>()) {
+          try {
+            final dash = Get.find<DashboardController>();
+            dash.myTransaction.clear();
+            dash.categories.clear();
+            dash.aylikGelir.value = 0.0;
+            dash.aylikGider.value = 0.0;
+          } catch (_) {}
+        }
+
+        firebaseUser.value = user;
+        isAnonymous.value = false;
+
+        // 1. Firestore'dan güncel kullanıcı profilini çek (isim güncellenmişse kesinlikle Firestore'da vardır)
+        String? firestoreFirst;
+        String? firestoreLast;
+        String? firestorePhoto;
+        try {
+          final doc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get()
+              .timeout(const Duration(seconds: 4));
+          if (doc.exists && doc.data() != null) {
+            final data = doc.data()!;
+            firestoreFirst = data['firstName'] as String?;
+            firestoreLast = data['lastName'] as String?;
+            firestorePhoto = data['profilePhoto'] as String?;
+          }
+        } catch (e) {
+          debugPrint("Firestore profil getirme hatası (ihmal edilebilir): $e");
+        }
+
+        final firestoreFullName =
+            "${firestoreFirst ?? ''} ${firestoreLast ?? ''}".trim();
+        final authDisplayName = user.displayName?.trim() ?? '';
+
+        final resolvedFullName = firestoreFullName.isNotEmpty
+            ? firestoreFullName
+            : (authDisplayName.isNotEmpty
+                ? authDisplayName
+                : cleanEmail.split('@').first);
+
+        currentUserName.value = resolvedFullName;
+        await _persistUserName(resolvedFullName);
+
+        // Firebase Auth displayName güncel değilse arka planda eşitle
+        if (user.displayName != resolvedFullName && resolvedFullName.isNotEmpty) {
+          try {
+            await user.updateDisplayName(resolvedFullName);
+            await user.reload();
+          } catch (_) {}
+        }
+
+        // AuthService ile kullanıcıyı senkronize et
+        if (Get.isRegistered<AuthService>()) {
+          final authService = Get.find<AuthService>();
+          final parts = resolvedFullName.split(' ');
+          final fName = (firestoreFirst != null && firestoreFirst.isNotEmpty)
+              ? firestoreFirst
+              : parts.first;
+          final lName = (firestoreLast != null)
+              ? firestoreLast
+              : (parts.length > 1 ? parts.sublist(1).join(' ') : '');
+          final appUser = AppUser(
+            id: user.uid,
+            email: user.email ?? cleanEmail,
+            firstName: fName,
+            lastName: lName,
+            profilePhoto: firestorePhoto,
+          );
+          await authService.saveLocalUser(appUser);
+        }
+
+        _bindUserGroups(resolvedFullName);
+        unawaited(refreshGroups().catchError((e) {
+          debugPrint("Arka plan grup yenileme hatası: $e");
+          return null;
+        }));
+
+        // Cüzdan / Dashboard verilerini bu kullanıcı için tazele
+        if (Get.isRegistered<DashboardController>()) {
+          unawaited(Get.find<DashboardController>().refreshDashboard().catchError((_) {}));
+        }
+      }
+      return user;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /// Şifre Sıfırlama: E-posta adresine şifre sıfırlama linki gönderir.
+  Future<void> sendPasswordReset(String email) async {
+    final cleanEmail = email.trim();
+    try {
+      setLoading(true);
+      await _auth.sendPasswordResetEmail(email: cleanEmail);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /// Google ile Giriş: AuthService üzerinden Google ile oturum açar ve UserSession'a bağlar.
+  Future<bool> loginWithGoogle() async {
+    try {
+      setLoading(true);
+      if (Get.isRegistered<AuthService>()) {
+        final authService = Get.find<AuthService>();
+        final appUser = await authService.signInWithGoogle();
+        if (appUser != null) {
+          if (Get.isRegistered<DashboardController>()) {
+            try {
+              final dash = Get.find<DashboardController>();
+              dash.myTransaction.clear();
+              dash.categories.clear();
+              dash.aylikGelir.value = 0.0;
+              dash.aylikGider.value = 0.0;
+            } catch (_) {}
+          }
+
+          // Firestore'dan özelleştirilmiş kullanıcı profili var mı kontrol et
+          String? firestoreFirst;
+          String? firestoreLast;
+          String? firestorePhoto;
+          final currentUid = _auth.currentUser?.uid ?? appUser.id;
+          if (currentUid != null && currentUid.isNotEmpty) {
+            try {
+              final doc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentUid)
+                  .get()
+                  .timeout(const Duration(seconds: 4));
+              if (doc.exists && doc.data() != null) {
+                final data = doc.data()!;
+                firestoreFirst = data['firstName'] as String?;
+                firestoreLast = data['lastName'] as String?;
+                firestorePhoto = data['profilePhoto'] as String?;
+              }
+            } catch (_) {}
+          }
+
+          final firestoreFullName =
+              "${firestoreFirst ?? ''} ${firestoreLast ?? ''}".trim();
+          final defaultName = appUser.fullName.trim().isNotEmpty
+              ? appUser.fullName.trim()
+              : (appUser.first_name?.trim() ?? 'Kullanıcı');
+
+          final displayName = firestoreFullName.isNotEmpty
+              ? firestoreFullName
+              : defaultName;
+
+          currentUserName.value = displayName;
+          await _persistUserName(displayName);
+
+          // AuthService profilini güncelle
+          if (firestoreFirst != null || firestoreLast != null || firestorePhoto != null) {
+            final updatedAppUser = appUser.copyWith(
+              firstName: firestoreFirst ?? appUser.firstName,
+              lastName: firestoreLast ?? appUser.lastName,
+              profilePhoto: firestorePhoto ?? appUser.profilePhoto,
+            );
+            await authService.saveLocalUser(updatedAppUser);
+          }
+
+          _bindUserGroups(displayName);
+          unawaited(refreshGroups().catchError((_) => null));
+
+          if (_auth.currentUser != null) {
+            await _syncDisplayNameWithFirebase(displayName);
+          }
+
+          if (Get.isRegistered<DashboardController>()) {
+            unawaited(Get.find<DashboardController>().refreshDashboard().catchError((_) {}));
+          }
+
+          return true;
+        }
+      }
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   /// Oturumu kapatır (gerekirse)
   Future<void> signOut() async {
     try {
       _groupsSubscription?.cancel();
-      await _auth.signOut();
-      firebaseUser.value = null;
       userGroups.clear();
       activeGroup.value = null;
+      currentUserName.value = '';
+      firebaseUser.value = null;
+
+      if (Get.isRegistered<AuthService>()) {
+        await Get.find<AuthService>().clearUserSessionData();
+      } else {
+        await _auth.signOut();
+      }
     } catch (e) {
       debugPrint("Oturum kapatılırken hata: $e");
     }
   }
 }
-
-/// İsimlendirme esnekliği ve kolay erişim için takma ad (alias)
-typedef AuthController = UserSessionController;

@@ -197,5 +197,19 @@ void main() {
     expect(find.byType(EditProfileDialog), findsNothing);
     expect(find.text("E"), findsOneWidget);
   });
+
+  testWidgets('Updating profile name updates controller user and reflects new display name', (tester) async {
+    final controller = Get.find<ProfileController>();
+    final success = await controller.updateProfile(
+      firstName: 'Ahmet',
+      lastName: 'Yılmaz',
+      email: 'ahmet@example.com',
+    );
+    expect(success, isTrue);
+    expect(controller.user.value?.firstName, 'Ahmet');
+    expect(controller.user.value?.lastName, 'Yılmaz');
+    expect(controller.user.value?.fullName, 'Ahmet Yılmaz');
+  });
 }
+
 

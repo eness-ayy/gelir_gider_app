@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/categories/widgets/category_management_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
@@ -29,21 +30,32 @@ class ProfilePage extends GetView<ProfileController> {
         padding: EdgeInsets.fromLTRB(16, 16, 16, showAppBar ? 40 : 100),
         child: Obx(() {
           final user = controller.user.value;
+          User? fbUser;
+          try {
+            fbUser = FirebaseAuth.instance.currentUser;
+          } catch (_) {
+            fbUser = null;
+          }
           final photoUrl = user?.profile_photo;
 
           final fullName = [
             user?.first_name,
             user?.last_name,
           ].where((s) => s != null && s.trim().isNotEmpty).join(' ').trim();
-          final displayName = fullName.isNotEmpty ? fullName : "Enes Ay";
+
+          final displayName = fullName.isNotEmpty
+              ? fullName
+              : (fbUser?.displayName?.trim().isNotEmpty == true
+                  ? fbUser!.displayName!.trim()
+                  : (fbUser?.email?.split('@').first ?? "Kullanıcı"));
+
           final displayEmail = (user?.email != null && user!.email!.isNotEmpty)
               ? user.email!
-              : "eay105707@gmail.com";
+              : (fbUser?.email ?? "");
 
-          final initial =
-              (user?.first_name != null && user!.first_name!.trim().isNotEmpty)
-              ? user.first_name!.trim()[0].toUpperCase()
-              : 'E';
+          final initial = displayName.isNotEmpty
+              ? displayName[0].toUpperCase()
+              : (displayEmail.isNotEmpty ? displayEmail[0].toUpperCase() : 'K');
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.center,

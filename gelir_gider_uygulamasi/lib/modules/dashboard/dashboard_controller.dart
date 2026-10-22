@@ -73,8 +73,12 @@ class DashboardController extends BaseController {
   }
 
   Future<void> refreshDashboard() async {
+    final cached = _transactionRepostory.getCachedTransactions();
+    myTransaction.value = cached;
+    aylikOzet();
+
     await Future.wait([
-      getTransactions(isBackground: false),
+      getTransactions(isBackground: cached.isNotEmpty),
       loadCategories(),
     ]);
   }

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
@@ -34,9 +35,32 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   void initState() {
     super.initState();
     final user = _controller.user.value;
-    _firstNameController = TextEditingController(text: user?.first_name ?? '');
-    _lastNameController = TextEditingController(text: user?.last_name ?? '');
-    _emailController = TextEditingController(text: user?.email ?? '');
+    User? fbUser;
+    try {
+      fbUser = FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      fbUser = null;
+    }
+
+    final parts = (fbUser?.displayName?.trim() ?? '').split(' ');
+    final fbFirst = parts.first;
+    final fbLast = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+    final initialFirst = (user?.first_name != null && user!.first_name!.isNotEmpty)
+        ? user.first_name!
+        : (fbFirst.isNotEmpty ? fbFirst : (fbUser?.email?.split('@').first ?? ''));
+
+    final initialLast = (user?.last_name != null && user!.last_name!.isNotEmpty)
+        ? user.last_name!
+        : fbLast;
+
+    final initialEmail = (user?.email != null && user!.email!.isNotEmpty)
+        ? user.email!
+        : (fbUser?.email ?? '');
+
+    _firstNameController = TextEditingController(text: initialFirst);
+    _lastNameController = TextEditingController(text: initialLast);
+    _emailController = TextEditingController(text: initialEmail);
     _selectedAvatar = user?.profile_photo;
   }
 
@@ -55,7 +79,18 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     if (userFirst != null && userFirst.isNotEmpty) {
       return userFirst[0].toUpperCase();
     }
-    return 'E';
+    String? fbName;
+    try {
+      fbName = FirebaseAuth.instance.currentUser?.displayName?.trim();
+    } catch (_) {
+      fbName = null;
+    }
+    if (fbName != null && fbName.isNotEmpty) {
+      return fbName[0].toUpperCase();
+    }
+    final email = _emailController.text.trim();
+    if (email.isNotEmpty) return email[0].toUpperCase();
+    return 'K';
   }
 
   Future<void> _handleSave() async {

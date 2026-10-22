@@ -1,6 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gelir_gider_uygulamasi/controllers/user_session_controller.dart';
 import 'package:gelir_gider_uygulamasi/models/app_user.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
+import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/api_services.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
@@ -29,13 +35,103 @@ class AuthService extends GetxController {
 
   void loadCachedUser() {
     try {
+      User? fbUser;
+      try {
+        fbUser = FirebaseAuth.instance.currentUser;
+      } catch (_) {
+        fbUser = null;
+      }
       final cachedJson = _storgeService.getValue<String>(StorageKeys.userData);
+
       if (cachedJson != null && cachedJson.isNotEmpty) {
         final decoded = jsonDecode(cachedJson) as Map<String, dynamic>;
-        currentUser.value = AppUser.fromJson(decoded);
+        final cachedUser = AppUser.fromJson(decoded);
+
+        // Eğer Firebase'de oturum açmış kullanıcı varsa ve önbellekteki e-posta ile uyuşmuyorsa,
+        // eski kullanıcının verisini ezip güncel Firebase kullanıcısına uyarla
+        if (fbUser != null &&
+            fbUser.email != null &&
+            cachedUser.email != null &&
+            cachedUser.email!.trim().toLowerCase() !=
+                fbUser.email!.trim().toLowerCase()) {
+          final displayName = fbUser.displayName?.trim() ?? '';
+          final parts = displayName.split(' ');
+          final fName = parts.first;
+          final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+          final syncedUser = AppUser(
+            id: fbUser.uid,
+            email: fbUser.email,
+            firstName: fName.isNotEmpty ? fName : fbUser.email!.split('@').first,
+            lastName: lName,
+          );
+          saveLocalUser(syncedUser);
+          return;
+        }
+
+        currentUser.value = cachedUser;
+      } else if (fbUser != null) {
+        // Önbellek boş ama Firebase oturumu aktif
+        final displayName = fbUser.displayName?.trim() ?? '';
+        final parts = displayName.split(' ');
+        final fName = parts.first;
+        final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+        final syncedUser = AppUser(
+          id: fbUser.uid,
+          email: fbUser.email,
+          firstName: fName.isNotEmpty ? fName : (fbUser.email?.split('@').first ?? 'Kullanıcı'),
+          lastName: lName,
+        );
+        saveLocalUser(syncedUser);
+      }
+
+      if (fbUser != null) {
+        unawaited(syncUserFromFirestore());
       }
     } catch (e) {
       debugPrint("Kayıtlı kullanıcı yükleme hatası: $e");
+    }
+  }
+
+  /// Firestore'daki güncel profil verisini (isim, soyisim, avatar) çekip yerel profil ile senkronize eder
+  Future<void> syncUserFromFirestore() async {
+    try {
+      final fbUser = FirebaseAuth.instance.currentUser;
+      if (fbUser == null) return;
+
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(fbUser.uid)
+          .get()
+          .timeout(const Duration(seconds: 4));
+
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final first = data['firstName'] as String?;
+        final last = data['lastName'] as String?;
+        final photo = data['profilePhoto'] as String?;
+        final email = (data['email'] as String?) ?? fbUser.email;
+
+        final current = currentUser.value;
+        final updated = (current ?? AppUser(id: fbUser.uid, email: email)).copyWith(
+          firstName: (first != null && first.isNotEmpty) ? first : current?.firstName,
+          lastName: (last != null) ? last : current?.lastName,
+          profilePhoto: photo,
+          email: email,
+        );
+
+        await saveLocalUser(updated);
+
+        final fullName = updated.fullName;
+        if (Get.isRegistered<UserSessionController>() && fullName.isNotEmpty) {
+          final session = Get.find<UserSessionController>();
+          session.currentUserName.value = fullName;
+          await session.persistUserName(fullName);
+        }
+      }
+    } catch (e) {
+      debugPrint("Firestore kullanıcı senkronizasyon hatası (ihmal edilebilir): $e");
     }
   }
 
@@ -53,6 +149,7 @@ class AuthService extends GetxController {
 
   Future<AppUser?> signInWithGoogle() async {
     try {
+      // Önceki olası oturum artıklarını temizle
       await _googleSignIn.signOut();
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
@@ -85,15 +182,63 @@ class AuthService extends GetxController {
     }
   }
 
-  Future<void> signOut() async {
+  /// Tüm kullanıcı oturumunu, önbellekleri ve kontrolcü durumlarını sıfırlar.
+  Future<void> clearUserSessionData({bool signOutFirebase = true}) async {
     try {
-      await _googleSignIn.signOut();
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+
+      if (signOutFirebase) {
+        try {
+          await FirebaseAuth.instance.signOut();
+        } catch (_) {}
+      }
+
       await _storgeService.remove(StorageKeys.userToken);
       await _storgeService.remove(StorageKeys.userData);
+      await _storgeService.remove(StorageKeys.cachedTransactions);
+      await _storgeService.remove(StorageKeys.cachedCategories);
+      await _storgeService.remove(StorageKeys.groupNickname);
+
       currentUser.value = null;
+
+      // Dashboard Controller'ı temizle
+      if (Get.isRegistered<DashboardController>()) {
+        try {
+          final dash = Get.find<DashboardController>();
+          dash.myTransaction.clear();
+          dash.categories.clear();
+          dash.aylikGelir.value = 0.0;
+          dash.aylikGider.value = 0.0;
+        } catch (_) {}
+      }
+
+      // UserSession Controller'ı temizle
+      if (Get.isRegistered<UserSessionController>()) {
+        try {
+          final session = Get.find<UserSessionController>();
+          session.firebaseUser.value = null;
+          session.currentUserName.value = '';
+          session.userGroups.clear();
+          session.activeGroup.value = null;
+        } catch (_) {}
+      }
+
+      // Account Service'i temizle
+      if (Get.isRegistered<AccountService>()) {
+        try {
+          final acc = Get.find<AccountService>();
+          acc.transactionPaymentMethods.clear();
+        } catch (_) {}
+      }
     } catch (e) {
-      debugPrint("Çıkış yapılırken hata oluştu: $e");
+      debugPrint("Oturum temizleme hatası: $e");
     }
+  }
+
+  Future<void> signOut() async {
+    await clearUserSessionData(signOutFirebase: true);
   }
 
   Future<bool> updateProfile({
@@ -115,7 +260,62 @@ class AuthService extends GetxController {
     // 1. Önce yerel veriyi ve UI durumunu anında güncelle
     await saveLocalUser(updated);
 
-    // 2. Ardından sunucuya senkronize etmeyi dene
+    final fullName = updated.fullName.isNotEmpty
+        ? updated.fullName
+        : (updated.firstName ?? '').trim();
+
+    // 2. Firebase Auth profilini (displayName ve photoURL) güncelle
+    try {
+      final fbUser = FirebaseAuth.instance.currentUser;
+      if (fbUser != null) {
+        if (fullName.isNotEmpty && fbUser.displayName != fullName) {
+          await fbUser.updateDisplayName(fullName);
+        }
+        if (clearPhoto) {
+          await fbUser.updatePhotoURL(null);
+        } else if (profilePhoto != null && profilePhoto.isNotEmpty) {
+          await fbUser.updatePhotoURL(profilePhoto);
+        }
+        await fbUser.reload();
+      }
+    } catch (e) {
+      debugPrint("Firebase Auth profil güncelleme hatası: $e");
+    }
+
+    // 3. Firestore 'users' koleksiyonuna kalıcı olarak kaydet
+    try {
+      final fbUser = FirebaseAuth.instance.currentUser;
+      if (fbUser != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(fbUser.uid)
+            .set({
+          'uid': fbUser.uid,
+          'email': updated.email ?? fbUser.email,
+          'firstName': updated.firstName,
+          'lastName': updated.lastName,
+          'fullName': fullName,
+          'profilePhoto': clearPhoto ? null : (profilePhoto ?? updated.profilePhoto),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint("Firestore profil kaydetme hatası: $e");
+    }
+
+    // 4. UserSessionController ile senkronize et
+    if (Get.isRegistered<UserSessionController>() && fullName.isNotEmpty) {
+      try {
+        final session = Get.find<UserSessionController>();
+        session.currentUserName.value = fullName;
+        await session.persistUserName(fullName);
+        session.bindUserGroups(fullName);
+      } catch (e) {
+        debugPrint("UserSession profil senkronizasyon hatası: $e");
+      }
+    }
+
+    // 5. Sunucuya senkronize etmeyi dene
     try {
       final response = await _apiServices.put(
         ApiConstants.profile,

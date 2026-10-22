@@ -12,6 +12,7 @@ class AppUser {
   String? get last_name => lastName;
   // ignore: non_constant_identifier_names
   String? get profile_photo => profilePhoto;
+  String get fullName => "${firstName ?? ''} ${lastName ?? ''}".trim();
 
   AppUser({
     this.id,
