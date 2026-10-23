@@ -4,6 +4,7 @@ import 'package:gelir_gider_uygulamasi/modules/categories/widgets/category_manag
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/delete_account_dialog.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/edit_profile_dialog.dart';
+import 'package:gelir_gider_uygulamasi/modules/profile/widgets/feedback_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/monthly_budget_limits_sheet.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
@@ -214,6 +215,34 @@ class ProfilePage extends GetView<ProfileController> {
                 ),
               ),
               const SizedBox(height: 8),
+              // Geri Bildirim & İletişim Kartı
+              Card(
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.mark_email_read_outlined,
+                      color: Colors.blueAccent,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    "Geri Bildirim & İletişim",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    "Hata bildirin veya önerinizi paylaşın",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => FeedbackSheet.show(context),
+                ),
+              ),
+              const SizedBox(height: 8),
               Card(
                 color: Colors.redAccent.withValues(alpha: 0.08),
                 shape: RoundedRectangleBorder(
@@ -304,7 +333,20 @@ class ProfilePage extends GetView<ProfileController> {
                   onTap: () => DeleteAccountDialog.show(context),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
+              // Sürüm Bilgisi
+              Center(
+                child: Text(
+                  "v1.0.0",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: isDark ? Colors.white38 : Colors.grey.shade500,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
             ],
           );
         }),
