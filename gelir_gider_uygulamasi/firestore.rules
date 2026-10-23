@@ -51,5 +51,15 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
+
+    // =========================================================================
+    // 4. GERİ BİLDİRİM VE İLETİŞİM (feedbacks)
+    // =========================================================================
+    match /feedbacks/{feedbackId} {
+      // Yalnızca oturum açmış kullanıcıların yeni belge eklemesine izin ver
+      allow create: if isAuthenticated();
+      // Başkalarının geri bildirimlerini okuma, güncelleme veya silmeyi engelle
+      allow read, update, delete: if false;
+    }
   }
 }

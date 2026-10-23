@@ -109,11 +109,9 @@ class UserSessionController extends BaseController {
         refreshGroups();
       }
 
-      // 2. Firebase Anonim Giriş kontrolü
+      // 2. Firebase Oturum kontrolü
       User? user = _auth.currentUser;
-      if (user == null) {
-        user = await signInAnonymously();
-      } else {
+      if (user != null) {
         firebaseUser.value = user;
         isAnonymous.value = user.isAnonymous;
 

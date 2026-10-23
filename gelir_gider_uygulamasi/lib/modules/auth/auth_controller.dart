@@ -6,12 +6,21 @@ import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:get/get.dart';
 
+import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
+
 /// E-posta & Şifre ile kimlik doğrulama, kayıt ve şifre sıfırlama controller'ı
 class AuthController extends BaseController {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  /// Firebase Auth mevcut kullanıcısını reaktif olarak tutan Rx nesnesi
+  final Rx<User?> firebaseUser = Rx<User?>(null);
+
   final UserSessionController _userSession =
       Get.isRegistered<UserSessionController>()
           ? Get.find<UserSessionController>()
           : Get.put(UserSessionController());
+
+  bool _isNavigating = false;
 
   // ---------------------------------------------------------------------------
   // Reaktif Durum Değişkenleri
@@ -47,6 +56,77 @@ class AuthController extends BaseController {
 
   // Şifre sıfırlama alanı
   final TextEditingController resetEmailController = TextEditingController();
+
+  @override
+  void onInit() {
+    super.onInit();
+    // 1. GetX standartlarında reaktif akış bağlama
+    firebaseUser.bindStream(_auth.authStateChanges());
+    // 2. Oturum durumunu dinle (Çıkış yapıldığında veya giriş yapıldığında tetiklenir)
+    ever(firebaseUser, _handleAuthStateChanged);
+  }
+
+  /// Oturum durumuna göre rotalama kontrolü
+  void _handleAuthStateChanged(User? user) {
+    if (_isNavigating) return;
+
+    // Splash ekranındayken yönlendirme kontrolünü SplashController üstlenir
+    if (Get.currentRoute == AppRoutes.splash || Get.currentRoute.isEmpty) {
+      return;
+    }
+
+    final isAuth = user != null && !user.isAnonymous;
+
+    if (!isAuth) {
+      // Oturum kapalı veya kullanıcı çıkış yapmış -> Login ekranına yönlendir
+      if (Get.currentRoute != AppRoutes.login && Get.currentRoute != AppRoutes.auth) {
+        _isNavigating = true;
+        Get.offAllNamed(AppRoutes.login);
+        Future.delayed(const Duration(milliseconds: 300), () => _isNavigating = false);
+      }
+    } else {
+      // Oturum açık -> Kullanıcıyı senkronize et ve Ana Sayfaya (Home) yönlendir
+      _syncUserData(user);
+      if (Get.currentRoute != AppRoutes.home) {
+        _isNavigating = true;
+        Get.offAllNamed(AppRoutes.home);
+        Future.delayed(const Duration(milliseconds: 300), () => _isNavigating = false);
+      }
+    }
+  }
+
+  /// Oturum açıldığında yerel kullanıcı ve profil bilgilerini eşitler
+  void _syncUserData(User user) {
+    try {
+      if (Get.isRegistered<AuthService>()) {
+        final authService = Get.find<AuthService>();
+        authService.loadCachedUser();
+      }
+      if (Get.isRegistered<UserSessionController>()) {
+        final session = Get.find<UserSessionController>();
+        session.firebaseUser.value = user;
+      }
+    } catch (e) {
+      debugPrint("Kullanıcı veri senkronizasyon hatası: $e");
+    }
+  }
+
+  /// Kullanıcı oturumunu kapatır; authStateChanges akışı sistemi otomatik Login ekranına yönlendirir
+  Future<void> signOut() async {
+    try {
+      setLoading(true);
+      if (Get.isRegistered<AuthService>()) {
+        await Get.find<AuthService>().signOut();
+      } else {
+        await _auth.signOut();
+      }
+    } catch (e) {
+      debugPrint("Çıkış yapma hatası: $e");
+      showErrorSnackbar(message: "Çıkış yapılırken bir sorun oluştu.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   @override
   void onClose() {

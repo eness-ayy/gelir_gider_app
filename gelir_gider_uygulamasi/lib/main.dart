@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/app_bindings.dart';
 import 'package:gelir_gider_uygulamasi/firebase_options.dart';
+import 'package:gelir_gider_uygulamasi/modules/auth/auth_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
@@ -22,6 +23,9 @@ import 'package:intl/date_symbol_data_local.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase'i servislerden önce en başta ayağa kaldırıyoruz
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Tarih ve yerelleştirme verilerini başlat
   await initializeDateFormatting('tr_TR', null);
@@ -75,7 +79,8 @@ void main(List<String> args) async {
   await creditCardService.init();
   Get.put<CreditCardService>(creditCardService, permanent: true);
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // 9. AuthController'ı oturum akışını dinlemesi için kalıcı olarak başlat
+  Get.put<AuthController>(AuthController(), permanent: true);
 
   runApp(const MyApp());
 }
@@ -88,8 +93,9 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'Gelir Gider Takip',
       debugShowCheckedModeBanner: false,
-      getPages: AppPages.pages,
-      initialRoute: AppRoutes.INITIAL,
+      getPages: AppPages.routes,
+      // Başlangıç ekranı her zaman Splash olmalıdır (Firebase oturum durumu çözülürken Login kilitlenmesini önler)
+      initialRoute: AppRoutes.splash,
       darkTheme: AppTheme.dark,
       theme: AppTheme.light,
       initialBinding: AppBindings(),

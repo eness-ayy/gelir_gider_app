@@ -4,6 +4,7 @@ import 'package:gelir_gider_uygulamasi/modules/categories/widgets/category_manag
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/delete_account_dialog.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/edit_profile_dialog.dart';
+import 'package:gelir_gider_uygulamasi/modules/profile/widgets/export_pdf_dialog.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/feedback_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/monthly_budget_limits_sheet.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
@@ -215,6 +216,34 @@ class ProfilePage extends GetView<ProfileController> {
                 ),
               ),
               const SizedBox(height: 8),
+              // Verileri Dışa Aktar (PDF) Kartı
+              Card(
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.picture_as_pdf_rounded,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    "Verileri Dışa Aktar (PDF)",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    "Tarih aralığı seçerek PDF raporu oluşturun",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => ExportPdfDialog.show(context),
+                ),
+              ),
+              const SizedBox(height: 8),
               // Geri Bildirim & İletişim Kartı
               Card(
                 child: ListTile(
@@ -240,6 +269,47 @@ class ProfilePage extends GetView<ProfileController> {
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => FeedbackSheet.show(context),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Verileri Sıfırla Kartı
+              Card(
+                color: Colors.orange.withValues(alpha: 0.08),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Colors.orange.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.restart_alt_rounded,
+                      color: Colors.orange,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    "Verileri Sıfırla",
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    "Tüm gelir, gider ve bütçe kayıtlarını temizleyin",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.orange,
+                  ),
+                  onTap: () => _showResetDataDialog(context),
                 ),
               ),
               const SizedBox(height: 8),
@@ -350,6 +420,130 @@ class ProfilePage extends GetView<ProfileController> {
             ],
           );
         }),
+      ),
+    );
+  }
+
+  void _showResetDataDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF232323) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.restart_alt_rounded,
+                color: Colors.orange,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                "Verileri Sıfırla",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Tüm gelir, gider, bütçe ve harcama kayıtlarınız kalıcı olarak silinecek, kategorileriniz varsayılan duruma getirilecektir.",
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.grey.shade800,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Bu işlem geri alınamaz!",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              "Vazgeç",
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.grey.shade700,
+              ),
+            ),
+          ),
+          Obx(() {
+            final loading = controller.isResetting.value;
+            return ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade800,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              onPressed: loading
+                  ? null
+                  : () async {
+                      Get.back();
+                      await controller.resetUserData();
+                    },
+              child: loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      "Evet, Sıfırla",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+            );
+          }),
+        ],
       ),
     );
   }

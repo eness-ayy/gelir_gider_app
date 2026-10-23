@@ -23,9 +23,9 @@ import 'package:gelir_gider_uygulamasi/modules/shared_budget/detail/shared_budge
 import 'package:gelir_gider_uygulamasi/modules/shared_budget/shared_budget_binding.dart';
 import 'package:gelir_gider_uygulamasi/modules/shared_budget/shared_budget_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/splash/splash_binding.dart';
-import 'package:gelir_gider_uygulamasi/modules/splash/splash_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/transaction_bindings.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/transaction_page.dart';
+import 'package:gelir_gider_uygulamasi/views/splash/splash_view.dart';
 import 'package:get/get.dart';
 
 abstract class AppRoutes {
@@ -80,10 +80,13 @@ abstract class AppRoutes {
 }
 
 class AppPages {
+  /// AppPages.routes ve AppPages.pages ikili desteği
+  static List<GetPage> get routes => pages;
+
   static final pages = <GetPage>[
     GetPage(
       name: AppRoutes.splash,
-      page: () => const SplashPage(),
+      page: () => const SplashView(),
       binding: SplashBinding(),
     ),
     GetPage(

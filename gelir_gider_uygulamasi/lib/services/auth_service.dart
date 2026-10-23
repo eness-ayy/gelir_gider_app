@@ -362,6 +362,10 @@ class AuthService extends GetxController {
 
   Future<bool> isAuthenticated() async {
     try {
+      final fbUser = FirebaseAuth.instance.currentUser;
+      if (fbUser != null && !fbUser.isAnonymous) {
+        return true;
+      }
       final token = _storgeService.getValue<String>(StorageKeys.userToken);
       if (token == null || token.isEmpty) {
         currentUser.value = null;
@@ -379,6 +383,10 @@ class AuthService extends GetxController {
       }
       return token.isNotEmpty;
     } catch (e) {
+      final fbUser = FirebaseAuth.instance.currentUser;
+      if (fbUser != null && !fbUser.isAnonymous) {
+        return true;
+      }
       final token = _storgeService.getValue<String>(StorageKeys.userToken);
       return token != null && token.isNotEmpty;
     }

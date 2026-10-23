@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gelir_gider_uygulamasi/services/feedback_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class FeedbackSheet extends StatefulWidget {
   const FeedbackSheet({super.key});
@@ -26,6 +26,7 @@ class FeedbackSheet extends StatefulWidget {
 class _FeedbackSheetState extends State<FeedbackSheet> {
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  final FeedbackService _feedbackService = FeedbackService();
 
   final List<Map<String, dynamic>> _types = [
     {
@@ -50,6 +51,8 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
 
   String _selectedTypeId = 'bug';
   bool _isSending = false;
+  String? _messageError;
+  String? _generalError;
 
   @override
   void dispose() {
@@ -58,67 +61,108 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
     super.dispose();
   }
 
-  String _encodeQueryParameters(Map<String, String> params) {
-    return params.entries
-        .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-        .join('&');
+  /// Firebase veya sistem hatalarını kullanıcı dostu Türkçe mesaja dönüştürür
+  String _getReadableErrorMessage(dynamic error) {
+    if (error is FirebaseException) {
+      switch (error.code) {
+        case 'permission-denied':
+          return 'Veritabanı yazma yetkisi reddedildi. Firestore güvenlik kurallarının yayınlandığından emin olun.';
+        case 'unavailable':
+          return 'İnternet bağlantınızı kontrol edip tekrar deneyiniz.';
+        case 'unauthenticated':
+          return 'Geri bildirim göndermek için lütfen oturum açınız.';
+        case 'deadline-exceeded':
+          return 'İşlem zaman aşımına uğradı. İnternet bağlantınızı kontrol ediniz.';
+        default:
+          return error.message ?? 'Geri bildirim iletilirken bir sorun oluştu.';
+      }
+    }
+
+    final errorStr = error.toString();
+    if (errorStr.contains('permission-denied')) {
+      return 'Veritabanı yazma yetkisi reddedildi (Firestore kurallarını kontrol edin).';
+    }
+    if (errorStr.contains('unavailable') ||
+        errorStr.contains('network') ||
+        errorStr.contains('SocketException') ||
+        errorStr.contains('Failed host lookup')) {
+      return 'İnternet bağlantınızı kontrol edip tekrar deneyiniz.';
+    }
+
+    return errorStr.replaceAll('Exception: ', '').trim();
   }
 
-  Future<void> _launchEmail() async {
+  Future<void> _submitFeedback() async {
+    final message = _messageController.text.trim();
+    if (message.isEmpty) {
+      setState(() {
+        _messageError = "Lütfen bir mesaj / açıklama giriniz.";
+      });
+      Get.snackbar(
+        "Eksik Bilgi",
+        "Lütfen açıklama / mesaj alanını doldurunuz.",
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.orange.shade800,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    setState(() {
+      _messageError = null;
+      _generalError = null;
+      _isSending = true;
+    });
+
     final typeObj = _types.firstWhere(
       (t) => t['id'] == _selectedTypeId,
       orElse: () => _types.first,
     );
     final typeTitle = typeObj['title'] as String;
 
-    final userSubject = _subjectController.text.trim();
-    final userMessage = _messageController.text.trim();
-
-    final subject = userSubject.isNotEmpty
-        ? '[$typeTitle] $userSubject'
-        : '[Gelir-Gider App] $typeTitle';
-
-    final user = FirebaseAuth.instance.currentUser;
-    final userEmail = user?.email ?? 'Belirtilmedi';
-
-    final bodyBuffer = StringBuffer();
-    if (userMessage.isNotEmpty) {
-      bodyBuffer.writeln('Açıklama / Mesaj:');
-      bodyBuffer.writeln(userMessage);
-      bodyBuffer.writeln();
-    }
-    bodyBuffer.writeln('----------------------------------------');
-    bodyBuffer.writeln('Uygulama: Gelir-Gider Takip');
-    bodyBuffer.writeln('Sürüm: v1.0.0');
-    bodyBuffer.writeln('Kullanıcı: $userEmail');
-    bodyBuffer.writeln('Tarih: ${DateTime.now().toLocal().toString().split('.').first}');
-
-    final Uri emailLaunchUri = Uri(
-      scheme: 'mailto',
-      path: FeedbackSheet.supportEmail,
-      query: _encodeQueryParameters({
-        'subject': subject,
-        'body': bodyBuffer.toString(),
-      }),
-    );
-
-    setState(() => _isSending = true);
-
     try {
-      final launched = await launchUrl(
-        emailLaunchUri,
-        mode: LaunchMode.externalApplication,
+      await _feedbackService.sendFeedback(
+        type: typeTitle,
+        subject: _subjectController.text,
+        message: message,
       );
 
-      if (!launched) {
-        await _copyEmailAndNotify();
-      } else {
-        if (mounted) {
-          Navigator.pop(context);
-        }
+      if (mounted) {
+        Navigator.pop(context);
+        Get.snackbar(
+          "Başarılı",
+          "Geri bildiriminiz başarıyla iletildi. Teşekkür ederiz!",
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.green.shade600,
+          colorText: Colors.white,
+          margin: const EdgeInsets.all(16),
+          icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+          duration: const Duration(seconds: 4),
+        );
       }
-    } catch (_) {
-      await _copyEmailAndNotify();
+    } catch (e) {
+      debugPrint("Geri bildirim gönderme hatası: $e");
+      final friendlyError = _getReadableErrorMessage(e);
+
+      if (mounted) {
+        setState(() {
+          _generalError = friendlyError;
+        });
+
+        Get.snackbar(
+          "Gönderilemedi",
+          friendlyError,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.redAccent.shade700,
+          colorText: Colors.white,
+          margin: const EdgeInsets.all(16),
+          icon: const Icon(Icons.error_outline_rounded, color: Colors.white),
+          duration: const Duration(seconds: 4),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isSending = false);
@@ -128,18 +172,18 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
 
   Future<void> _copyEmailAndNotify() async {
     await Clipboard.setData(const ClipboardData(text: FeedbackSheet.supportEmail));
-    if (mounted) {
-      Navigator.pop(context);
-    }
+    if (!mounted) return;
+
+    Navigator.pop(context);
     Get.snackbar(
       "E-posta Kopyalandı",
-      "Cihazınızda e-posta istemcisi açılamadı. Destek e-posta adresi (${FeedbackSheet.supportEmail}) panoya kopyalandı.",
-      snackPosition: SnackPosition.BOTTOM,
+      "Destek e-posta adresi (${FeedbackSheet.supportEmail}) panoya kopyalandı.",
+      snackPosition: SnackPosition.TOP,
       backgroundColor: Colors.blueGrey.shade800,
       colorText: Colors.white,
       margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 4),
       icon: const Icon(Icons.copy_rounded, color: Colors.white),
+      duration: const Duration(seconds: 4),
     );
   }
 
@@ -331,7 +375,7 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
 
                   // Mesaj / Açıklama
                   const Text(
-                    "Açıklama / Mesajınız",
+                    "Açıklama / Mesajınız *",
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -341,11 +385,20 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
                   TextField(
                     controller: _messageController,
                     maxLines: 4,
+                    onChanged: (val) {
+                      if (_messageError != null && val.trim().isNotEmpty) {
+                        setState(() => _messageError = null);
+                      }
+                      if (_generalError != null) {
+                        setState(() => _generalError = null);
+                      }
+                    },
                     decoration: InputDecoration(
                       hintText:
                           "Düşüncelerinizi, karşılaştığınız durumu veya yeni özellik önerinizi detaylandırabilirsiniz...",
                       hintStyle: const TextStyle(fontSize: 13),
                       contentPadding: const EdgeInsets.all(14),
+                      errorText: _messageError,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -403,9 +456,53 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-                  // E-posta ile Gönder Butonu
+                  // Hata Bildirim Kutusu (Modal içinde net görünür)
+                  if (_generalError != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.redAccent.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _generalError!,
+                              style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => setState(() => _generalError = null),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Gönder Butonu
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -418,7 +515,7 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: _isSending ? null : _launchEmail,
+                      onPressed: _isSending ? null : _submitFeedback,
                       icon: _isSending
                           ? const SizedBox.shrink()
                           : const Icon(Icons.send_rounded, size: 18),
@@ -432,7 +529,7 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
                               ),
                             )
                           : const Text(
-                              "E-posta Uygulamasında Aç",
+                              "Gönder",
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
