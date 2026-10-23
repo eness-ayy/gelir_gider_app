@@ -383,4 +383,82 @@ class AuthService extends GetxController {
       return token != null && token.isNotEmpty;
     }
   }
+
+  /// Kullanıcı hesabını şifre doğrulaması yaparak, verilerini temizleyip kalıcı olarak siler
+  Future<void> deleteAccount({
+    required String password,
+    String? reason,
+    String? note,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception("Oturum açmış kullanıcı bulunamadı.");
+    }
+
+    final email = user.email ?? currentUser.value?.email;
+    if (email == null || email.isEmpty) {
+      throw Exception("Kullanıcı e-posta adresi bulunamadı.");
+    }
+
+    // 1. Şifre ile kimlik doğrulama (Re-authentication)
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: email.trim(),
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        throw Exception("Girdiğiniz şifre hatalı. Lütfen kontrol ediniz.");
+      } else if (e.code == 'user-mismatch') {
+        throw Exception("Kullanıcı kimliği uyuşmuyor.");
+      } else if (e.code == 'user-not-found') {
+        throw Exception("Kullanıcı kaydı bulunamadı.");
+      } else if (e.code == 'too-many-requests') {
+        throw Exception("Çok fazla başarısız deneme yapıldı. Lütfen biraz bekleyin.");
+      }
+      throw Exception(e.message ?? "Kimlik doğrulama başarısız oldu.");
+    }
+
+    final uid = user.uid;
+
+    // 2. Silme gerekçesini logla
+    try {
+      await FirebaseFirestore.instance.collection('account_deletion_feedbacks').add({
+        'reason': reason ?? 'Belirtilmedi',
+        'note': note ?? '',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint("Silme geri bildirimi kaydedilemedi: $e");
+    }
+
+    // 3. Firestore'daki kullanıcı verilerini temizle
+    try {
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+
+      // İşlemleri (transactions) sil
+      final transDocs = await userDoc.collection('transactions').get();
+      for (final doc in transDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      // Kategorileri sil
+      final catDocs = await userDoc.collection('categories').get();
+      for (final doc in catDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      // Ana kullanıcı profil dokümanını sil
+      await userDoc.delete();
+    } catch (e) {
+      debugPrint("Firestore kullanıcı verileri temizlenirken hata: $e");
+    }
+
+    // 4. Firebase Authentication kullanıcısını sil
+    await user.delete();
+
+    // 5. Oturum ve yerel önbellekleri temizle
+    await clearUserSessionData(signOutFirebase: false);
+  }
 }

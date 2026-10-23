@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Yardımcı fonksiyon: Oturum açmış herhangi bir kullanıcı (Anonim veya Email/Google)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Yardımcı fonksiyon: Doküman sahibi kontrolü
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // =========================================================================
+    // 1. KULLANICI PROFİLİ VE ALT KOLEKSİYONLARI (transactions, categories, vb.)
+    // =========================================================================
+    // users/{userId} dokümanı (Profil bilgileri, rumuz, e-posta vb.)
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Kullanıcının altındaki TÜM alt koleksiyonlar:
+      // - users/{userId}/transactions/{transactionId}
+      // - users/{userId}/categories/{categoryId}
+      // - users/{userId}/accounts/{accountId}
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // =========================================================================
+    // 2. ORTAK BÜTÇE / HARCAMA GRUPLARI (groups) VE ALT KOLEKSİYONLARI
+    // =========================================================================
+    // Uygulama canlı dinleme (_groupsCollection.snapshots()), davet kodu arama
+    // ve grup oluşturma işlemlerini bu koleksiyon üzerinden yürütür.
+    match /groups/{groupId} {
+      allow read, create: if isAuthenticated();
+      allow update, delete: if isAuthenticated();
+
+      // Grupların altındaki harcamalar (expenses) ve ihtiyaç listesi (needs)
+      match /{allSubcollections=**} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // =========================================================================
+    // 3. GENEL KOLEKSİYONLAR (Genel kategoriler vb. için opsiyonel)
+    // =========================================================================
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+  }
+}

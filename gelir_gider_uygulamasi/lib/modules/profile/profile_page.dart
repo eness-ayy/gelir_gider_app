@@ -2,7 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/categories/widgets/category_management_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/profile/widgets/delete_account_dialog.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/edit_profile_dialog.dart';
+import 'package:gelir_gider_uygulamasi/modules/profile/widgets/monthly_budget_limits_sheet.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
@@ -186,6 +188,33 @@ class ProfilePage extends GetView<ProfileController> {
               ),
               const SizedBox(height: 8),
               Card(
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.speed_rounded,
+                      color: Colors.amber,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    "Aylık Limit Belirleme",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    "Kategoriler için aylık harcama limitleri",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => MonthlyBudgetLimitsSheet.show(context),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
                 color: Colors.redAccent.withValues(alpha: 0.08),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -234,6 +263,48 @@ class ProfilePage extends GetView<ProfileController> {
                   },
                 ),
               ),
+              const SizedBox(height: 8),
+              // Hesabı Sil Kartı
+              Card(
+                color: Colors.red.withValues(alpha: 0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Colors.red.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.delete_forever_rounded,
+                      color: Colors.red,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    "Hesabı Sil",
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    "Hesabınızı ve verilerinizi kalıcı olarak silin",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.red,
+                  ),
+                  onTap: () => DeleteAccountDialog.show(context),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           );
         }),

@@ -6,8 +6,10 @@ import 'package:gelir_gider_uygulamasi/models/category_budget_status.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/home/home_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
+import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:get/get.dart';
@@ -33,6 +35,16 @@ class TransactionController extends BaseController {
 
   final isEditing = false.obs;
   String? editingTransactionId;
+
+  /// Tür karşılaştırma yardımcısı (expense/gider ve income/gelir eşleşmesi)
+  bool isTypeMatch(String? catType, String selectedType) {
+    if (catType == null) return false;
+    final c = catType.toLowerCase().trim();
+    final s = selectedType.toLowerCase().trim();
+    final isCatExpense = c == 'expense' || c == 'gider';
+    final isSelExpense = s == 'expense' || s == 'gider';
+    return isCatExpense == isSelExpense;
+  }
 
   @override
   void onInit() {
@@ -69,7 +81,7 @@ class TransactionController extends BaseController {
 
     // Tür (expense/income) değiştiğinde:
     ever(transactionType, (type) {
-      final list = categories.where((c) => c.type == type).toList();
+      final list = categories.where((c) => isTypeMatch(c.type, type)).toList();
       if (list.isNotEmpty) {
         final isValid = list.any((c) => c.id == selectedCategoryId.value);
         if (!isValid && list.first.id != null) {
@@ -101,43 +113,95 @@ class TransactionController extends BaseController {
 
       // Kategori seçili değilse veya geçersizleştiyse türe ait ilk kategoriyi seç
       final isValidSelection = categories.any(
-        (c) => c.id == selectedCategoryId.value && c.type == transactionType.value,
+        (c) => c.id == selectedCategoryId.value && isTypeMatch(c.type, transactionType.value),
       );
       if (!isValidSelection) {
         final list = categories
-            .where((c) => c.type == transactionType.value)
+            .where((c) => isTypeMatch(c.type, transactionType.value))
             .toList();
         if (list.isNotEmpty && list.first.id != null) {
           selectedCategoryId.value = list.first.id!;
-        } else {
-          selectedCategoryId.value = "";
+        } else if (CategoryRepository.defaultCategories.isNotEmpty) {
+          final def = CategoryRepository.defaultCategories.firstWhere(
+            (c) => isTypeMatch(c.type, transactionType.value),
+            orElse: () => CategoryRepository.defaultCategories.first,
+          );
+          selectedCategoryId.value = def.id ?? 'def_1';
         }
       }
     } catch (e) {
-      showErrorSnackbar(message: e.toString());
+      debugPrint("[TRANSACTION_CONTROLLER] Kategoriler yüklenirken hata: $e");
+      // Hata durumunda varsayılanları ata
+      categories.value = CategoryRepository.defaultCategories;
+      final def = categories.firstWhereOrNull(
+        (c) => isTypeMatch(c.type, transactionType.value),
+      );
+      if (def?.id != null) selectedCategoryId.value = def!.id!;
     } finally {
       setLoading(false);
     }
   }
 
   Future<void> saveTransaction() async {
-    if (!(formKey.currentState?.validate() ?? false)) return;
+    // 1. Kategori kontrolü: Eğer kategori seçili değilse otomatik ilk uygun kategoriyi ata
+    if (selectedCategoryId.value.isEmpty) {
+      final available = categories.where(
+        (c) => isTypeMatch(c.type, transactionType.value),
+      ).toList();
+
+      if (available.isNotEmpty && available.first.id != null) {
+        selectedCategoryId.value = available.first.id!;
+      } else {
+        selectedCategoryId.value = "Diğer";
+      }
+    }
+
+    if (!(formKey.currentState?.validate() ?? false)) {
+      debugPrint("[TRANSACTION_CONTROLLER] Form validasyonu başarısız oldu.");
+      return;
+    }
+
+    final double amountValue = double.tryParse(
+      amountController.text.trim().replaceAll(',', '.'),
+    ) ?? 0.0;
+
+    if (amountValue <= 0) {
+      showErrorSnackbar(message: "Lütfen 0'dan büyük geçerli bir tutar giriniz.");
+      return;
+    }
 
     try {
       setLoading(true);
-      final double amountValue = double.tryParse(amountController.text) ?? 0.0;
+      // Seçili kategori adını ve ikonunu tespit et
+      final selectedCat = categories.firstWhereOrNull((c) => c.id == selectedCategoryId.value) ??
+          CategoryRepository.defaultCategories.firstWhereOrNull((c) => c.id == selectedCategoryId.value);
+
+      final String finalCatName = (selectedCat?.name != null && selectedCat!.name!.trim().isNotEmpty)
+          ? selectedCat.name!.trim()
+          : (transactionType.value == 'income' ? 'Diğer Gelir' : 'Diğer Gider');
+
+      final String finalCatIcon = (selectedCat?.icon != null && selectedCat!.icon!.trim().isNotEmpty)
+          ? selectedCat.icon!.trim()
+          : 'category';
+
       final transaction = Transaction(
         id: editingTransactionId ?? '',
         amount: amountValue,
-        description: descriptionController.text.trim(),
+        description: descriptionController.text.trim().isNotEmpty
+            ? descriptionController.text.trim()
+            : (transactionType.value == 'income' ? 'Gelir İşlemi' : 'Gider İşlemi'),
         type: transactionType.value,
         date: date.value.toIso8601String(),
         categoryId: selectedCategoryId.value,
+        categoryName: finalCatName,
+        categoryIcon: finalCatIcon,
         userId: '',
         paymentMethod: selectedPaymentMethod.value.key,
       );
 
-      if (isEditing.value && (editingTransactionId?.isNotEmpty ?? false)) {
+      final wasEditing = isEditing.value;
+
+      if (wasEditing && (editingTransactionId?.isNotEmpty ?? false)) {
         await _transactionRepostory.updateTransaction(
           editingTransactionId!,
           transaction,
@@ -146,7 +210,6 @@ class TransactionController extends BaseController {
           editingTransactionId!,
           selectedPaymentMethod.value.key,
         );
-        showSuccessSnackbar(message: "İşlem başarıyla güncellendi");
       } else {
         final created = await _transactionRepostory.createTransaction(transaction);
         final targetId = created.id.isNotEmpty ? created.id : (editingTransactionId ?? '');
@@ -156,19 +219,39 @@ class TransactionController extends BaseController {
             selectedPaymentMethod.value.key,
           );
         }
-        showSuccessSnackbar(message: "İşlem başarıyla oluşturuldu");
       }
 
+      // Formu sıfırla
+      clearForm();
+
+      // HomeController'da Cüzdan sekmesini (index 0) seç
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().currentIndex.value = 0;
+      }
+
+      // Cüzdan verilerini tazele
       if (Get.isRegistered<DashboardController>()) {
         await Get.find<DashboardController>().refreshDashboard();
       }
-      Get.back();
-      clearForm();
+
+      // Sayfayı kapatıp Cüzdan sekmesine dön
+      if (Get.key.currentState?.canPop() ?? false) {
+        Get.back();
+      } else {
+        Get.offAllNamed(AppRoutes.home);
+      }
+
+      showSuccessSnackbar(
+        message: wasEditing
+            ? "İşlem başarıyla güncellendi"
+            : "İşlem başarıyla kaydedildi",
+      );
     } catch (e) {
+      debugPrint("[TRANSACTION_CONTROLLER HATA] İşlem kaydedilirken hata oluştu: $e");
       showErrorSnackbar(
         message: isEditing.value
-            ? "İşlem güncellenirken hata oluştu"
-            : "İşlem eklenirken hata oluştu",
+            ? "İşlem güncellenirken hata oluştu: $e"
+            : "İşlem eklenirken hata oluştu: $e",
       );
     } finally {
       setLoading(false);
@@ -182,7 +265,7 @@ class TransactionController extends BaseController {
 
   void onCategoryAdded(AppCategory newCategory) {
     categories.add(newCategory);
-    if (newCategory.type == transactionType.value &&
+    if (isTypeMatch(newCategory.type, transactionType.value) &&
         (newCategory.id?.isNotEmpty ?? false)) {
       selectedCategoryId.value = newCategory.id!;
     }

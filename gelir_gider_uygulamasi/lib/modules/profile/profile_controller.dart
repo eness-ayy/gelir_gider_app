@@ -102,4 +102,22 @@ class ProfileController extends BaseController {
     await _authService.signOut();
     Get.offAllNamed(AppRoutes.login);
   }
+
+  Future<void> deleteAccount({
+    required String password,
+    String? reason,
+    String? note,
+  }) async {
+    isUpdating.value = true;
+    try {
+      await _authService.deleteAccount(
+        password: password,
+        reason: reason,
+        note: note,
+      );
+      Get.offAllNamed(AppRoutes.login);
+    } finally {
+      isUpdating.value = false;
+    }
+  }
 }

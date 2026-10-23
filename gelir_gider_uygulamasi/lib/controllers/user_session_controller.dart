@@ -7,6 +7,7 @@ import 'package:gelir_gider_uygulamasi/models/app_user.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_model.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
+import 'package:gelir_gider_uygulamasi/services/category_service.dart';
 import 'package:gelir_gider_uygulamasi/services/firestore_group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
@@ -130,6 +131,11 @@ class UserSessionController extends BaseController {
       // 3. Eğer yerelde bir ad varsa ve Firebase oturumu açıksa profil adını senkronize et
       if (currentUserName.value.isNotEmpty && user != null) {
         await _syncDisplayNameWithFirebase(currentUserName.value);
+      }
+
+      // 4. Kullanıcının varsayılan kategorilerini sessizce kontrol et / başlat
+      if (user != null) {
+        unawaited(CategoryService().initializeDefaultCategories(user.uid).catchError((_) {}));
       }
     } catch (e) {
       debugPrint("Oturum başlatılırken hata oluştu: $e");
@@ -475,6 +481,13 @@ class UserSessionController extends BaseController {
           debugPrint("Kayıtta Firestore profil yazma hatası: $e");
         }
 
+        // 3.1. Varsayılan kategorileri WriteBatch ile hemen oluştur
+        try {
+          await CategoryService().initializeDefaultCategories(user.uid);
+        } catch (e) {
+          debugPrint("Kayıtta varsayılan kategorileri oluşturma hatası: $e");
+        }
+
         // 4. AuthService ile senkronize et (Profil sayfası ve cüzdan için)
         if (Get.isRegistered<AuthService>()) {
           final authService = Get.find<AuthService>();
@@ -607,6 +620,9 @@ class UserSessionController extends BaseController {
           debugPrint("Arka plan grup yenileme hatası: $e");
           return null;
         }));
+
+        // Kullanıcının varsayılan kategorilerini sessizce kontrol et / başlat
+        unawaited(CategoryService().initializeDefaultCategories(user.uid).catchError((_) {}));
 
         // Cüzdan / Dashboard verilerini bu kullanıcı için tazele
         if (Get.isRegistered<DashboardController>()) {

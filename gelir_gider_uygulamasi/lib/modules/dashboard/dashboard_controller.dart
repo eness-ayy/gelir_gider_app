@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/models/account_balances.dart';
@@ -7,6 +9,7 @@ import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
+import 'package:gelir_gider_uygulamasi/services/category_service.dart';
 import 'package:gelir_gider_uygulamasi/utils/turkish_string_helper.dart';
 import 'package:get/get.dart';
 
@@ -21,7 +24,22 @@ class DashboardController extends BaseController {
   final categories = <AppCategory>[].obs;
 
   // Search & Filter state
-  final searchController = TextEditingController();
+  TextEditingController? _searchController;
+  bool _searchControllerDisposed = false;
+
+  TextEditingController get searchController {
+    if (_searchController == null || _searchControllerDisposed) {
+      _searchController = TextEditingController(text: searchQuery.value);
+      _searchControllerDisposed = false;
+      _searchController!.addListener(() {
+        if (!_searchControllerDisposed && _searchController != null) {
+          searchQuery.value = _searchController!.text;
+        }
+      });
+    }
+    return _searchController!;
+  }
+
   final searchQuery = ''.obs;
   final selectedType = 'all'.obs; // 'all', 'income', 'expense'
   final selectedAccountFilter = 'all'.obs; // 'all', 'cash', 'bank_card', 'credit_card'
@@ -41,10 +59,6 @@ class DashboardController extends BaseController {
     _transactionRepostory = Get.find<TransactionRepostory>();
     _categoryRepository = Get.find<CategoryRepository>();
 
-    searchController.addListener(() {
-      searchQuery.value = searchController.text;
-    });
-
     // 1. Önce yerel hafızadaki (cache) verileri 0 ms bekleme ile anında göster
     final cached = _transactionRepostory.getCachedTransactions();
     if (cached.isNotEmpty) {
@@ -55,11 +69,21 @@ class DashboardController extends BaseController {
     // 2. Ardından sunucudan taze verileri çek
     getTransactions(isBackground: cached.isNotEmpty);
     loadCategories();
+
+    // 3. Kullanıcının varsayılan kategorilerini sessizce denetle / başlat
+    final fbUser = FirebaseAuth.instance.currentUser;
+    if (fbUser != null) {
+      unawaited(CategoryService().initializeDefaultCategories(fbUser.uid).then((_) {
+        loadCategories();
+      }).catchError((_) {}));
+    }
   }
 
   @override
   void onClose() {
-    searchController.dispose();
+    _searchControllerDisposed = true;
+    _searchController?.dispose();
+    _searchController = null;
     super.onClose();
   }
 
@@ -67,14 +91,102 @@ class DashboardController extends BaseController {
     try {
       final list = await _categoryRepository.getCategories();
       categories.value = list;
+      _enrichTransactionsWithCategories();
     } catch (e) {
       debugPrint('Kategoriler alınırken hata: $e');
+    }
+  }
+
+  void _enrichTransactionsWithCategories() {
+    bool hasChanged = false;
+    for (int i = 0; i < myTransaction.length; i++) {
+      final tr = myTransaction[i];
+      final currentCatName = tr.category?.name.trim() ?? '';
+      final desc = tr.description.trim();
+      final isMistakenDesc = desc.isNotEmpty &&
+          currentCatName == desc &&
+          desc != 'Gelir İşlemi' &&
+          desc != 'Gider İşlemi';
+
+      if (tr.category == null ||
+          currentCatName.isEmpty ||
+          isMistakenDesc ||
+          currentCatName == 'İsimsiz Kategori') {
+        // 1. Yüklenen kullanıcı kategorilerinden ara
+        final found = categories.firstWhereOrNull(
+          (c) =>
+              c.id == tr.categoryId ||
+              (c.name != null &&
+                  c.name!.toLowerCase() == tr.categoryId.toLowerCase()),
+        );
+        if (found != null && found.name != null && found.name!.isNotEmpty) {
+          tr.category = Category(
+            name: found.name!,
+            icon: found.icon ?? 'category',
+            type: found.type ?? tr.type,
+          );
+          hasChanged = true;
+        } else {
+          // 2. Standart CategoryService varsayılanlarından ara
+          final def = CategoryService.defaultCategories.firstWhereOrNull(
+            (c) =>
+                c.id == tr.categoryId ||
+                c.name.toLowerCase() == tr.categoryId.toLowerCase(),
+          );
+          if (def != null) {
+            tr.category = Category(
+              name: def.name,
+              icon: def.icon,
+              type: def.type,
+            );
+            hasChanged = true;
+          } else {
+            // 3. CategoryRepository varsayılanlarından ara
+            final defRepo = CategoryRepository.defaultCategories.firstWhereOrNull(
+              (c) =>
+                  c.id == tr.categoryId ||
+                  (c.name != null &&
+                      c.name!.toLowerCase() == tr.categoryId.toLowerCase()),
+            );
+            if (defRepo != null && defRepo.name != null) {
+              tr.category = Category(
+                name: defRepo.name!,
+                icon: defRepo.icon ?? 'category',
+                type: defRepo.type ?? tr.type,
+              );
+              hasChanged = true;
+            } else if (tr.categoryId.isNotEmpty &&
+                !tr.categoryId.startsWith('def_') &&
+                !tr.categoryId.startsWith('cat_') &&
+                tr.categoryId != desc) {
+              tr.category = Category(
+                name: tr.categoryId,
+                icon: 'category',
+                type: tr.type,
+              );
+              hasChanged = true;
+            } else {
+              final isInc = tr.type == 'income' || tr.type == 'gelir';
+              tr.category = Category(
+                name: isInc ? 'Diğer Gelir' : 'Diğer Gider',
+                icon: 'category',
+                type: tr.type,
+              );
+              hasChanged = true;
+            }
+          }
+        }
+      }
+    }
+    if (hasChanged) {
+      myTransaction.refresh();
     }
   }
 
   Future<void> refreshDashboard() async {
     final cached = _transactionRepostory.getCachedTransactions();
     myTransaction.value = cached;
+    _enrichTransactionsWithCategories();
     aylikOzet();
 
     await Future.wait([
@@ -95,6 +207,7 @@ class DashboardController extends BaseController {
       }
       final transactions = await _transactionRepostory.getTransactions();
       myTransaction.value = transactions;
+      _enrichTransactionsWithCategories();
       aylikOzet();
     } catch (e) {
       debugPrint("İşlemler yüklenirken hata: $e");

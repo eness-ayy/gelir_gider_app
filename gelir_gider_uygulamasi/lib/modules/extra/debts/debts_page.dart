@@ -311,86 +311,101 @@ class _DebtsPageState extends State<DebtsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Durum İkonu / Avatar
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isReceivable
-                  ? Icons.arrow_downward_rounded
-                  : Icons.arrow_upward_rounded,
-              color: statusColor,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Bilgiler
+          // Tıklanabilir Bilgi Alanı (İsim, Durum, Vade)
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            child: InkWell(
+              onTap: () => _showDebtDetailDialog(
+                context,
+                debt,
+                isDark,
+                currencyFormatter,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                child: Row(
                   children: [
-                    Text(
-                      debt.personName,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        decoration: debt.isPaid
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                        color:
-                            isDark ? Colors.white : AppColors.lightTextPrimary,
+                    // Durum İkonu / Avatar
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isReceivable
+                            ? Icons.arrow_downward_rounded
+                            : Icons.arrow_upward_rounded,
+                        color: statusColor,
+                        size: 22,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        isReceivable ? "Alacak" : "Borç",
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                        ),
+                    const SizedBox(width: 12),
+
+                    // İsim ve Vade Tarihi (Açıklama kısmı listeden kaldırıldı)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  debt.personName,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: debt.isPaid
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppColors.lightTextPrimary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  isReceivable ? "Alacak" : "Borç",
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: statusColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (debt.dueDate != null) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              "Vade: ${DateFormat('dd.MM.yyyy').format(debt.dueDate!)}",
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                if (debt.notes != null && debt.notes!.isNotEmpty)
-                  Text(
-                    debt.notes!,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                  ),
-                if (debt.dueDate != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      "Vade: ${DateFormat('dd.MM.yyyy').format(debt.dueDate!)}",
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
+          const SizedBox(width: 8),
 
           // Tutar & Ödendi Durumu
           Column(
@@ -447,6 +462,237 @@ class _DebtsPageState extends State<DebtsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Borç / Alacak Ayrıntı Modalı
+  void _showDebtDetailDialog(
+    BuildContext context,
+    DebtItem debt,
+    bool isDark,
+    NumberFormat currencyFormatter,
+  ) {
+    final isReceivable = debt.isReceivable;
+    final statusColor = isReceivable
+        ? const Color(0xFF10B981) // Yeşil
+        : const Color(0xFFEF4444); // Kırmızı
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isReceivable
+                    ? Icons.arrow_downward_rounded
+                    : Icons.arrow_upward_rounded,
+                color: statusColor,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    debt.personName,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      decoration: debt.isPaid
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isReceivable ? "Alacak Ayrıntısı" : "Borç Ayrıntısı",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 20),
+              onPressed: () => Navigator.pop(ctx),
+              tooltip: "Kapat",
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Divider(height: 20),
+            // Tutar Kartı
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Toplam Tutar",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    "${isReceivable ? '+' : '-'}${currencyFormatter.format(debt.amount)}",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Durum
+            _buildDetailRow(
+              icon: debt.isPaid
+                  ? Icons.check_circle_rounded
+                  : Icons.pending_actions_rounded,
+              iconColor: debt.isPaid ? const Color(0xFF10B981) : Colors.orange,
+              label: "Ödeme Durumu",
+              value: debt.isPaid ? "Ödendi" : "Bekliyor",
+              valueColor: debt.isPaid ? const Color(0xFF10B981) : Colors.orange,
+            ),
+            const SizedBox(height: 10),
+
+            // Vade Tarihi
+            _buildDetailRow(
+              icon: Icons.calendar_month_rounded,
+              iconColor: Colors.blueAccent,
+              label: "Vade Tarihi",
+              value: debt.dueDate != null
+                  ? DateFormat('dd.MM.yyyy').format(debt.dueDate!)
+                  : "Belirtilmedi",
+            ),
+
+            if (debt.isPaid && debt.paidDate != null) ...[
+              const SizedBox(height: 10),
+              _buildDetailRow(
+                icon: Icons.event_available_rounded,
+                iconColor: const Color(0xFF10B981),
+                label: "Ödenme Tarihi",
+                value: DateFormat('dd.MM.yyyy').format(debt.paidDate!),
+              ),
+            ],
+
+            const SizedBox(height: 10),
+            // Açıklama / Not
+            _buildDetailRow(
+              icon: Icons.notes_rounded,
+              iconColor: Colors.purpleAccent,
+              label: "Açıklama / Not",
+              value: (debt.notes != null && debt.notes!.trim().isNotEmpty)
+                  ? debt.notes!.trim()
+                  : "Açıklama eklenmemiş",
+              isMultiLine: true,
+            ),
+
+            const SizedBox(height: 18),
+            // Eylemler
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showAddDebtDialog(context, debtToEdit: debt);
+                    },
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text("Düzenle"),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      service.togglePaid(debt.id);
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: debt.isPaid
+                          ? Colors.orange.shade700
+                          : const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: Icon(
+                      debt.isPaid
+                          ? Icons.undo_rounded
+                          : Icons.check_circle_outline_rounded,
+                      size: 16,
+                    ),
+                    label: Text(
+                      debt.isPaid ? "Geri Al" : "Ödendi Yap",
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    Color? valueColor,
+    bool isMultiLine = false,
+  }) {
+    return Row(
+      crossAxisAlignment:
+          isMultiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        Icon(icon, size: 18, color: iconColor),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart' hide Response;
@@ -51,8 +52,23 @@ class ApiServices extends GetxService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          // 1. Firebase Auth mevcutsa güncel ID Token al ve ekle
+          try {
+            final fbUser = FirebaseAuth.instance.currentUser;
+            if (fbUser != null) {
+              final idToken = await fbUser.getIdToken();
+              if (idToken != null && idToken.isNotEmpty) {
+                options.headers['Authorization'] = 'Bearer $idToken';
+                return handler.next(options);
+              }
+            }
+          } catch (e) {
+            debugPrint("[API Interceptor] Firebase getIdToken hatası: $e");
+          }
+
+          // 2. Yedek olarak yerel depolamadaki userToken'ı kullan
           final token = _storgeService.getValue<String>(StorageKeys.userToken);
-          if (token != null) {
+          if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);

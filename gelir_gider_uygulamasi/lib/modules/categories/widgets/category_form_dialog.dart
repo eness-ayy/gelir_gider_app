@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/app_category.dart';
 import 'package:gelir_gider_uygulamasi/modules/categories/categories_controller.dart';
-import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:gelir_gider_uygulamasi/utils/icon_helper.dart';
 import 'package:get/get.dart';
@@ -40,7 +39,6 @@ class CategoryFormDialog extends StatefulWidget {
 class _CategoryFormDialogState extends State<CategoryFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _budgetController;
   late String _selectedType;
   late String _selectedIcon;
 
@@ -51,15 +49,6 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
     super.initState();
     final edit = widget.categoryToEdit;
     _nameController = TextEditingController(text: edit?.name ?? '');
-    final catId = edit?.id;
-    final existingBudget = catId != null && Get.isRegistered<BudgetService>()
-        ? Get.find<BudgetService>().getBudget(catId)
-        : null;
-    _budgetController = TextEditingController(
-      text: existingBudget != null && existingBudget > 0
-          ? existingBudget.toStringAsFixed(0)
-          : '',
-    );
     _selectedType = (edit?.type?.isNotEmpty == true)
         ? edit!.type!
         : (widget.initialType?.isNotEmpty == true
@@ -71,7 +60,6 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
   @override
   void dispose() {
     _nameController.dispose();
-    _budgetController.dispose();
     super.dispose();
   }
 
@@ -258,27 +246,7 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
               ),
               const SizedBox(height: 18),
 
-              // 3. Aylık Bütçe Limiti (Yalnızca Gider kategorileri için)
-              if (_selectedType == 'expense') ...[
-                TextFormField(
-                  controller: _budgetController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: "Aylık Bütçe Limiti (Opsiyonel)",
-                    hintText: "Örn: 1000",
-                    prefixIcon: const Icon(Icons.speed_rounded),
-                    suffixText: "₺",
-                    suffixStyle: const TextStyle(fontWeight: FontWeight.bold),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-              ],
-
-              // 4. İkon Seçimi
+              // 3. İkon Seçimi
               const Text(
                 "Kategori İkonu",
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
@@ -381,34 +349,6 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
                             type: _selectedType,
                             icon: _selectedIcon,
                           );
-                          if (success) {
-                            final targetCatId = widget.categoryToEdit?.id ??
-                                (controller.categories.isNotEmpty
-                                    ? controller.categories.last.id
-                                    : null);
-                            if (targetCatId != null &&
-                                Get.isRegistered<BudgetService>()) {
-                              final budgetService = Get.find<BudgetService>();
-                              if (_selectedType == 'expense') {
-                                final budgetAmount = double.tryParse(
-                                  _budgetController.text
-                                      .replaceAll(',', '.')
-                                      .trim(),
-                                );
-                                if (budgetAmount != null && budgetAmount > 0) {
-                                  await budgetService.setBudget(
-                                    targetCatId,
-                                    budgetAmount,
-                                  );
-                                } else if (_budgetController.text.trim().isEmpty) {
-                                  await budgetService.removeBudget(targetCatId);
-                                }
-                              } else {
-                                // Gelir kategorilerinde bütçe limiti olamaz
-                                await budgetService.removeBudget(targetCatId);
-                              }
-                            }
-                          }
                           if (success && context.mounted) {
                             Navigator.of(context).pop(true);
                           }

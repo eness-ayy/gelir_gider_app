@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/app_category.dart';
 import 'package:gelir_gider_uygulamasi/modules/categories/categories_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/categories/widgets/category_form_dialog.dart';
-import 'package:gelir_gider_uygulamasi/modules/categories/widgets/set_budget_dialog.dart';
-import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:gelir_gider_uygulamasi/utils/icon_helper.dart';
 import 'package:get/get.dart';
@@ -338,70 +336,24 @@ class CategoryManagementSheet extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  if (isExpense)
-                                    Obx(() {
-                                      final budget = cat.id != null
-                                          ? Get.find<BudgetService>().getBudget(cat.id!)
-                                          : null;
-                                      if (budget == null || budget <= 0) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 1.5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary
-                                              .withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          "Limit: ${budget.toStringAsFixed(0)} ₺",
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                ],
-                              ),
-                            ],
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
 
-                        // İşlem Butonları (Bütçe, Düzenle & Sil)
-                        if (isExpense) ...[
+                          // İşlem Butonları (Düzenle & Sil)
                           IconButton(
-                            tooltip: "Bütçe Limiti",
+                            tooltip: "Düzenle",
                             visualDensity: VisualDensity.compact,
                             padding: const EdgeInsets.all(6),
                             constraints: const BoxConstraints(),
-                            icon: const Icon(
-                              Icons.speed_rounded,
-                              size: 20,
-                              color: AppColors.primary,
-                            ),
-                            onPressed: () => SetBudgetDialog.show(
+                            icon: const Icon(Icons.edit_outlined, size: 20),
+                            onPressed: () => CategoryFormDialog.show(
                               context,
-                              category: cat,
+                              categoryToEdit: cat,
                             ),
                           ),
-                          const SizedBox(width: 2),
-                        ],
-                        IconButton(
-                          tooltip: "Düzenle",
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.all(6),
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.edit_outlined, size: 20),
-                          onPressed: () => CategoryFormDialog.show(
-                            context,
-                            categoryToEdit: cat,
-                          ),
-                        ),
                         const SizedBox(width: 2),
                         IconButton(
                           tooltip: "Sil",

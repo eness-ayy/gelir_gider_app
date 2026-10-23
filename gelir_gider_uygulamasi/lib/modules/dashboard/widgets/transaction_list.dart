@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
+import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
+import 'package:gelir_gider_uygulamasi/services/category_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:gelir_gider_uygulamasi/utils/icon_helper.dart';
 import 'package:get/get.dart';
@@ -182,6 +184,75 @@ class TransactionList extends GetView<DashboardController> {
                 final groupName = groupMatch?.group(1)?.trim() ?? '';
                 final expenseDesc = groupMatch?.group(2)?.trim() ?? '';
 
+                // Kategori adını ve ikonunu akıllıca tespit et (Asla "İsimsiz Kategori" veya kullanıcının açıklaması olmasın):
+                String categoryTitle = '';
+                String categoryIcon = category?.icon ?? 'category';
+
+                final currentCatName = category?.name.trim() ?? '';
+                final desc = oankiTransaction.description.trim();
+                final isMistakenDesc = desc.isNotEmpty &&
+                    currentCatName == desc &&
+                    desc != 'Gelir İşlemi' &&
+                    desc != 'Gider İşlemi';
+
+                if (category != null &&
+                    currentCatName.isNotEmpty &&
+                    !isMistakenDesc &&
+                    currentCatName != 'İsimsiz Kategori') {
+                  categoryTitle = currentCatName;
+                } else {
+                  // 1. Controller'ın yüklü kategorilerinden ID veya isim ile ara
+                  final foundInController = controller.categories.firstWhereOrNull(
+                    (c) =>
+                        c.id == oankiTransaction.categoryId ||
+                        (c.name != null &&
+                            c.name!.toLowerCase() ==
+                                oankiTransaction.categoryId.toLowerCase()),
+                  );
+
+                  if (foundInController != null &&
+                      foundInController.name != null &&
+                      foundInController.name!.isNotEmpty) {
+                    categoryTitle = foundInController.name!;
+                    categoryIcon = foundInController.icon ?? 'category';
+                  } else {
+                    // 2. Standart varsayılan servis kategorilerinden ID veya isim ile ara
+                    final foundInDef = CategoryService.defaultCategories.firstWhereOrNull(
+                      (c) =>
+                          c.id == oankiTransaction.categoryId ||
+                          c.name.toLowerCase() ==
+                              oankiTransaction.categoryId.toLowerCase(),
+                    );
+
+                    if (foundInDef != null) {
+                      categoryTitle = foundInDef.name;
+                      categoryIcon = foundInDef.icon;
+                    } else {
+                      // 3. CategoryRepository varsayılanlarından ara
+                      final foundInRepo = CategoryRepository.defaultCategories.firstWhereOrNull(
+                        (c) =>
+                            c.id == oankiTransaction.categoryId ||
+                            (c.name != null &&
+                                c.name!.toLowerCase() ==
+                                    oankiTransaction.categoryId.toLowerCase()),
+                      );
+                      if (foundInRepo != null && foundInRepo.name != null) {
+                        categoryTitle = foundInRepo.name!;
+                        categoryIcon = foundInRepo.icon ?? 'category';
+                      } else if (oankiTransaction.categoryId.isNotEmpty &&
+                          !oankiTransaction.categoryId.startsWith('def_') &&
+                          !oankiTransaction.categoryId.startsWith('cat_') &&
+                          oankiTransaction.categoryId != desc) {
+                        // Eğer categoryId doğrudan bir isimse (örn. "Yemek")
+                        categoryTitle = oankiTransaction.categoryId;
+                      } else {
+                        // KESİNLİKLE description ATA-MA! Kategori adı her zaman gerçek kategori adıdır.
+                        categoryTitle = isIncome ? 'Diğer Gelir' : 'Diğer Gider';
+                      }
+                    }
+                  }
+                }
+
                 String displayTitle;
                 if (isGroupTransaction) {
                   if (expenseDesc.isNotEmpty) {
@@ -193,7 +264,7 @@ class TransactionList extends GetView<DashboardController> {
                     displayTitle = 'Grup Harcaması';
                   }
                 } else {
-                  displayTitle = category?.name ?? 'İsimsiz Kategori';
+                  displayTitle = categoryTitle;
                 }
 
                 final incomeBg = isDark
@@ -260,10 +331,10 @@ class TransactionList extends GetView<DashboardController> {
                         isGroupTransaction
                             ? Icons.groups_rounded
                             : getCategoryIcon(
-                                iconName: category?.icon ?? 'receipt',
+                                iconName: categoryIcon,
                                 isSystem: true,
                                 type: category?.type ?? oankiTransaction.type,
-                                categoryName: category?.name,
+                                categoryName: displayTitle,
                               ),
                         color: isIncome ? incomeColor : expenseColor,
                       ),
@@ -286,6 +357,12 @@ class TransactionList extends GetView<DashboardController> {
                                 oankiTransaction.id,
                               );
 
+                        final hasUserDescription = !isGroupTransaction &&
+                            desc.isNotEmpty &&
+                            desc != displayTitle &&
+                            desc != 'Gelir İşlemi' &&
+                            desc != 'Gider İşlemi';
+
                         return Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -305,6 +382,22 @@ class TransactionList extends GetView<DashboardController> {
                                     : method.color,
                               ),
                             ),
+                            if (hasUserDescription) ...[
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  "• $desc",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? Colors.white60
+                                        : Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ],
                             if (isGroupTransaction &&
                                 groupName.isNotEmpty) ...[
                               const SizedBox(width: 8),
