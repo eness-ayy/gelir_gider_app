@@ -8,6 +8,7 @@ import 'package:gelir_gider_uygulamasi/modules/profile/widgets/export_pdf_dialog
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/feedback_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/monthly_budget_limits_sheet.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
+import 'package:gelir_gider_uygulamasi/modules/profile/widgets/legal_document_sheet.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
 
@@ -271,7 +272,78 @@ class ProfilePage extends GetView<ProfileController> {
                   onTap: () => FeedbackSheet.show(context),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+
+              // Hakkında Grubu
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    "Hakkında",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white60 : Colors.grey.shade600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ),
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.privacy_tip_outlined,
+                          color: Colors.indigo,
+                          size: 20,
+                        ),
+                      ),
+                      title: const Text(
+                        "Gizlilik Politikası",
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => LegalDocumentSheet.showPrivacy(context),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 56,
+                      endIndent: 16,
+                      color: isDark ? Colors.white10 : Colors.grey.shade200,
+                    ),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.description_outlined,
+                          color: Colors.teal,
+                          size: 20,
+                        ),
+                      ),
+                      title: const Text(
+                        "Kullanım Koşulları",
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => LegalDocumentSheet.showTerms(context),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // Verileri Sıfırla Kartı
               Card(
                 color: Colors.orange.withValues(alpha: 0.08),

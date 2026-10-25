@@ -5,6 +5,7 @@ import 'package:gelir_gider_uygulamasi/modules/home/home_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_page.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/edit_profile_dialog.dart';
+import 'package:gelir_gider_uygulamasi/modules/profile/widgets/legal_document_sheet.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:gelir_gider_uygulamasi/services/theme_services.dart';
@@ -210,6 +211,49 @@ void main() {
     expect(controller.user.value?.lastName, 'Yılmaz');
     expect(controller.user.value?.fullName, 'Ahmet Yılmaz');
   });
+
+  testWidgets('ProfilePage displays Hakkında section with Privacy Policy and Terms of Service tiles', (tester) async {
+    await tester.pumpWidget(
+      GetMaterialApp(
+        theme: AppTheme.dark,
+        home: const ProfilePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Hakkında"), findsOneWidget);
+    expect(find.text("Gizlilik Politikası"), findsOneWidget);
+    expect(find.text("Kullanım Koşulları"), findsOneWidget);
+
+    // Scroll to and tap Gizlilik Politikası to open in-app sheet
+    final privacyFinder = find.text("Gizlilik Politikası");
+    await tester.ensureVisible(privacyFinder);
+    await tester.tap(privacyFinder);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LegalDocumentSheet), findsOneWidget);
+    expect(find.text("Toplanan Bilgiler ve Veri Türleri"), findsOneWidget);
+
+    // Close sheet
+    await tester.tap(find.text("Anladım"));
+    await tester.pumpAndSettle();
+    expect(find.byType(LegalDocumentSheet), findsNothing);
+
+    // Scroll to and tap Kullanım Koşulları to open in-app sheet
+    final termsFinder = find.text("Kullanım Koşulları");
+    await tester.ensureVisible(termsFinder);
+    await tester.tap(termsFinder);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LegalDocumentSheet), findsOneWidget);
+    expect(find.text("Hizmetin Niteliği ve Kapsamı"), findsOneWidget);
+
+    // Close sheet
+    await tester.tap(find.text("Anladım"));
+    await tester.pumpAndSettle();
+    expect(find.byType(LegalDocumentSheet), findsNothing);
+  });
 }
+
 
 

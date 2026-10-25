@@ -32,9 +32,86 @@ class AuthController extends BaseController {
   /// Şifre görünürlük durumları
   final RxBool isLoginPasswordHidden = true.obs;
   final RxBool isRegisterPasswordHidden = true.obs;
+  final RxBool isRegisterConfirmPasswordHidden = true.obs;
 
   /// Şifre sıfırlama işlemi yükleniyor mu
   final RxBool isResetLoading = false.obs;
+
+  /// Canlı şifre kriter kontrolleri (Kayıt ekranı)
+  final RxBool hasMinLength = false.obs; // En az 8 karakter
+  final RxBool hasUpperCase = false.obs; // En az 1 büyük harf [A-Z]
+  final RxBool hasNumber = false.obs; // En az 1 rakam [0-9]
+  final RxBool hasSpecialChar = false.obs; // En az 1 özel karakter [!@#\$&*~]
+  final RxBool isRegisterPasswordFocused = false.obs;
+
+  /// Satır içi (inline) hata yönetimi (Snackbar yerine)
+  final RxnString emailError = RxnString();
+  final RxnString passwordError = RxnString();
+  final RxnString confirmPasswordError = RxnString();
+  final RxnString resetEmailError = RxnString();
+
+  void clearEmailError() {
+    if (emailError.value != null) emailError.value = null;
+    if (passwordError.value == "Girdiğiniz şifre veya e-posta hatalı.") {
+      passwordError.value = null;
+    }
+  }
+
+  void clearPasswordError() {
+    if (passwordError.value != null) passwordError.value = null;
+    if (emailError.value != null && (emailError.value?.trim().isEmpty ?? false)) {
+      emailError.value = null;
+    }
+  }
+
+  void clearConfirmPasswordError() {
+    if (confirmPasswordError.value != null) confirmPasswordError.value = null;
+  }
+
+  void clearResetEmailError() {
+    if (resetEmailError.value != null) resetEmailError.value = null;
+  }
+
+  void clearErrors() {
+    emailError.value = null;
+    passwordError.value = null;
+    confirmPasswordError.value = null;
+    resetEmailError.value = null;
+  }
+
+  /// Canlı şifre kriter kontrollerini çalıştırır
+  void checkPasswordCriteria(String password) {
+    hasMinLength.value = password.length >= 8;
+    hasUpperCase.value = password.contains(RegExp(r'[A-Z]'));
+    hasNumber.value = password.contains(RegExp(r'[0-9]'));
+    hasSpecialChar.value =
+        password.contains(RegExp(r'[!@#\$&*~_.,;:\-%+?^=(){}|<>[\]/\\]'));
+
+    if (passwordError.value != null) {
+      passwordError.value = null;
+    }
+
+    if (registerConfirmPasswordController.text.isNotEmpty) {
+      if (password != registerConfirmPasswordController.text) {
+        confirmPasswordError.value = "Şifreler birbiriyle eşleşmiyor.";
+      } else {
+        confirmPasswordError.value = null;
+      }
+    }
+  }
+
+  /// Şifre tekrar anlık kontrolü
+  void checkConfirmPassword(String confirmPassword) {
+    if (confirmPassword.isEmpty) {
+      confirmPasswordError.value = null;
+      return;
+    }
+    if (confirmPassword != registerPasswordController.text) {
+      confirmPasswordError.value = "Şifreler birbiriyle eşleşmiyor.";
+    } else {
+      confirmPasswordError.value = null;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Form Anahtarları ve Metin Denetleyicileri
@@ -52,6 +129,8 @@ class AuthController extends BaseController {
   final TextEditingController registerNameController = TextEditingController();
   final TextEditingController registerEmailController = TextEditingController();
   final TextEditingController registerPasswordController =
+      TextEditingController();
+  final TextEditingController registerConfirmPasswordController =
       TextEditingController();
 
   // Şifre sıfırlama alanı
@@ -75,7 +154,7 @@ class AuthController extends BaseController {
       return;
     }
 
-    final isAuth = user != null && !user.isAnonymous;
+    final isAuth = user != null;
 
     if (!isAuth) {
       // Oturum kapalı veya kullanıcı çıkış yapmış -> Login ekranına yönlendir
@@ -122,7 +201,6 @@ class AuthController extends BaseController {
       }
     } catch (e) {
       debugPrint("Çıkış yapma hatası: $e");
-      showErrorSnackbar(message: "Çıkış yapılırken bir sorun oluştu.");
     } finally {
       setLoading(false);
     }
@@ -135,6 +213,7 @@ class AuthController extends BaseController {
     registerNameController.dispose();
     registerEmailController.dispose();
     registerPasswordController.dispose();
+    registerConfirmPasswordController.dispose();
     resetEmailController.dispose();
     super.onClose();
   }
@@ -174,12 +253,23 @@ class AuthController extends BaseController {
     return null;
   }
 
+  String? validateConfirmPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return "Lütfen şifrenizi tekrar giriniz.";
+    }
+    if (value != registerPasswordController.text) {
+      return "Şifreler birbiriyle eşleşmiyor.";
+    }
+    return null;
+  }
+
   // ---------------------------------------------------------------------------
   // Kimlik Doğrulama İşlemleri
   // ---------------------------------------------------------------------------
 
-  /// 1. E-posta & Şifre ile Giriş Yap
+  /// 1. E-posta & Şifre ile Giriş Yap (Satır içi hata yönetimi, snackbar yok)
   Future<void> loginWithEmail() async {
+    clearErrors();
     if (!(loginFormKey.currentState?.validate() ?? false)) return;
 
     try {
@@ -190,45 +280,45 @@ class AuthController extends BaseController {
       );
 
       if (user != null) {
-        final name = _userSession.currentUserName.value.isNotEmpty
-            ? _userSession.currentUserName.value
-            : "Kullanıcı";
-
-        Get.snackbar(
-          "Giriş Başarılı",
-          "Hoş geldiniz, $name!",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.9),
-          colorText: Colors.white,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 14,
-          icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
-          duration: const Duration(seconds: 2),
-        );
-
         // Başarılı giriş sonrası doğrudan Cüzdan sayfasına (/home) yönlendir
         Get.offAllNamed(AppRoutes.home);
       }
     } on FirebaseAuthException catch (e) {
       debugPrint("Giriş FirebaseAuthException: [${e.code}] ${e.message}");
-      _showFriendlyAuthError(e);
+      _mapLoginAuthError(e);
     } on TimeoutException catch (e) {
       debugPrint("Giriş zaman aşımı: $e");
-      showErrorSnackbar(
-        message:
-            "İşlem zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edip tekrar deneyiniz.",
-      );
+      passwordError.value =
+          "İşlem zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edip tekrar deneyiniz.";
     } catch (e) {
       debugPrint("Giriş bilinmeyen hata: $e");
-      showErrorSnackbar(message: "Giriş yapılırken bir sorun oluştu.");
+      passwordError.value =
+          "Giriş yapılırken bir sorun oluştu. Lütfen bilgilerinizi kontrol ediniz.";
     } finally {
       setLoading(false);
     }
   }
 
-  /// 2. E-posta & Şifre ile Kayıt Ol
+  /// 2. E-posta & Şifre ile Kayıt Ol (Satır içi hata yönetimi & canlı kriter kontrolü)
   Future<void> registerWithEmail() async {
+    clearErrors();
     if (!(registerFormKey.currentState?.validate() ?? false)) return;
+
+    // Şifre kuralları kontrolü
+    if (!hasMinLength.value ||
+        !hasUpperCase.value ||
+        !hasNumber.value ||
+        !hasSpecialChar.value) {
+      passwordError.value = "Lütfen şifre kurallarını eksiksiz tamamlayın.";
+      return;
+    }
+
+    // Şifre tekrar kontrolü
+    if (registerPasswordController.text !=
+        registerConfirmPasswordController.text) {
+      confirmPasswordError.value = "Şifreler birbiriyle eşleşmiyor.";
+      return;
+    }
 
     try {
       setLoading(true);
@@ -239,40 +329,28 @@ class AuthController extends BaseController {
       );
 
       if (user != null) {
-        Get.snackbar(
-          "Kayıt Başarılı 🎉",
-          "Hesabınız oluşturuldu. Aramıza hoş geldin!",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.9),
-          colorText: Colors.white,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 14,
-          icon: const Icon(Icons.celebration_rounded, color: Colors.white),
-          duration: const Duration(seconds: 2),
-        );
-
         // Başarılı kayıt sonrası doğrudan Cüzdan sayfasına (/home) yönlendir
         Get.offAllNamed(AppRoutes.home);
       }
     } on FirebaseAuthException catch (e) {
       debugPrint("Kayıt FirebaseAuthException: [${e.code}] ${e.message}");
-      _showFriendlyAuthError(e);
+      _mapRegisterAuthError(e);
     } on TimeoutException catch (e) {
       debugPrint("Kayıt zaman aşımı: $e");
-      showErrorSnackbar(
-        message:
-            "İşlem zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edip tekrar deneyiniz.",
-      );
+      passwordError.value =
+          "İşlem zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edip tekrar deneyiniz.";
     } catch (e) {
       debugPrint("Kayıt bilinmeyen hata: $e");
-      showErrorSnackbar(message: "Kayıt olunurken bir sorun oluştu.");
+      passwordError.value =
+          "Kayıt olunurken bir sorun oluştu. Lütfen tekrar deneyiniz.";
     } finally {
       setLoading(false);
     }
   }
 
-  /// 3. Şifre Sıfırlama Bağlantısı Gönder
+  /// 3. Şifre Sıfırlama Bağlantısı Gönder (Satır içi hata yönetimi, snackbar yok)
   Future<void> sendPasswordReset() async {
+    clearResetEmailError();
     if (!(resetFormKey.currentState?.validate() ?? false)) return;
 
     try {
@@ -282,119 +360,147 @@ class AuthController extends BaseController {
 
       Get.back(); // Diyaloğu kapat
       resetEmailController.clear();
-
-      Get.snackbar(
-        "Sıfırlama Bağlantısı Gönderildi",
-        "$email adresine şifre sıfırlama linki gönderildi. Lütfen gelen kutunuzu kontrol edin.",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: const Color(0xFF0D9488).withValues(alpha: 0.9),
-        colorText: Colors.white,
-        margin: const EdgeInsets.all(16),
-        borderRadius: 14,
-        icon: const Icon(Icons.mark_email_read_rounded, color: Colors.white),
-        duration: const Duration(seconds: 4),
-      );
     } on FirebaseAuthException catch (e) {
-      _showFriendlyAuthError(e);
+      debugPrint("Şifre sıfırlama FirebaseAuthException: [${e.code}] ${e.message}");
+      _mapResetAuthError(e);
     } catch (e) {
       debugPrint("Şifre sıfırlama hatası: $e");
-      showErrorSnackbar(message: "Şifre sıfırlama e-postası gönderilemedi.");
+      resetEmailError.value = "Şifre sıfırlama e-postası gönderilemedi.";
     } finally {
       isResetLoading.value = false;
     }
   }
 
-  /// 4. Google ile Giriş Yap (Mevcut altyapıyı bağla)
+  /// 4. Google ile Giriş Yap (Mevcut altyapıyı bağla, snackbar yok)
   Future<void> signInWithGoogle() async {
+    clearErrors();
     try {
       setLoading(true);
       final success = await _userSession.loginWithGoogle();
 
       if (success) {
-        Get.snackbar(
-          "Giriş Başarılı",
-          "Google hesabınızla başarıyla giriş yapıldı.",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.9),
-          colorText: Colors.white,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 14,
-          icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
-          duration: const Duration(seconds: 2),
-        );
-
         Get.offAllNamed(AppRoutes.home);
       }
     } catch (e) {
       debugPrint("Google login hatası: $e");
-      showErrorSnackbar(
-        message: "Google ile giriş yapılamadı, lütfen tekrar deneyiniz.",
-      );
+      passwordError.value =
+          "Google ile giriş yapılamadı. Lütfen tekrar deneyiniz.";
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /// 5. Firebase Anonymous Authentication (Misafir Girişi)
+  Future<void> signInAnonymously() async {
+    clearErrors();
+    try {
+      setLoading(true);
+      final userCredential = await _auth.signInAnonymously();
+      final user = userCredential.user;
+
+      if (user != null) {
+        _syncUserData(user);
+        Get.offAllNamed(AppRoutes.home);
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint("Misafir girişi FirebaseAuthException: [${e.code}] ${e.message}");
+      passwordError.value =
+          "Misafir girişi şu anda yapılamıyor. Lütfen tekrar deneyiniz.";
+    } catch (e) {
+      debugPrint("Misafir girişi hatası: $e");
+      passwordError.value = "Misafir girişi sırasında bir sorun oluştu.";
     } finally {
       setLoading(false);
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Firebase Auth Türkçe Hata Eşlemesi
+  // Firebase Auth Satır İçi Hata Eşlemesi (errorText için)
   // ---------------------------------------------------------------------------
 
-  void _showFriendlyAuthError(FirebaseAuthException e) {
-    String title = "Giriş Başarısız";
-    String message;
-
+  void _mapLoginAuthError(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
-        message = "Bu e-posta adresine ait kayıtlı bir kullanıcı bulunamadı.";
-        break;
       case 'wrong-password':
-        message = "Hatalı şifre girdiniz. Lütfen kontrol edip tekrar deneyin.";
-        break;
       case 'invalid-credential':
-        message = "E-posta adresi veya şifre hatalı. Lütfen kontrol ediniz.";
-        break;
-      case 'email-already-in-use':
-        title = "Kayıt Yapılamadı";
-        message =
-            "Bu e-posta adresi zaten kullanımda. Giriş Yap sekmesinden oturum açabilirsiniz.";
-        break;
-      case 'weak-password':
-        title = "Zayıf Şifre";
-        message =
-            "Şifreniz çok zayıf. Lütfen en az 6 karakterli daha güçlü bir şifre belirleyin.";
+        // Hatalı şifre veya e-posta girildiğinde hem e-posta hem şifre kutusu kırmızı olur
+        emailError.value = " ";
+        passwordError.value = "Girdiğiniz şifre veya e-posta hatalı.";
         break;
       case 'invalid-email':
-        message = "Girdiğiniz e-posta formatı geçersiz.";
+        emailError.value = "Girdiğiniz e-posta formatı geçersiz.";
         break;
       case 'user-disabled':
-        message = "Bu kullanıcı hesabı askıya alınmış veya kapatılmış.";
+        emailError.value = "Bu kullanıcı hesabı askıya alınmış veya kapatılmış.";
         break;
       case 'too-many-requests':
-        message =
-            "Çok fazla başarısız deneme yapıldı. Güvenliğiniz için lütfen biraz bekleyip tekrar deneyin.";
+        emailError.value = " ";
+        passwordError.value =
+            "Çok fazla deneme yapıldı. Lütfen biraz bekleyip tekrar deneyin.";
         break;
       case 'network-request-failed':
-        message =
-            "İnternet bağlantısı kurulamadı. Lütfen ağ bağlantınızı kontrol edip tekrar deneyiniz.";
+        passwordError.value =
+            "İnternet bağlantısı kurulamadı. Ağınızı kontrol ediniz.";
         break;
       case 'operation-not-allowed':
-        message = "E-posta ile giriş yöntemi henüz aktif edilmemiş.";
+        emailError.value = "E-posta ile giriş yöntemi henüz aktif değil.";
         break;
       default:
-        message = e.message ?? "Bir hata oluştu, lütfen tekrar deneyiniz.";
+        emailError.value = " ";
+        passwordError.value =
+            e.message ?? "Giriş başarısız. Lütfen bilgilerinizi kontrol ediniz.";
         break;
     }
+  }
 
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.92),
-      colorText: Colors.white,
-      margin: const EdgeInsets.all(16),
-      borderRadius: 14,
-      icon: const Icon(Icons.error_outline_rounded, color: Colors.white),
-      duration: const Duration(seconds: 4),
-    );
+  void _mapRegisterAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'email-already-in-use':
+        emailError.value =
+            "Bu e-posta adresi zaten kullanımda. Giriş Yap sekmesinden oturum açabilirsiniz.";
+        break;
+      case 'invalid-email':
+        emailError.value = "Girdiğiniz e-posta formatı geçersiz.";
+        break;
+      case 'weak-password':
+        passwordError.value =
+            "Şifre çok zayıf. Lütfen şifre kriterlerini karşılayınız.";
+        break;
+      case 'too-many-requests':
+        passwordError.value =
+            "Çok fazla istek yapıldı. Lütfen biraz bekleyip tekrar deneyiniz.";
+        break;
+      case 'network-request-failed':
+        passwordError.value =
+            "İnternet bağlantısı kurulamadı. Ağınızı kontrol ediniz.";
+        break;
+      default:
+        passwordError.value =
+            e.message ?? "Kayıt işlemi başarısız oldu. Lütfen tekrar deneyiniz.";
+        break;
+    }
+  }
+
+  void _mapResetAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+        resetEmailError.value = "Bu e-posta adresine kayıtlı hesap bulunamadı.";
+        break;
+      case 'invalid-email':
+        resetEmailError.value = "Girdiğiniz e-posta formatı geçersiz.";
+        break;
+      case 'too-many-requests':
+        resetEmailError.value =
+            "Çok fazla istek yapıldı. Lütfen biraz bekleyip tekrar deneyiniz.";
+        break;
+      case 'network-request-failed':
+        resetEmailError.value =
+            "İnternet bağlantısı kurulamadı. Ağınızı kontrol ediniz.";
+        break;
+      default:
+        resetEmailError.value =
+            e.message ?? "Şifre sıfırlama e-postası gönderilemedi.";
+        break;
+    }
   }
 }
