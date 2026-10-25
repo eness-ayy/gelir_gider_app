@@ -91,7 +91,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Gelir Gider Takip',
+      title: 'hesaply',
       debugShowCheckedModeBanner: false,
       getPages: AppPages.routes,
       // Başlangıç ekranı her zaman Splash olmalıdır (Firebase oturum durumu çözülürken Login kilitlenmesini önler)

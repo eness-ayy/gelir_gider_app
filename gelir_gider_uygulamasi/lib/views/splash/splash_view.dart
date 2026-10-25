@@ -25,41 +25,43 @@ class SplashView extends StatelessWidget {
             children: [
               const Spacer(flex: 3),
 
-              // Uygulama Logosu / İkonu
+              // Uygulama Logosu / İkonu (Tamamen Yuvarlak)
               Container(
-                width: 100,
-                height: 100,
+                width: 112,
+                height: 112,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.1),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                    width: 1.5,
-                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
-                      blurRadius: 24,
+                      color: const Color(0xFF00D2FF).withValues(alpha: isDark ? 0.35 : 0.2),
+                      blurRadius: 32,
                       offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.account_balance_wallet_rounded,
-                    size: 52,
-                    color: AppColors.primary,
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/icon/app_icon.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        size: 52,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
               // Uygulama Adı
               Text(
-                "Gelir & Gider",
+                "hesaply",
                 style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 30,
                   fontWeight: FontWeight.w800,
                   color: titleColor,
                   letterSpacing: -0.5,
