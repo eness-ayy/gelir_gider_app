@@ -13,6 +13,7 @@ import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/notification_service.dart';
 import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
 import 'package:gelir_gider_uygulamasi/services/savings_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
@@ -79,7 +80,12 @@ void main(List<String> args) async {
   await creditCardService.init();
   Get.put<CreditCardService>(creditCardService, permanent: true);
 
-  // 9. AuthController'ı oturum akışını dinlemesi için kalıcı olarak başlat
+  // 9. Bildirim servisini ayağa kaldır (Hatırlatıcıları senkronize eder)
+  final notificationService = NotificationService();
+  await notificationService.init();
+  Get.put<NotificationService>(notificationService, permanent: true);
+
+  // 10. AuthController'ı oturum akışını dinlemesi için kalıcı olarak başlat
   Get.put<AuthController>(AuthController(), permanent: true);
 
   runApp(const MyApp());

@@ -6,14 +6,32 @@ import 'package:gelir_gider_uygulamasi/utils/avatar_helper.dart';
 import 'package:get/get.dart';
 
 class EditProfileDialog extends StatefulWidget {
-  const EditProfileDialog({super.key});
+  final String? customTitle;
+  final String? customSubtitle;
+  final IconData? customIcon;
 
-  static Future<void> show(BuildContext context) {
+  const EditProfileDialog({
+    super.key,
+    this.customTitle,
+    this.customSubtitle,
+    this.customIcon,
+  });
+
+  static Future<void> show(
+    BuildContext context, {
+    String? title,
+    String? subtitle,
+    IconData? icon,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const EditProfileDialog(),
+      builder: (_) => EditProfileDialog(
+        customTitle: title,
+        customSubtitle: subtitle,
+        customIcon: icon,
+      ),
     );
   }
 
@@ -326,6 +344,11 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
 
   /// Misafir Kullanıcı İçin Kayıt / Hesap Bağlama Görünümü
   Widget _buildGuestLinkCard(bool isDark) {
+    final displayIcon = widget.customIcon ?? Icons.cloud_sync_outlined;
+    final displayTitle = widget.customTitle ?? "Profilinizi Özelleştirin";
+    final displaySubtitle = widget.customSubtitle ??
+        "Profil bilgilerinizi kaydetmek, avatarınızı seçmek ve ortak oda harcamalarınızı bulutta güvenceye almak için ücretsiz hesabınızı oluşturun.";
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -364,8 +387,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.cloud_sync_outlined,
+            child: Icon(
+              displayIcon,
               size: 40,
               color: AppColors.primary,
             ),
@@ -373,9 +396,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
         ),
         const SizedBox(height: 20),
 
-        // Başlık: 'Profilinizi Özelleştirin'
+        // Başlık
         Text(
-          "Profilinizi Özelleştirin",
+          displayTitle,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 22,
@@ -386,11 +409,11 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
         ),
         const SizedBox(height: 10),
 
-        // Açıklama: 'Profil bilgilerinizi kaydetmek, avatarınızı seçmek ve ortak oda harcamalarınızı bulutta güvenceye almak için ücretsiz hesabınızı oluşturun.'
+        // Açıklama
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            "Profil bilgilerinizi kaydetmek, avatarınızı seçmek ve ortak oda harcamalarınızı bulutta güvenceye almak için ücretsiz hesabınızı oluşturun.",
+            displaySubtitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13.5,

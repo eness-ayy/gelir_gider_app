@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/recurring_transaction.dart';
+import 'package:gelir_gider_uygulamasi/services/notification_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
 
@@ -67,6 +68,9 @@ class RecurringService extends GetxService {
     try {
       final jsonList = items.map((i) => i.toJson()).toList();
       await _storage.setValue<String>(_storageKey, jsonEncode(jsonList));
+      if (Get.isRegistered<NotificationService>()) {
+        Get.find<NotificationService>().scheduleRecurringReminders();
+      }
     } catch (e) {
       debugPrint("Tekrarlayan işlemler kaydedilirken hata: $e");
     }

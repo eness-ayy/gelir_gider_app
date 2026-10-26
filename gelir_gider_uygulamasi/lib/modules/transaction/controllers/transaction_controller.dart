@@ -12,6 +12,7 @@ import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
+import 'package:gelir_gider_uygulamasi/services/notification_service.dart';
 import 'package:get/get.dart';
 
 class TransactionController extends BaseController {
@@ -221,12 +222,33 @@ class TransactionController extends BaseController {
         }
       }
 
+      // Bütçe aşımı veya uyarısı kontrolü (Form sıfırlanmadan önce hesaplanır)
+      final budgetAlert = liveBudgetStatus;
+      final isExpenseType = transactionType.value.toLowerCase() == 'expense';
+
       // Formu sıfırla
       clearForm();
 
       // HomeController'da Cüzdan sekmesini (index 0) seç
       if (Get.isRegistered<HomeController>()) {
         Get.find<HomeController>().currentIndex.value = 0;
+      }
+
+      if (isExpenseType &&
+          budgetAlert != null &&
+          budgetAlert.level != BudgetStatusLevel.safe &&
+          Get.isRegistered<NotificationService>()) {
+        final String catDisplayName = (budgetAlert.category.name != null &&
+                budgetAlert.category.name!.trim().isNotEmpty)
+            ? budgetAlert.category.name!.trim()
+            : finalCatName;
+
+        Get.find<NotificationService>().showBudgetAlertNotification(
+          categoryName: catDisplayName,
+          spentPercent: budgetAlert.percentage,
+          limit: budgetAlert.limit,
+          currentSpent: budgetAlert.spent,
+        );
       }
 
       // Cüzdan verilerini tazele

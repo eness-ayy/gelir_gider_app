@@ -6,6 +6,7 @@ import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
+import 'package:gelir_gider_uygulamasi/modules/profile/widgets/edit_profile_dialog.dart';
 import 'package:gelir_gider_uygulamasi/services/pdf_export_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 
@@ -13,6 +14,17 @@ class ExportPdfDialog extends StatefulWidget {
   const ExportPdfDialog({super.key});
 
   static Future<void> show(BuildContext context) {
+    final bool isGuest =
+        FirebaseAuth.instance.currentUser?.isAnonymous ?? true;
+    if (isGuest) {
+      return EditProfileDialog.show(
+        context,
+        title: "Verileri Dışa Aktarın",
+        subtitle:
+            "Gelir ve gider işlemlerinizi PDF raporu olarak dışa aktarmak, yazdırmak ve mali verilerinizi bulutta güvenceye almak için ücretsiz hesabınızı oluşturun.",
+        icon: Icons.picture_as_pdf_outlined,
+      );
+    }
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,

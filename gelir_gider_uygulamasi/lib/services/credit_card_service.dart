@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/models/installment_purchase_model.dart';
+import 'package:gelir_gider_uygulamasi/services/notification_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
 
@@ -209,6 +210,9 @@ class CreditCardService extends GetxService {
     try {
       final jsonList = cards.map((c) => c.toJson()).toList();
       await _storage.setValue<String>(_cardsStorageKey, jsonEncode(jsonList));
+      if (Get.isRegistered<NotificationService>()) {
+        Get.find<NotificationService>().scheduleCreditCardReminders();
+      }
     } catch (e) {
       debugPrint("Kartlar kaydedilirken hata: $e");
     }
