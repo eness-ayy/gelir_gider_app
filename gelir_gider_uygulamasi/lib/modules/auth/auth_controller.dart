@@ -7,6 +7,7 @@ import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:get/get.dart';
 
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
+import 'package:gelir_gider_uygulamasi/services/category_service.dart';
 
 /// E-posta & Şifre ile kimlik doğrulama, kayıt ve şifre sıfırlama controller'ı
 class AuthController extends BaseController {
@@ -17,8 +18,8 @@ class AuthController extends BaseController {
 
   final UserSessionController _userSession =
       Get.isRegistered<UserSessionController>()
-          ? Get.find<UserSessionController>()
-          : Get.put(UserSessionController());
+      ? Get.find<UserSessionController>()
+      : Get.put(UserSessionController());
 
   bool _isNavigating = false;
 
@@ -59,7 +60,8 @@ class AuthController extends BaseController {
 
   void clearPasswordError() {
     if (passwordError.value != null) passwordError.value = null;
-    if (emailError.value != null && (emailError.value?.trim().isEmpty ?? false)) {
+    if (emailError.value != null &&
+        (emailError.value?.trim().isEmpty ?? false)) {
       emailError.value = null;
     }
   }
@@ -84,8 +86,9 @@ class AuthController extends BaseController {
     hasMinLength.value = password.length >= 8;
     hasUpperCase.value = password.contains(RegExp(r'[A-Z]'));
     hasNumber.value = password.contains(RegExp(r'[0-9]'));
-    hasSpecialChar.value =
-        password.contains(RegExp(r'[!@#\$&*~_.,;:\-%+?^=(){}|<>[\]/\\]'));
+    hasSpecialChar.value = password.contains(
+      RegExp(r'[!@#\$&*~_.,;:\-%+?^=(){}|<>[\]/\\]'),
+    );
 
     if (passwordError.value != null) {
       passwordError.value = null;
@@ -158,10 +161,14 @@ class AuthController extends BaseController {
 
     if (!isAuth) {
       // Oturum kapalı veya kullanıcı çıkış yapmış -> Login ekranına yönlendir
-      if (Get.currentRoute != AppRoutes.login && Get.currentRoute != AppRoutes.auth) {
+      if (Get.currentRoute != AppRoutes.login &&
+          Get.currentRoute != AppRoutes.auth) {
         _isNavigating = true;
         Get.offAllNamed(AppRoutes.login);
-        Future.delayed(const Duration(milliseconds: 300), () => _isNavigating = false);
+        Future.delayed(
+          const Duration(milliseconds: 300),
+          () => _isNavigating = false,
+        );
       }
     } else {
       // Oturum açık -> Kullanıcıyı senkronize et ve Ana Sayfaya (Home) yönlendir
@@ -169,7 +176,10 @@ class AuthController extends BaseController {
       if (Get.currentRoute != AppRoutes.home) {
         _isNavigating = true;
         Get.offAllNamed(AppRoutes.home);
-        Future.delayed(const Duration(milliseconds: 300), () => _isNavigating = false);
+        Future.delayed(
+          const Duration(milliseconds: 300),
+          () => _isNavigating = false,
+        );
       }
     }
   }
@@ -361,7 +371,9 @@ class AuthController extends BaseController {
       Get.back(); // Diyaloğu kapat
       resetEmailController.clear();
     } on FirebaseAuthException catch (e) {
-      debugPrint("Şifre sıfırlama FirebaseAuthException: [${e.code}] ${e.message}");
+      debugPrint(
+        "Şifre sıfırlama FirebaseAuthException: [${e.code}] ${e.message}",
+      );
       _mapResetAuthError(e);
     } catch (e) {
       debugPrint("Şifre sıfırlama hatası: $e");
@@ -400,10 +412,15 @@ class AuthController extends BaseController {
 
       if (user != null) {
         _syncUserData(user);
+        try {
+          await CategoryService().initializeDefaultCategories(user.uid);
+        } catch (_) {}
         Get.offAllNamed(AppRoutes.home);
       }
     } on FirebaseAuthException catch (e) {
-      debugPrint("Misafir girişi FirebaseAuthException: [${e.code}] ${e.message}");
+      debugPrint(
+        "Misafir girişi FirebaseAuthException: [${e.code}] ${e.message}",
+      );
       passwordError.value =
           "Misafir girişi şu anda yapılamıyor. Lütfen tekrar deneyiniz.";
     } catch (e) {
@@ -431,7 +448,8 @@ class AuthController extends BaseController {
         emailError.value = "Girdiğiniz e-posta formatı geçersiz.";
         break;
       case 'user-disabled':
-        emailError.value = "Bu kullanıcı hesabı askıya alınmış veya kapatılmış.";
+        emailError.value =
+            "Bu kullanıcı hesabı askıya alınmış veya kapatılmış.";
         break;
       case 'too-many-requests':
         emailError.value = " ";
@@ -448,7 +466,8 @@ class AuthController extends BaseController {
       default:
         emailError.value = " ";
         passwordError.value =
-            e.message ?? "Giriş başarısız. Lütfen bilgilerinizi kontrol ediniz.";
+            e.message ??
+            "Giriş başarısız. Lütfen bilgilerinizi kontrol ediniz.";
         break;
     }
   }
@@ -476,7 +495,8 @@ class AuthController extends BaseController {
         break;
       default:
         passwordError.value =
-            e.message ?? "Kayıt işlemi başarısız oldu. Lütfen tekrar deneyiniz.";
+            e.message ??
+            "Kayıt işlemi başarısız oldu. Lütfen tekrar deneyiniz.";
         break;
     }
   }

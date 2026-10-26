@@ -3,6 +3,7 @@ class AppCategory {
   String? name;
   String? type;
   String? icon;
+  int? color;
   bool? isSystem;
   String? userId;
   String? createdAt;
@@ -13,6 +14,7 @@ class AppCategory {
     this.name,
     this.type,
     this.icon,
+    this.color,
     this.isSystem,
     this.userId,
     this.createdAt,
@@ -20,15 +22,26 @@ class AppCategory {
   });
 
   factory AppCategory.fromJson(Map<String, dynamic> json) {
+    int? parsedColor;
+    final rawColor = json['color'];
+    if (rawColor is int) {
+      parsedColor = rawColor;
+    } else if (rawColor is String) {
+      parsedColor =
+          int.tryParse(rawColor) ??
+          int.tryParse(rawColor.replaceAll('#', '0xFF'));
+    }
+
     return AppCategory(
       id: json['id'],
       name: json['name'],
       type: json['type'],
       icon: json['icon'],
-      isSystem: json['is_system'],
-      userId: json['user_id'],
-      createdAt: json['createdAt'],
-      updatedAt: json['updatedAt'],
+      color: parsedColor,
+      isSystem: json['is_system'] ?? json['isDefault'],
+      userId: json['user_id'] ?? json['userId'],
+      createdAt: json['createdAt']?.toString(),
+      updatedAt: json['updatedAt']?.toString(),
     );
   }
 
@@ -38,6 +51,7 @@ class AppCategory {
       'name': name,
       'type': type,
       'icon': icon,
+      if (color != null) 'color': color,
       'is_system': isSystem,
       'user_id': userId,
       'createdAt': createdAt,

@@ -9,8 +9,8 @@ class CategoryService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// 1. STANDART VARSAYILAN KATEGORİ LİSTESİ
-  /// Tüm kullanıcılar için geçerli olan sabit varsayılan kategoriler
+  /// 1. STANDART VE SABİT VARSAYILAN KATEGORİ LİSTESİ
+  /// Kullanıcının isteği doğrultusunda asla değişmeyen kanonik kategoriler
   static final List<CategoryModel> defaultCategories = [
     // -------------------------------------------------------------------------
     // GELİR KATEGORİLERİ
@@ -40,6 +40,14 @@ class CategoryService {
       isDefault: true,
     ),
     CategoryModel(
+      id: 'def_income_hediye',
+      name: 'Hediye',
+      type: 'gelir',
+      icon: 'card_giftcard',
+      color: 0xFFF57C00,
+      isDefault: true,
+    ),
+    CategoryModel(
       id: 'def_income_diger',
       name: 'Diğer',
       type: 'gelir',
@@ -49,70 +57,86 @@ class CategoryService {
     ),
 
     // -------------------------------------------------------------------------
-    // GİDER KATEGORİLERİ
+    // GİDER KATEGORİLERİ (Kullanıcı tarafından sabitlenen 10 kategori)
     // -------------------------------------------------------------------------
     CategoryModel(
-      id: 'def_expense_yemek',
-      name: 'Yemek & Mutfak',
+      id: 'def_expense_market_gida',
+      name: 'Market',
+      type: 'gider',
+      icon: 'shopping_cart',
+      color: 0xFFFF7043,
+      isDefault: true,
+    ),
+    CategoryModel(
+      id: 'def_expense_yeme_icme',
+      name: 'Yemek',
       type: 'gider',
       icon: 'restaurant',
-      color: 0xFFFF7043, // Turuncu
+      color: 0xFFFFA726,
       isDefault: true,
     ),
     CategoryModel(
-      id: 'def_expense_fatura',
-      name: 'Fatura & Aidat',
+      id: 'def_expense_faturalar_abonelikler',
+      name: 'Faturalar',
       type: 'gider',
       icon: 'receipt_long',
-      color: 0xFFE53935, // Kırmızı
+      color: 0xFF42A5F5,
       isDefault: true,
     ),
     CategoryModel(
-      id: 'def_expense_kira',
-      name: 'Kira',
-      type: 'gider',
-      icon: 'home',
-      color: 0xFF8E24AA, // Mor
-      isDefault: true,
-    ),
-    CategoryModel(
-      id: 'def_expense_ulasim',
+      id: 'def_expense_ulasim_yakit',
       name: 'Ulaşım',
       type: 'gider',
-      icon: 'directions_bus',
-      color: 0xFF1E88E5, // Mavi
+      icon: 'directions_car',
+      color: 0xFF26A69A,
       isDefault: true,
     ),
     CategoryModel(
-      id: 'def_expense_alisveris',
-      name: 'Alışveriş',
+      id: 'def_expense_ev_yasam',
+      name: 'Ev ve Kira',
       type: 'gider',
-      icon: 'shopping_bag',
-      color: 0xFFD81B60, // Pembe
+      icon: 'home',
+      color: 0xFF7E57C2,
       isDefault: true,
     ),
     CategoryModel(
-      id: 'def_expense_eglence',
-      name: 'Eğlence',
+      id: 'def_expense_giyim_aksesuar',
+      name: 'Giyim',
       type: 'gider',
-      icon: 'movie',
-      color: 0xFFFB8C00, // Koyu Turuncu
+      icon: 'checkroom',
+      color: 0xFFEC407A,
       isDefault: true,
     ),
     CategoryModel(
-      id: 'def_expense_saglik',
-      name: 'Sağlık',
+      id: 'def_expense_saglik_bakim',
+      name: 'Sağlık & Bakım',
       type: 'gider',
       icon: 'local_hospital',
-      color: 0xFF00897B, // Yeşilimsi
+      color: 0xFFEF5350,
       isDefault: true,
     ),
     CategoryModel(
-      id: 'def_expense_diger',
-      name: 'Diğer',
+      id: 'def_expense_eglence_hobi',
+      name: 'Eğlence',
       type: 'gider',
-      icon: 'category',
-      color: 0xFF757575, // Gri
+      icon: 'sports_esports',
+      color: 0xFFAB47BC,
+      isDefault: true,
+    ),
+    CategoryModel(
+      id: 'def_expense_egitim_gelisim',
+      name: 'Eğitim',
+      type: 'gider',
+      icon: 'school',
+      color: 0xFF5C6BC0,
+      isDefault: true,
+    ),
+    CategoryModel(
+      id: 'def_expense_diger_harcamalar',
+      name: 'Diğer Harcamalar',
+      type: 'gider',
+      icon: 'more_horiz',
+      color: 0xFF78909C,
       isDefault: true,
     ),
   ];
@@ -123,9 +147,10 @@ class CategoryService {
   }
 
   /// 2. VARSAYILAN KATEGORİ BAŞLATMA VE YÖNETİM METODU
-  /// - users/{userId}/categories koleksiyonunu kontrol eder.
-  /// - Tamamen boşsa WriteBatch kullanarak tek seferde toplu olarak ekler.
-  /// - Zaten kategoriler varsa hiçbir veriyi ezmez ve geçiş yapar.
+  /// - Kullanıcının kategorilerini kontrol eder.
+  /// - Kanonik varsayılan kategorilerin (10 gider + 4 gelir) eksiksiz olmasını sağlar.
+  /// - Eski / artık kullanılmayan varsayılan kategorileri siler.
+  /// - Kullanıcının sonradan eklediği özel kategorilere asla dokunmaz.
   Future<void> initializeDefaultCategories(String userId) async {
     if (userId.trim().isEmpty) {
       debugPrint("[CATEGORY_SERVICE UYARI] Geçersiz veya boş userId!");
@@ -134,35 +159,102 @@ class CategoryService {
 
     try {
       final colRef = _userCategoriesRef(userId);
-      final existingDocs = await colRef.get().timeout(const Duration(seconds: 6));
-
-      // Kullanıcının halihazırda kategorileri varsa mevcut verileri koru
-      if (existingDocs.docs.isNotEmpty) {
-        debugPrint(
-          "[CATEGORY_SERVICE] Kullanıcının ($userId) zaten ${existingDocs.docs.length} kategorisi mevcut. Mevcut veriler korundu.",
-        );
-        return;
-      }
-
-      // Koleksiyon tamamen boş: WriteBatch ile toplu ekle
-      debugPrint(
-        "[CATEGORY_SERVICE] $userId kullanıcısının kategorisi bulunamadı. ${defaultCategories.length} varsayılan kategori WriteBatch ile yükleniyor...",
+      final existingDocs = await colRef.get().timeout(
+        const Duration(seconds: 6),
       );
-
       final WriteBatch batch = _firestore.batch();
+      bool batchHasOperations = false;
 
-      for (final cat in defaultCategories) {
-        final docRef = colRef.doc(cat.id);
-        batch.set(docRef, cat.toMap());
+      // 1. Mevcut dokümanları indeksle
+      final Map<String, DocumentSnapshot<Map<String, dynamic>>> existingById =
+          {};
+      final Map<String, DocumentSnapshot<Map<String, dynamic>>>
+      existingByNameAndType = {};
+
+      for (final doc in existingDocs.docs) {
+        existingById[doc.id] = doc;
+        final data = doc.data();
+        final name = (data['name'] ?? '').toString().trim().toLowerCase();
+        final type = (data['type'] ?? 'gider').toString().trim().toLowerCase();
+        final normType = (type == 'expense' || type == 'gider')
+            ? 'gider'
+            : 'gelir';
+        if (name.isNotEmpty) {
+          existingByNameAndType['${name}_$normType'] = doc;
+        }
       }
 
-      await batch.commit();
+      // 2. Eski / geçersiz varsayılan kategorileri temizle (Örn: eski 'Yemek & Mutfak', 'Kira', vb.)
+      final canonicalIds = defaultCategories.map((c) => c.id).toSet();
+      final canonicalNames = defaultCategories
+          .map((c) => '${c.name.trim().toLowerCase()}_${c.type}')
+          .toSet();
 
-      debugPrint(
-        "[CATEGORY_SERVICE BAŞARILI] $userId için ${defaultCategories.length} varsayılan kategori Firestore'a yazıldı.",
-      );
+      for (final doc in existingDocs.docs) {
+        final data = doc.data();
+        final isSystem =
+            data['isDefault'] == true ||
+            data['is_system'] == true ||
+            doc.id.startsWith('def_');
+        final name = (data['name'] ?? '').toString().trim().toLowerCase();
+        final type = (data['type'] ?? 'gider').toString().trim().toLowerCase();
+        final normType = (type == 'expense' || type == 'gider')
+            ? 'gider'
+            : 'gelir';
+        final key = '${name}_$normType';
+
+        if (isSystem &&
+            !canonicalIds.contains(doc.id) &&
+            !canonicalNames.contains(key)) {
+          batch.delete(doc.reference);
+          batchHasOperations = true;
+          debugPrint(
+            "[CATEGORY_SERVICE] Eski sistem kategorisi temizlendi: ${doc.id} - ${data['name']}",
+          );
+        }
+      }
+
+      // 3. Kanonik varsayılan kategorileri ekle veya güncelle
+      for (final cat in defaultCategories) {
+        final key = '${cat.name.trim().toLowerCase()}_${cat.type}';
+        final existingDoc = existingById[cat.id] ?? existingByNameAndType[key];
+
+        if (existingDoc == null) {
+          final docRef = colRef.doc(cat.id);
+          batch.set(docRef, cat.toMap());
+          batchHasOperations = true;
+        } else {
+          final data = existingDoc.data() ?? {};
+          final currentIcon = data['icon'];
+          final currentColor = data['color'];
+          final isDefault = data['isDefault'];
+
+          if (currentIcon != cat.icon ||
+              currentColor != cat.color ||
+              isDefault != true) {
+            batch.set(existingDoc.reference, {
+              'name': cat.name,
+              'type': cat.type,
+              'icon': cat.icon,
+              'color': cat.color,
+              'isDefault': true,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+            batchHasOperations = true;
+          }
+        }
+      }
+
+      if (batchHasOperations) {
+        await batch.commit();
+        debugPrint(
+          "[CATEGORY_SERVICE BAŞARILI] $userId için standart kategoriler güncellendi ve Firestore'a senkronize edildi.",
+        );
+      }
     } catch (e) {
-      debugPrint("[CATEGORY_SERVICE HATA] Varsayılan kategoriler başlatılamadı: $e");
+      debugPrint(
+        "[CATEGORY_SERVICE HATA] Varsayılan kategoriler başlatılamadı: $e",
+      );
     }
   }
 
@@ -170,9 +262,7 @@ class CategoryService {
   Stream<List<CategoryModel>> getCategoriesStream(String userId) {
     if (userId.trim().isEmpty) return Stream.value([]);
 
-    return _userCategoriesRef(userId)
-        .snapshots()
-        .map((snapshot) {
+    return _userCategoriesRef(userId).snapshots().map((snapshot) {
       return snapshot.docs
           .map((doc) => CategoryModel.fromFirestore(doc))
           .toList();
@@ -224,7 +314,9 @@ class CategoryService {
     );
 
     await docRef.set(newCat.toMap());
-    debugPrint("[CATEGORY_SERVICE] Özel kategori eklendi: ${newCat.name} (ID: ${newCat.id})");
+    debugPrint(
+      "[CATEGORY_SERVICE] Özel kategori eklendi: ${newCat.name} (ID: ${newCat.id})",
+    );
     return newCat;
   }
 
@@ -259,6 +351,10 @@ class CategoryService {
       case 'call_received':
       case 'call-received':
         return Icons.call_received;
+      case 'card_giftcard':
+      case 'card-giftcard':
+      case 'gift':
+        return Icons.card_giftcard;
 
       // Gider ikonları
       case 'restaurant':
@@ -272,6 +368,18 @@ class CategoryService {
       case 'directions_bus':
       case 'directions-bus':
         return Icons.directions_bus;
+      case 'directions_car':
+      case 'directions-car':
+      case 'car':
+        return Icons.directions_car;
+      case 'checkroom':
+        return Icons.checkroom;
+      case 'sports_esports':
+      case 'sports-esports':
+      case 'game-controller':
+      case 'game_controller':
+      case 'games':
+        return Icons.sports_esports;
       case 'shopping_bag':
       case 'shopping-bag':
         return Icons.shopping_bag;
@@ -293,6 +401,7 @@ class CategoryService {
         return Icons.content_cut;
       case 'more':
       case 'more_horiz':
+      case 'more-horiz':
         return Icons.more_horiz;
       default:
         return Icons.category;

@@ -32,24 +32,63 @@ service cloud.firestore {
     // =========================================================================
     // 2. ORTAK BÜTÇE / HARCAMA GRUPLARI (groups) VE ALT KOLEKSİYONLARI
     // =========================================================================
-    // Uygulama canlı dinleme (_groupsCollection.snapshots()), davet kodu arama
-    // ve grup oluşturma işlemlerini bu koleksiyon üzerinden yürütür.
     match /groups/{groupId} {
-      allow read, create: if isAuthenticated();
-      allow update, delete: if isAuthenticated();
+      // Bir kullanıcının gruba üye olup olmadığını kontrol eden yardımcı fonksiyon
+      function isGroupMember() {
+        return isAuthenticated() && (
+          (resource.data.memberUids != null && request.auth.uid in resource.data.memberUids) ||
+          (resource.data.createdById != null && request.auth.uid == resource.data.createdById) ||
+          (resource.data.memberUids == null && resource.data.createdById == null)
+        );
+      }
+
+      // Sadece grubu oluşturan kişinin silebilmesi için kontrol
+      function isGroupCreator() {
+        return isAuthenticated() && (
+          (resource.data.createdById != null && request.auth.uid == resource.data.createdById) ||
+          (resource.data.createdById == null)
+        );
+      }
+
+      // Okuma (get & list):
+      // - Üyeler grubu okuyabilir
+      // - Davet koduyla arama yapan oturum açmış kullanıcılar (koda göre arama) okuyabilir
+      allow read: if isAuthenticated() && (
+        isGroupMember() ||
+        (resource.data.inviteCode != null)
+      );
+
+      // Yeni grup oluşturma: Oturum açmış kullanıcılar oluşturabilir
+      allow create: if isAuthenticated();
+
+      // Güncelleme:
+      // - Mevcut üyeler grubu güncelleyebilir
+      // - Veya davet koduyla yeni katılan kişi kendisini 'members' / 'memberUids' listesine ekleyebilir
+      allow update: if isAuthenticated() && (
+        isGroupMember() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberUids'])
+      );
+
+      // Grubu silme: SADECE grubu kuran kişi silebilir!
+      allow delete: if isAuthenticated() && isGroupCreator();
 
       // Grupların altındaki harcamalar (expenses) ve ihtiyaç listesi (needs)
       match /{allSubcollections=**} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthenticated() && (
+          get(/databases/$(database)/documents/groups/$(groupId)).data.memberUids == null ||
+          request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberUids ||
+          request.auth.uid == get(/databases/$(database)/documents/groups/$(groupId)).data.createdById
+        );
       }
     }
 
     // =========================================================================
-    // 3. GENEL KOLEKSİYONLAR (Genel kategoriler vb. için opsiyonel)
+    // 3. GENEL KOLEKSİYONLAR (Genel kategoriler)
     // =========================================================================
     match /categories/{categoryId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      // İstemcilerin genel kategorileri silmesini veya üzerine yazmasını engelle
+      allow write: if false;
     }
 
     // =========================================================================

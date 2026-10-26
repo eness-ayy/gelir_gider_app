@@ -19,7 +19,7 @@ class UserSessionController extends BaseController {
   late final FirestoreGroupService _firestoreGroupService;
 
   UserSessionController({FirebaseAuth? auth})
-      : _auth = auth ?? FirebaseAuth.instance;
+    : _auth = auth ?? FirebaseAuth.instance;
 
   // ---------------------------------------------------------------------------
   // Reaktif Durum Değişkenleri (State)
@@ -133,7 +133,11 @@ class UserSessionController extends BaseController {
 
       // 4. Kullanıcının varsayılan kategorilerini sessizce kontrol et / başlat
       if (user != null) {
-        unawaited(CategoryService().initializeDefaultCategories(user.uid).catchError((_) {}));
+        unawaited(
+          CategoryService()
+              .initializeDefaultCategories(user.uid)
+              .catchError((_) {}),
+        );
       }
     } catch (e) {
       debugPrint("Oturum başlatılırken hata oluştu: $e");
@@ -153,8 +157,9 @@ class UserSessionController extends BaseController {
         return;
       }
 
-      final savedName =
-          _storageService.getValue<String>(StorageKeys.groupNickname);
+      final savedName = _storageService.getValue<String>(
+        StorageKeys.groupNickname,
+      );
       if (savedName != null && savedName.trim().isNotEmpty) {
         currentUserName.value = savedName.trim();
         return;
@@ -223,9 +228,15 @@ class UserSessionController extends BaseController {
       firebaseUser.value = user;
       isAnonymous.value = user?.isAnonymous ?? true;
 
-      // Eğer kullanıcı adı önceden belirlenmişse displayName alanına uygula
-      if (user != null && currentUserName.value.isNotEmpty) {
-        await _syncDisplayNameWithFirebase(currentUserName.value);
+      if (user != null) {
+        await _storageService.remove(StorageKeys.cachedTransactions);
+        await _storageService.remove(StorageKeys.cachedCategories);
+        await CategoryService().initializeDefaultCategories(user.uid);
+
+        // Eğer kullanıcı adı önceden belirlenmişse displayName alanına uygula
+        if (currentUserName.value.isNotEmpty) {
+          await _syncDisplayNameWithFirebase(currentUserName.value);
+        }
       }
 
       return user;
@@ -294,13 +305,13 @@ class UserSessionController extends BaseController {
               .collection('users')
               .doc(user.uid)
               .set({
-            'uid': user.uid,
-            'firstName': fName,
-            'lastName': lName,
-            'fullName': cleanName,
-            'email': user.email,
-            'updatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+                'uid': user.uid,
+                'firstName': fName,
+                'lastName': lName,
+                'fullName': cleanName,
+                'email': user.email,
+                'updatedAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
         } catch (e) {
           debugPrint("saveUserName Firestore yazma hatası: $e");
         }
@@ -313,10 +324,8 @@ class UserSessionController extends BaseController {
         final fName = parts.first;
         final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
         final current = authService.currentUser.value;
-        final updated = (current ?? AppUser(id: user?.uid, email: user?.email)).copyWith(
-          firstName: fName,
-          lastName: lName,
-        );
+        final updated = (current ?? AppUser(id: user?.uid, email: user?.email))
+            .copyWith(firstName: fName, lastName: lName);
         await authService.saveLocalUser(updated);
       }
 
@@ -326,7 +335,9 @@ class UserSessionController extends BaseController {
       return true;
     } catch (e) {
       debugPrint("Kullanıcı adı kaydedilirken hata: $e");
-      showErrorSnackbar(message: "Kullanıcı adı güncellenirken bir hata oluştu.");
+      showErrorSnackbar(
+        message: "Kullanıcı adı güncellenirken bir hata oluştu.",
+      );
       return false;
     } finally {
       setLoading(false);
@@ -348,36 +359,41 @@ class UserSessionController extends BaseController {
     }
 
     _groupsSubscription = _firestoreGroupService
-        .getGroupsForMember(memberName)
-        .listen((groups) {
-      userGroups.assignAll(groups);
+        .getGroupsForMember(memberName, userUid: _auth.currentUser?.uid)
+        .listen(
+          (groups) {
+            userGroups.assignAll(groups);
 
-      // Aktif grup seçimi: Eğer aktif grup boşsa ve liste doluysa ilk grubu seç
-      if (activeGroup.value == null && groups.isNotEmpty) {
-        activeGroup.value = groups.first;
-      } else if (activeGroup.value != null) {
-        // Mevcut aktif grup güncellenmiş mi kontrol et
-        GroupModel? foundGroup;
-        for (final g in groups) {
-          if (g.id == activeGroup.value!.id) {
-            foundGroup = g;
-            break;
-          }
-        }
-        activeGroup.value = foundGroup ?? (groups.isNotEmpty ? groups.first : null);
-      }
-    }, onError: (error) {
-      debugPrint("Kullanıcı grupları dinlenirken hata oluştu: $error");
-    });
+            // Aktif grup seçimi: Eğer aktif grup boşsa ve liste doluysa ilk grubu seç
+            if (activeGroup.value == null && groups.isNotEmpty) {
+              activeGroup.value = groups.first;
+            } else if (activeGroup.value != null) {
+              // Mevcut aktif grup güncellenmiş mi kontrol et
+              GroupModel? foundGroup;
+              for (final g in groups) {
+                if (g.id == activeGroup.value!.id) {
+                  foundGroup = g;
+                  break;
+                }
+              }
+              activeGroup.value =
+                  foundGroup ?? (groups.isNotEmpty ? groups.first : null);
+            }
+          },
+          onError: (error) {
+            debugPrint("Kullanıcı grupları dinlenirken hata oluştu: $error");
+          },
+        );
   }
 
   /// Kullanıcının dahil olduğu grupları doğrudan çekerek listeyi tazeler
   Future<void> refreshGroups() async {
     final name = currentUserName.value.trim();
-    if (name.isEmpty) return;
+    final uid = _auth.currentUser?.uid;
+    if (name.isEmpty && (uid == null || uid.isEmpty)) return;
 
     try {
-      final fetched = await _firestoreGroupService.fetchGroupsForMember(name);
+      final fetched = await _firestoreGroupService.fetchGroupsForMember(name, userUid: uid);
       if (fetched.isNotEmpty) {
         userGroups.assignAll(fetched);
         if (activeGroup.value == null) {
@@ -419,10 +435,7 @@ class UserSessionController extends BaseController {
     try {
       setLoading(true);
       final userCredential = await _auth
-          .createUserWithEmailAndPassword(
-            email: cleanEmail,
-            password: password,
-          )
+          .createUserWithEmailAndPassword(email: cleanEmail, password: password)
           .timeout(const Duration(seconds: 30));
 
       final user = userCredential.user;
@@ -467,14 +480,14 @@ class UserSessionController extends BaseController {
               .collection('users')
               .doc(user.uid)
               .set({
-            'uid': user.uid,
-            'firstName': fName,
-            'lastName': lName,
-            'fullName': cleanName,
-            'email': user.email ?? cleanEmail,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+                'uid': user.uid,
+                'firstName': fName,
+                'lastName': lName,
+                'fullName': cleanName,
+                'email': user.email ?? cleanEmail,
+                'createdAt': FieldValue.serverTimestamp(),
+                'updatedAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
         } catch (e) {
           debugPrint("Kayıtta Firestore profil yazma hatası: $e");
         }
@@ -500,14 +513,20 @@ class UserSessionController extends BaseController {
 
         // 5. Grupları dinlemeye başla ve arka planda tazele
         _bindUserGroups(cleanName);
-        unawaited(refreshGroups().catchError((e) {
-          debugPrint("Arka plan grup yenileme hatası: $e");
-          return null;
-        }));
+        unawaited(
+          refreshGroups().catchError((e) {
+            debugPrint("Arka plan grup yenileme hatası: $e");
+            return null;
+          }),
+        );
 
         // 6. Cüzdan / Dashboard verilerini bu yeni kullanıcı için tazele
         if (Get.isRegistered<DashboardController>()) {
-          unawaited(Get.find<DashboardController>().refreshDashboard().catchError((_) {}));
+          unawaited(
+            Get.find<DashboardController>().refreshDashboard().catchError(
+              (_) {},
+            ),
+          );
         }
       }
       return user;
@@ -526,10 +545,7 @@ class UserSessionController extends BaseController {
     try {
       setLoading(true);
       final userCredential = await _auth
-          .signInWithEmailAndPassword(
-            email: cleanEmail,
-            password: password,
-          )
+          .signInWithEmailAndPassword(email: cleanEmail, password: password)
           .timeout(const Duration(seconds: 30));
 
       final user = userCredential.user;
@@ -579,14 +595,15 @@ class UserSessionController extends BaseController {
         final resolvedFullName = firestoreFullName.isNotEmpty
             ? firestoreFullName
             : (authDisplayName.isNotEmpty
-                ? authDisplayName
-                : cleanEmail.split('@').first);
+                  ? authDisplayName
+                  : cleanEmail.split('@').first);
 
         currentUserName.value = resolvedFullName;
         await _persistUserName(resolvedFullName);
 
         // Firebase Auth displayName güncel değilse arka planda eşitle
-        if (user.displayName != resolvedFullName && resolvedFullName.isNotEmpty) {
+        if (user.displayName != resolvedFullName &&
+            resolvedFullName.isNotEmpty) {
           try {
             await user.updateDisplayName(resolvedFullName);
             await user.reload();
@@ -614,17 +631,27 @@ class UserSessionController extends BaseController {
         }
 
         _bindUserGroups(resolvedFullName);
-        unawaited(refreshGroups().catchError((e) {
-          debugPrint("Arka plan grup yenileme hatası: $e");
-          return null;
-        }));
+        unawaited(
+          refreshGroups().catchError((e) {
+            debugPrint("Arka plan grup yenileme hatası: $e");
+            return null;
+          }),
+        );
 
         // Kullanıcının varsayılan kategorilerini sessizce kontrol et / başlat
-        unawaited(CategoryService().initializeDefaultCategories(user.uid).catchError((_) {}));
+        unawaited(
+          CategoryService()
+              .initializeDefaultCategories(user.uid)
+              .catchError((_) {}),
+        );
 
         // Cüzdan / Dashboard verilerini bu kullanıcı için tazele
         if (Get.isRegistered<DashboardController>()) {
-          unawaited(Get.find<DashboardController>().refreshDashboard().catchError((_) {}));
+          unawaited(
+            Get.find<DashboardController>().refreshDashboard().catchError(
+              (_) {},
+            ),
+          );
         }
       }
       return user;
@@ -697,7 +724,9 @@ class UserSessionController extends BaseController {
           await _persistUserName(displayName);
 
           // AuthService profilini güncelle
-          if (firestoreFirst != null || firestoreLast != null || firestorePhoto != null) {
+          if (firestoreFirst != null ||
+              firestoreLast != null ||
+              firestorePhoto != null) {
             final updatedAppUser = appUser.copyWith(
               firstName: firestoreFirst ?? appUser.firstName,
               lastName: firestoreLast ?? appUser.lastName,
@@ -713,8 +742,20 @@ class UserSessionController extends BaseController {
             await _syncDisplayNameWithFirebase(displayName);
           }
 
+          if (currentUid != null && currentUid.isNotEmpty) {
+            unawaited(
+              CategoryService()
+                  .initializeDefaultCategories(currentUid)
+                  .catchError((_) {}),
+            );
+          }
+
           if (Get.isRegistered<DashboardController>()) {
-            unawaited(Get.find<DashboardController>().refreshDashboard().catchError((_) {}));
+            unawaited(
+              Get.find<DashboardController>().refreshDashboard().catchError(
+                (_) {},
+              ),
+            );
           }
 
           return true;

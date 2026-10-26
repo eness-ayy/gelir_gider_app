@@ -65,10 +65,25 @@ void main() {
   setUp(() {
     Get.reset();
     repo = FakeCategoryRepository([
-      AppCategory(id: '1', name: 'Yatırım Geliri', type: 'income', icon: 'trending-up'),
+      AppCategory(
+        id: '1',
+        name: 'Yatırım Geliri',
+        type: 'income',
+        icon: 'trending-up',
+      ),
       AppCategory(id: '2', name: 'Yemek', type: 'expense', icon: 'restaurant'),
-      AppCategory(id: '3', name: '', type: 'expense', icon: 'wallet'), // Boş isim
-      AppCategory(id: '4', name: '   ', type: 'expense', icon: 'wallet'), // Boşluk
+      AppCategory(
+        id: '3',
+        name: '',
+        type: 'expense',
+        icon: 'wallet',
+      ), // Boş isim
+      AppCategory(
+        id: '4',
+        name: '   ',
+        type: 'expense',
+        icon: 'wallet',
+      ), // Boşluk
       AppCategory(id: '5', name: 'aile', type: 'income', icon: 'cart'),
     ]);
     Get.put<CategoryRepository>(repo);
@@ -98,7 +113,10 @@ void main() {
     expect(controller.hasEmptyCategories, isFalse);
     expect(controller.emptyCategoriesCount, equals(0));
     expect(controller.categories.length, equals(3));
-    expect(controller.categories.map((c) => c.name), containsAll(['Yatırım Geliri', 'Yemek', 'aile']));
+    expect(
+      controller.categories.map((c) => c.name),
+      containsAll(['Yatırım Geliri', 'Yemek', 'aile']),
+    );
   });
 
   test('deleteCategory removes category by id', () async {
@@ -149,33 +167,45 @@ void main() {
     await Future.delayed(const Duration(milliseconds: 50));
 
     expect(controller.hasMissingRecommendedCategories, isTrue);
-    expect(controller.missingRecommendedCategories.length, equals(8));
+    final missingCount = controller.missingRecommendedCategories.length;
+    expect(missingCount, greaterThan(0));
 
     // Toplu ekleme
-    final added = await controller.addRecommendedCategories(showSnackbar: false);
-    expect(added, equals(8));
+    final added = await controller.addRecommendedCategories(
+      showSnackbar: false,
+    );
+    expect(added, equals(missingCount));
     expect(controller.hasMissingRecommendedCategories, isFalse);
 
     // Tüm yeni kategorilerin adları mevcut mu?
     final catNames = controller.categories.map((c) => c.name).toList();
-    expect(catNames, contains('Alışveriş / Giyim'));
-    expect(catNames, contains('Kira & Ev'));
-    expect(catNames, contains('Abonelikler'));
-    expect(catNames, contains('Borç / Kredi'));
-    expect(catNames, contains('Kişisel Bakım'));
-    expect(catNames, contains('Diğer / Çeşitli'));
-    expect(catNames, contains('Burs / Harçlık'));
-    expect(catNames, contains('İade / Alacak'));
+    expect(catNames, contains('Market'));
+    expect(catNames, contains('Faturalar'));
+    expect(catNames, contains('Ulaşım'));
+    expect(catNames, contains('Ev ve Kira'));
+    expect(catNames, contains('Giyim'));
+    expect(catNames, contains('Sağlık & Bakım'));
+    expect(catNames, contains('Eğlence'));
+    expect(catNames, contains('Eğitim'));
   });
 
   test('getCategoryIcon returns appropriate icons for all 8 categories', () {
     // 1. Alışveriş / Giyim
     expect(
-      getCategoryIcon(iconName: 'shopping-bag', isSystem: false, type: 'expense'),
+      getCategoryIcon(
+        iconName: 'shopping-bag',
+        isSystem: false,
+        type: 'expense',
+      ),
       equals(Icons.shopping_bag_rounded),
     );
     expect(
-      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Alışveriş / Giyim'),
+      getCategoryIcon(
+        iconName: 'receipt',
+        isSystem: false,
+        type: 'expense',
+        categoryName: 'Alışveriş / Giyim',
+      ),
       equals(Icons.shopping_bag_rounded),
     );
 
@@ -185,7 +215,12 @@ void main() {
       equals(Icons.home_rounded),
     );
     expect(
-      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Kira & Ev'),
+      getCategoryIcon(
+        iconName: 'receipt',
+        isSystem: false,
+        type: 'expense',
+        categoryName: 'Kira & Ev',
+      ),
       equals(Icons.home_rounded),
     );
 
@@ -195,27 +230,50 @@ void main() {
       equals(Icons.autorenew_rounded),
     );
     expect(
-      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Abonelikler'),
+      getCategoryIcon(
+        iconName: 'receipt',
+        isSystem: false,
+        type: 'expense',
+        categoryName: 'Abonelikler',
+      ),
       equals(Icons.autorenew_rounded),
     );
 
     // 4. Borç / Kredi
     expect(
-      getCategoryIcon(iconName: 'credit-card', isSystem: false, type: 'expense'),
+      getCategoryIcon(
+        iconName: 'credit-card',
+        isSystem: false,
+        type: 'expense',
+      ),
       equals(Icons.credit_card_rounded),
     );
     expect(
-      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Borç / Kredi'),
+      getCategoryIcon(
+        iconName: 'receipt',
+        isSystem: false,
+        type: 'expense',
+        categoryName: 'Borç / Kredi',
+      ),
       equals(Icons.credit_card_rounded),
     );
 
     // 5. Kişisel Bakım
     expect(
-      getCategoryIcon(iconName: 'content-cut', isSystem: false, type: 'expense'),
+      getCategoryIcon(
+        iconName: 'content-cut',
+        isSystem: false,
+        type: 'expense',
+      ),
       equals(Icons.content_cut_rounded),
     );
     expect(
-      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Kişisel Bakım'),
+      getCategoryIcon(
+        iconName: 'receipt',
+        isSystem: false,
+        type: 'expense',
+        categoryName: 'Kişisel Bakım',
+      ),
       equals(Icons.content_cut_rounded),
     );
 
@@ -225,7 +283,12 @@ void main() {
       equals(Icons.more_horiz_rounded),
     );
     expect(
-      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'expense', categoryName: 'Diğer / Çeşitli'),
+      getCategoryIcon(
+        iconName: 'receipt',
+        isSystem: false,
+        type: 'expense',
+        categoryName: 'Diğer / Çeşitli',
+      ),
       equals(Icons.more_horiz_rounded),
     );
 
@@ -235,17 +298,31 @@ void main() {
       equals(Icons.school_rounded),
     );
     expect(
-      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'income', categoryName: 'Burs / Harçlık'),
+      getCategoryIcon(
+        iconName: 'receipt',
+        isSystem: false,
+        type: 'income',
+        categoryName: 'Burs / Harçlık',
+      ),
       equals(Icons.school_rounded),
     );
 
     // 8. İade / Alacak
     expect(
-      getCategoryIcon(iconName: 'call-received', isSystem: false, type: 'income'),
+      getCategoryIcon(
+        iconName: 'call-received',
+        isSystem: false,
+        type: 'income',
+      ),
       equals(Icons.call_received_rounded),
     );
     expect(
-      getCategoryIcon(iconName: 'receipt', isSystem: false, type: 'income', categoryName: 'İade / Alacak'),
+      getCategoryIcon(
+        iconName: 'receipt',
+        isSystem: false,
+        type: 'income',
+        categoryName: 'İade / Alacak',
+      ),
       equals(Icons.call_received_rounded),
     );
   });

@@ -20,7 +20,8 @@ class AmountInput extends GetView<TransactionController> {
         if (value == null || value.trim().isEmpty) {
           return "Lütfen bir miktar giriniz";
         }
-        final parsed = double.tryParse(value.trim());
+        final clean = value.trim().replaceAll(',', '.');
+        final parsed = double.tryParse(clean);
         if (parsed == null || parsed <= 0) {
           return "Lütfen geçerli pozitif bir miktar giriniz";
         }

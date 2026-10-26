@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/group/expense_model.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_model.dart';
@@ -9,6 +10,7 @@ import 'package:get/get.dart';
 /// Firebase Firestore tabanlı ortak harcama ve grup yönetim servisi.
 class FirestoreGroupService extends GetxService {
   final FirebaseFirestore _firestore;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
 
   FirestoreGroupService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
@@ -91,11 +93,25 @@ class FirestoreGroupService extends GetxService {
         : await generateUniqueInviteCode();
 
     final docRef = _groupsCollection.doc();
+
+    // Aktif kullanıcının UID'sini al ve güvenli üye listesine ekle
+    String? currentUid;
+    try {
+      currentUid = _auth.currentUser?.uid;
+    } catch (_) {}
+
+    final memberUids = <String>[];
+    if (currentUid != null && currentUid.isNotEmpty) {
+      memberUids.add(currentUid);
+    }
+
     final newGroup = GroupModel(
       id: docRef.id,
       name: cleanName,
       inviteCode: inviteCode,
       members: cleanMembers,
+      memberUids: memberUids,
+      createdById: currentUid,
       createdAt: DateTime.now(),
     );
 
@@ -133,10 +149,20 @@ class FirestoreGroupService extends GetxService {
     final groupDoc = querySnapshot.docs.first;
     final docRef = groupDoc.reference;
 
-    // Üyeyi arrayUnion ile ekle (aynı isim varsa çoklu ekleme yapmaz)
-    await docRef.update({
+    String? currentUid;
+    try {
+      currentUid = _auth.currentUser?.uid;
+    } catch (_) {}
+
+    final updateData = <String, dynamic>{
       'members': FieldValue.arrayUnion([cleanMember]),
-    });
+    };
+    if (currentUid != null && currentUid.isNotEmpty) {
+      updateData['memberUids'] = FieldValue.arrayUnion([currentUid]);
+    }
+
+    // Üyeyi arrayUnion ile atomik olarak ekle (aynı isim/UID varsa çoklu ekleme yapmaz)
+    await docRef.update(updateData);
 
     // Güncel grup bilgisini oku ve döndür
     final updatedSnapshot = await docRef.get();
@@ -162,35 +188,77 @@ class FirestoreGroupService extends GetxService {
     });
   }
 
-  /// Belirli bir üyenin dahil olduğu tüm grupları canlı dinler (büyük/küçük harf duyarsız)
-  Stream<List<GroupModel>> getGroupsForMember(String memberName) {
-    final cleanName = memberName.trim().toLowerCase();
-    if (cleanName.isEmpty) {
-      return Stream.value([]);
+  /// Belirli bir üyenin dahil olduğu grupları sunucu taraflı filtreleyerek canlı dinler.
+  /// (Tüm veritabanını indirmek yerine sadece kullanıcının yetkili olduğu grupları çeker)
+  Stream<List<GroupModel>> getGroupsForMember(String memberName, {String? userUid}) {
+    final cleanName = memberName.trim();
+    String? cleanUid = userUid?.trim();
+    if (cleanUid == null || cleanUid.isEmpty) {
+      try {
+        cleanUid = _auth.currentUser?.uid;
+      } catch (_) {}
     }
-    return _groupsCollection.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map((doc) => GroupModel.fromFirestore(doc))
-          .where((group) => group.members.any(
-                (m) => m.trim().toLowerCase() == cleanName,
-              ))
-          .toList();
-    });
+
+    // 1. En güvenli yol: UID bazlı sunucu sorgusu
+    if (cleanUid != null && cleanUid.isNotEmpty) {
+      return _groupsCollection
+          .where('memberUids', arrayContains: cleanUid)
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs
+            .map((doc) => GroupModel.fromFirestore(doc))
+            .toList();
+      });
+    }
+
+    // 2. Geriye dönük uyumluluk: Üye adı ile sunucu sorgusu
+    if (cleanName.isNotEmpty) {
+      return _groupsCollection
+          .where('members', arrayContains: cleanName)
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs
+            .map((doc) => GroupModel.fromFirestore(doc))
+            .toList();
+      });
+    }
+
+    return Stream.value([]);
   }
 
-  /// Belirli bir üyenin dahil olduğu grupları tek seferlik doğrudan Firestore'dan çeker
-  Future<List<GroupModel>> fetchGroupsForMember(String memberName) async {
-    final cleanName = memberName.trim().toLowerCase();
-    if (cleanName.isEmpty) return [];
+  /// Belirli bir üyenin dahil olduğu grupları sunucu taraflı filtreleyerek tek seferlik çeker
+  Future<List<GroupModel>> fetchGroupsForMember(String memberName, {String? userUid}) async {
+    final cleanName = memberName.trim();
+    String? cleanUid = userUid?.trim();
+    if (cleanUid == null || cleanUid.isEmpty) {
+      try {
+        cleanUid = _auth.currentUser?.uid;
+      } catch (_) {}
+    }
 
     try {
-      final snapshot = await _groupsCollection.get();
-      return snapshot.docs
-          .map((doc) => GroupModel.fromFirestore(doc))
-          .where((group) => group.members.any(
-                (m) => m.trim().toLowerCase() == cleanName,
-              ))
-          .toList();
+      // 1. UID ile doğrudan sunucudan filtreli çek
+      if (cleanUid != null && cleanUid.isNotEmpty) {
+        final snapshot = await _groupsCollection
+            .where('memberUids', arrayContains: cleanUid)
+            .get();
+        if (snapshot.docs.isNotEmpty) {
+          return snapshot.docs
+              .map((doc) => GroupModel.fromFirestore(doc))
+              .toList();
+        }
+      }
+
+      // 2. Geriye dönük uyumluluk: İsim ile sunucudan filtreli çek
+      if (cleanName.isNotEmpty) {
+        final snapshot = await _groupsCollection
+            .where('members', arrayContains: cleanName)
+            .get();
+        return snapshot.docs
+            .map((doc) => GroupModel.fromFirestore(doc))
+            .toList();
+      }
+      return [];
     } catch (e) {
       debugPrint("Gruplar doğrudan çekilirken hata: $e");
       return [];
@@ -198,18 +266,43 @@ class FirestoreGroupService extends GetxService {
   }
 
   /// Grubu ve alt koleksiyonlarını siler.
+  /// Güvenlik: Yalnızca grubu oluşturan (createdById) veya üye olan kişi silebilir.
   Future<void> deleteGroup(String groupId) async {
-    if (groupId.trim().isEmpty) return;
+    final cleanId = groupId.trim();
+    if (cleanId.isEmpty) return;
+
+    // Dokümanı oku ve yetki kontrolü yap
+    final groupDoc = await _groupsCollection.doc(cleanId).get();
+    if (!groupDoc.exists) return;
+
+    final group = GroupModel.fromFirestore(groupDoc);
+    String? currentUid;
+    try {
+      currentUid = _auth.currentUser?.uid;
+    } catch (_) {}
+
+    if (currentUid != null && group.createdById != null && group.createdById!.isNotEmpty) {
+      if (group.createdById != currentUid) {
+        throw StateError("Yalnızca grubu oluşturan kişi grubu silebilir.");
+      }
+    }
 
     // Harcamaları sil
     final expensesQuery =
-        await _groupsCollection.doc(groupId).collection('expenses').get();
+        await _groupsCollection.doc(cleanId).collection('expenses').get();
     for (final doc in expensesQuery.docs) {
       await doc.reference.delete();
     }
 
+    // İhtiyaçları sil
+    final needsQuery =
+        await _groupsCollection.doc(cleanId).collection('needs').get();
+    for (final doc in needsQuery.docs) {
+      await doc.reference.delete();
+    }
+
     // Grup dokümanını sil
-    await _groupsCollection.doc(groupId).delete();
+    await _groupsCollection.doc(cleanId).delete();
   }
 
   // ===========================================================================

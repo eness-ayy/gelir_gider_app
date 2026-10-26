@@ -6,6 +6,8 @@ class GroupModel {
   final String name;
   final String inviteCode;
   final List<String> members;
+  final List<String> memberUids;
+  final String? createdById;
   final DateTime createdAt;
 
   const GroupModel({
@@ -13,12 +15,13 @@ class GroupModel {
     required this.name,
     required this.inviteCode,
     required this.members,
+    this.memberUids = const [],
+    this.createdById,
     required this.createdAt,
   });
 
   /// Geriye dönük uyumluluk için isim alanı
   String get title => name;
-
 
   /// Firestore dokümanına yazılacak veri haritası
   Map<String, dynamic> toMap() {
@@ -26,6 +29,8 @@ class GroupModel {
       'name': name,
       'inviteCode': inviteCode,
       'members': members,
+      'memberUids': memberUids,
+      if (createdById != null && createdById!.isNotEmpty) 'createdById': createdById,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -54,6 +59,18 @@ class GroupModel {
       parsedMembers = const [];
     }
 
+    // Üye UID'leri listesini güvenli dönüştür
+    final rawMemberUids = map['memberUids'];
+    final List<String> parsedMemberUids;
+    if (rawMemberUids is List) {
+      parsedMemberUids = rawMemberUids
+          .map((item) => item?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList();
+    } else {
+      parsedMemberUids = const [];
+    }
+
     // Oluşturulma tarihini güvenli dönüştür (Timestamp, String veya int destekler)
     final rawCreatedAt = map['createdAt'];
     DateTime parsedCreatedAt;
@@ -72,6 +89,8 @@ class GroupModel {
       name: map['name']?.toString().trim() ?? '',
       inviteCode: map['inviteCode']?.toString().trim().toUpperCase() ?? '',
       members: parsedMembers,
+      memberUids: parsedMemberUids,
+      createdById: map['createdById']?.toString().trim(),
       createdAt: parsedCreatedAt,
     );
   }
@@ -89,6 +108,8 @@ class GroupModel {
     String? name,
     String? inviteCode,
     List<String>? members,
+    List<String>? memberUids,
+    String? createdById,
     DateTime? createdAt,
   }) {
     return GroupModel(
@@ -96,13 +117,15 @@ class GroupModel {
       name: name ?? this.name,
       inviteCode: inviteCode ?? this.inviteCode,
       members: members ?? this.members,
+      memberUids: memberUids ?? this.memberUids,
+      createdById: createdById ?? this.createdById,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
   @override
   String toString() {
-    return 'GroupModel(id: $id, name: $name, inviteCode: $inviteCode, members: $members, createdAt: $createdAt)';
+    return 'GroupModel(id: $id, name: $name, inviteCode: $inviteCode, members: $members, memberUids: $memberUids, createdById: $createdById, createdAt: $createdAt)';
   }
 
   @override

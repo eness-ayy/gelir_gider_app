@@ -71,16 +71,30 @@ String getCategoryIconLabel(String iconName) {
 IconData? _matchIconByName(String cleanIcon) {
   switch (cleanIcon) {
     case 'bus':
+    case 'directions_bus':
+    case 'directions-bus':
       return Icons.directions_bus;
+    case 'directions_car':
+    case 'directions-car':
+    case 'car':
+      return Icons.directions_car_rounded;
     case 'cart':
-      return Icons.shopping_cart;
+    case 'shopping_cart':
+    case 'shopping-cart':
+      return Icons.shopping_cart_rounded;
     case 'cash':
+    case 'attach_money':
+    case 'attach-money':
       return Icons.attach_money;
     case 'game-controller':
     case 'game_controller':
     case 'games':
-      return Icons.games;
+    case 'sports_esports':
+    case 'sports-esports':
+      return Icons.sports_esports_rounded;
     case 'medical':
+    case 'local_hospital':
+    case 'local-hospital':
       return Icons.local_hospital;
     case 'restaurant':
       return Icons.restaurant;
@@ -89,17 +103,28 @@ IconData? _matchIconByName(String cleanIcon) {
     case 'family':
       return Icons.family_restroom;
     case 'wallet':
+    case 'account_balance_wallet':
+    case 'account-balance-wallet':
       return Icons.account_balance_wallet;
     case 'trending-up':
     case 'trending_up':
       return Icons.trending_up;
+    case 'show_chart':
+    case 'show-chart':
+      return Icons.show_chart;
     case 'shopping-bag':
     case 'shopping_bag':
     case 'bag':
       return Icons.shopping_bag_rounded;
+    case 'checkroom':
+      return Icons.checkroom_rounded;
     case 'home':
     case 'house':
       return Icons.home_rounded;
+    case 'receipt':
+    case 'receipt_long':
+    case 'receipt-long':
+      return Icons.receipt_long_rounded;
     case 'autorenew':
     case 'subscriptions':
       return Icons.autorenew_rounded;
@@ -130,26 +155,64 @@ IconData? _matchIconByName(String cleanIcon) {
 IconData? _matchIconByKeyword(String text) {
   final norm = TurkishStringHelper.normalizeForSearch(text);
 
-  if (norm.contains('alisveris') || norm.contains('giyim')) {
+  if (norm.contains('alisveris') && norm.contains('giyim')) {
     return Icons.shopping_bag_rounded;
   }
-  if (norm.contains('kira') || norm.contains('ev')) {
-    return Icons.home_rounded;
+  if (norm.contains('market') || norm.contains('gida')) {
+    return Icons.shopping_cart_rounded;
+  }
+  if (norm.contains('yeme') ||
+      norm.contains('icme') ||
+      norm.contains('restoran') ||
+      norm.contains('yemek')) {
+    return Icons.restaurant;
+  }
+  if (norm.contains('fatura')) {
+    return Icons.receipt_long_rounded;
   }
   if (norm.contains('abonelik')) {
     return Icons.autorenew_rounded;
+  }
+  if (norm.contains('ulasim') ||
+      norm.contains('yakit') ||
+      norm.contains('araba')) {
+    return Icons.directions_car_rounded;
+  }
+  if (norm.contains('ev') || norm.contains('yasam') || norm.contains('kira')) {
+    return Icons.home_rounded;
+  }
+  if (norm.contains('giyim') || norm.contains('aksesuar')) {
+    return Icons.checkroom_rounded;
+  }
+  if (norm.contains('alisveris')) {
+    return Icons.shopping_bag_rounded;
+  }
+  if (norm.contains('saglik')) {
+    return Icons.local_hospital;
+  }
+  if (norm.contains('eglence') ||
+      norm.contains('hobi') ||
+      norm.contains('oyun')) {
+    return Icons.sports_esports_rounded;
+  }
+  if (norm.contains('egitim') ||
+      norm.contains('gelisim') ||
+      norm.contains('okul')) {
+    return Icons.school_rounded;
+  }
+  if (norm.contains('diger') ||
+      norm.contains('harcama') ||
+      norm.contains('cesitli')) {
+    return Icons.more_horiz_rounded;
   }
   if (norm.contains('borc') || norm.contains('kredi')) {
     return Icons.credit_card_rounded;
   }
   if (norm.contains('kisisel') ||
-      norm.contains('bakim') ||
       norm.contains('kuafor') ||
-      norm.contains('berber')) {
+      norm.contains('berber') ||
+      norm.contains('bakim')) {
     return Icons.content_cut_rounded;
-  }
-  if (norm.contains('diger') || norm.contains('cesitli')) {
-    return Icons.more_horiz_rounded;
   }
   if (norm.contains('burs') || norm.contains('harclik')) {
     return Icons.school_rounded;
@@ -157,32 +220,11 @@ IconData? _matchIconByKeyword(String text) {
   if (norm.contains('iade') || norm.contains('alacak')) {
     return Icons.call_received_rounded;
   }
-  if (norm.contains('market')) {
-    return Icons.shopping_cart;
-  }
-  if (norm.contains('ulasim')) {
-    return Icons.directions_bus;
-  }
-  if (norm.contains('fatura')) {
-    return Icons.receipt;
-  }
-  if (norm.contains('eglence')) {
-    return Icons.games;
-  }
-  if (norm.contains('saglik')) {
-    return Icons.local_hospital;
-  }
-  if (norm.contains('yemek') || norm.contains('restoran')) {
-    return Icons.restaurant;
-  }
   if (norm.contains('maas')) {
     return Icons.attach_money;
   }
   if (norm.contains('yatirim') || norm.contains('ek gelir')) {
     return Icons.trending_up;
-  }
-  if (norm.contains('egitim')) {
-    return Icons.school_rounded;
   }
   if (norm.contains('aile')) {
     return Icons.family_restroom;
@@ -202,7 +244,9 @@ IconData getCategoryIcon({
   final cleanIcon = iconName.trim().toLowerCase();
 
   // 1. Eğer özel bir ikon adı varsa (receipt/category gibi genel varsayılanlar hariç)
-  if (cleanIcon.isNotEmpty && cleanIcon != 'receipt' && cleanIcon != 'category') {
+  if (cleanIcon.isNotEmpty &&
+      cleanIcon != 'receipt' &&
+      cleanIcon != 'category') {
     final directIcon = _matchIconByName(cleanIcon);
     if (directIcon != null) return directIcon;
   }

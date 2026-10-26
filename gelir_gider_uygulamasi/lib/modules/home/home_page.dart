@@ -20,7 +20,15 @@ class HomePage extends GetView<HomeController> {
       // Ekstra sekmesinde (index 2) standart AppBar gizlenir, sayfa içi modern geniş başlık kullanılır
       final isExtraTab = currentIndex == 2;
 
-      return Scaffold(
+      return PopScope(
+        canPop: currentIndex == 0,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (currentIndex != 0) {
+            controller.changePage(0);
+          }
+        },
+        child: Scaffold(
         appBar: isExtraTab
             ? null
             : AppBar(
@@ -122,7 +130,8 @@ class HomePage extends GetView<HomeController> {
           notchSmoothness: NotchSmoothness.verySmoothEdge,
           onTap: controller.changePage,
         ),
-      );
+      ),
+    );
     });
   }
 }
