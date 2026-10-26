@@ -6,6 +6,7 @@ import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
 import 'package:gelir_gider_uygulamasi/services/api_services.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
+import 'package:gelir_gider_uygulamasi/services/network_service.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/services/category_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
@@ -57,6 +58,11 @@ class TransactionRepostory extends GetxService {
 
   String get _transactionsStorageKey =>
       '${StorageKeys.cachedTransactions}_$_activeUserKey';
+
+  /// Cihazın internete bağlı olup olmadığını kontrol eden güvenli getter
+  bool get _isOnline =>
+      !Get.isRegistered<NetworkService>() ||
+      Get.find<NetworkService>().isConnected.value;
 
   /// Aktif kullanıcının yerel hafızasındaki (cache) son işlemlerini getirir.
   List<AppTransaction> getCachedTransactions() {
@@ -182,23 +188,25 @@ class TransactionRepostory extends GetxService {
       }
     }
 
-    // 2. REST API dene
-    final token = _storageService.getValue<String>(StorageKeys.userToken);
-    if (token != null && token.trim().isNotEmpty) {
-      try {
-        final response = await _apiServices.get(ApiConstants.transactions);
-        if (response.statusCode == 200 && response.data != null) {
-          var gelenList = response.data['transactions'] as List?;
-          if (gelenList != null) {
-            final transactions = gelenList
-                .map((transaction) => AppTransaction.fromJson(transaction))
-                .toList();
-            await saveCachedTransactions(transactions);
-            return transactions;
+    // 2. REST API dene (Sadece cihaz çevrimiçi ise)
+    if (_isOnline) {
+      final token = _storageService.getValue<String>(StorageKeys.userToken);
+      if (token != null && token.trim().isNotEmpty) {
+        try {
+          final response = await _apiServices.get(ApiConstants.transactions);
+          if (response.statusCode == 200 && response.data != null) {
+            var gelenList = response.data['transactions'] as List?;
+            if (gelenList != null) {
+              final transactions = gelenList
+                  .map((transaction) => AppTransaction.fromJson(transaction))
+                  .toList();
+              await saveCachedTransactions(transactions);
+              return transactions;
+            }
           }
+        } catch (e) {
+          debugPrint("[API TRANSACTIONS] REST API üzerinden işlemler alınamadı: $e");
         }
-      } catch (e) {
-        debugPrint("[API TRANSACTIONS] REST API üzerinden işlemler alınamadı: $e");
       }
     }
 
@@ -292,16 +300,20 @@ class TransactionRepostory extends GetxService {
       debugPrint("[FIRESTORE TRANSACTIONS UYARI] Kullanıcı oturumu açık değil (_transactionsCollection null). Yerel kayıt yapılıyor.");
     }
 
-    // 2. Harici API varsa arka planda senkronize etmeyi dene
-    final token = _storageService.getValue<String>(StorageKeys.userToken);
-    if (token != null && token.trim().isNotEmpty) {
-      try {
-        await _apiServices.post(
-          ApiConstants.transactions,
-          data: transaction.toJson(),
-        );
-      } catch (e) {
-        debugPrint("[API TRANSACTIONS] REST API senkronizasyon uyarısı: $e");
+    // 2. Harici API varsa ve cihaz çevrimiçi ise arka planda senkronize et
+    if (_isOnline) {
+      final token = _storageService.getValue<String>(StorageKeys.userToken);
+      if (token != null && token.trim().isNotEmpty) {
+        _apiServices
+            .post(
+              ApiConstants.transactions,
+              data: transaction.toJson(),
+            )
+            .then((_) => null)
+            .catchError((e) {
+          debugPrint("[API TRANSACTIONS] REST API senkronizasyon uyarısı: $e");
+          return null;
+        });
       }
     }
 

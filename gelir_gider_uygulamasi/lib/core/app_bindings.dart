@@ -6,11 +6,15 @@ import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/services/firestore_group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/network_service.dart';
 import 'package:get/get.dart';
 
 class AppBindings extends Bindings {
   @override
   void dependencies() {
+    if (!Get.isRegistered<NetworkService>()) {
+      Get.put<NetworkService>(NetworkService(), permanent: true);
+    }
     if (!Get.isRegistered<AuthController>()) {
       Get.put<AuthController>(AuthController(), permanent: true);
     }

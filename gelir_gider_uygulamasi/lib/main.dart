@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/app_bindings.dart';
 import 'package:gelir_gider_uygulamasi/firebase_options.dart';
@@ -13,6 +15,7 @@ import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/network_service.dart';
 import 'package:gelir_gider_uygulamasi/services/notification_service.dart';
 import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
 import 'package:gelir_gider_uygulamasi/services/savings_service.dart';
@@ -28,9 +31,20 @@ void main(List<String> args) async {
   // Firebase'i servislerden önce en başta ayağa kaldırıyoruz
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // Firestore Çevrimdışı (Offline) Yerel Önbellekleme Ayarı
+  if (!kIsWeb) {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  }
+
   // Tarih ve yerelleştirme verilerini başlat
   await initializeDateFormatting('tr_TR', null);
   await initializeDateFormatting('tr', null);
+
+  // 0. Ağ bağlantısı dinleyicisini kalıcı olarak başlat
+  Get.put<NetworkService>(NetworkService(), permanent: true);
 
   // 1. SharedPreferences'ı ayağa kaldır
   final storageService = StorgeService();

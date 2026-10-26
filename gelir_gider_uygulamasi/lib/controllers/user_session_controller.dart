@@ -393,7 +393,10 @@ class UserSessionController extends BaseController {
     if (name.isEmpty && (uid == null || uid.isEmpty)) return;
 
     try {
-      final fetched = await _firestoreGroupService.fetchGroupsForMember(name, userUid: uid);
+      final fetched = await _firestoreGroupService.fetchGroupsForMember(
+        name,
+        userUid: uid,
+      );
       if (fetched.isNotEmpty) {
         userGroups.assignAll(fetched);
         if (activeGroup.value == null) {
