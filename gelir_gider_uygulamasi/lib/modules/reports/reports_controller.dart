@@ -153,7 +153,7 @@ class ReportsController extends BaseController {
   double get totalExpense {
     double sum = 0.0;
     for (var tr in selectedMonthExpenses) {
-      sum += double.tryParse(tr.amount) ?? 0.0;
+      sum += tr.baseAmount;
     }
     return sum;
   }
@@ -161,7 +161,7 @@ class ReportsController extends BaseController {
   double get totalIncome {
     double sum = 0.0;
     for (var tr in selectedMonthIncomes) {
-      sum += double.tryParse(tr.amount) ?? 0.0;
+      sum += tr.baseAmount;
     }
     return sum;
   }
@@ -192,7 +192,7 @@ class ReportsController extends BaseController {
     grouped.forEach((categoryName, items) {
       double catTotal = 0.0;
       for (var item in items) {
-        catTotal += double.tryParse(item.amount) ?? 0.0;
+        catTotal += item.baseAmount;
       }
 
       final percentage = (catTotal / total) * 100;
@@ -245,7 +245,7 @@ class ReportsController extends BaseController {
       for (var tr in transactions) {
         final pDate = DateTime.tryParse(tr.date);
         if (pDate != null && pDate.year == year && pDate.month == month) {
-          final amt = double.tryParse(tr.amount) ?? 0.0;
+          final amt = tr.baseAmount;
           if (tr.type == 'income') {
             income += amt;
           } else {
@@ -296,7 +296,7 @@ class ReportsController extends BaseController {
       } else {
         method = accountService.getPaymentMethod(tr.id);
       }
-      final amount = double.tryParse(tr.amount) ?? 0.0;
+      final amount = tr.baseAmount;
       totals[method] = (totals[method] ?? 0.0) + amount;
       counts[method] = (counts[method] ?? 0) + 1;
     }

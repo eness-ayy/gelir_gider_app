@@ -1,15 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gelir_gider_uygulamasi/models/app_currency.dart';
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 
 class TransactionModel {
   final String? id;
   final String title;
+
+  /// TRY karşılığı (= baseAmount). Eski kayıtlarla uyum için korunur.
   final double amount;
   final String type; // 'gelir' | 'gider'
   final String category;
   final DateTime date;
   final String? paymentMethod;
   final String? description;
+
+  /// Para birimi kodu (varsayılan 'TRY')
+  final String currency;
+
+  /// İşlem anındaki 1 birim = X TRY kuru (varsayılan 1.0)
+  final double exchangeRate;
+
+  /// Kullanıcının girdiği döviz/altın tutarı
+  final double originalAmount;
 
   TransactionModel({
     this.id,
@@ -20,7 +32,15 @@ class TransactionModel {
     required this.date,
     this.paymentMethod,
     this.description,
-  });
+    this.currency = CurrencyHelper.baseCode,
+    this.exchangeRate = 1.0,
+    double? originalAmount,
+  }) : originalAmount = originalAmount ?? amount;
+
+  /// TRY karşılığı = originalAmount * exchangeRate
+  double get baseAmount => amount;
+
+  AppCurrency get currencyEnum => CurrencyHelper.fromCode(currency);
 
   /// Firestore dokümanından nesne üretme
   factory TransactionModel.fromFirestore(DocumentSnapshot doc) {
@@ -40,16 +60,23 @@ class TransactionModel {
     final rawType = (data['type'] ?? 'gider').toString().toLowerCase();
     final isIncome = rawType == 'income' || rawType == 'gelir';
     final desc = (data['description'] ?? data['title'] ?? '').toString();
+    final cur = AppTransaction.parseCurrencyFields(data);
+    final base = (data['baseAmount'] as num?)?.toDouble() ??
+        (data['amount'] as num?)?.toDouble() ??
+        0.0;
 
     return TransactionModel(
       id: doc.id,
       title: (data['title'] ?? data['description'] ?? '').toString(),
-      amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
+      amount: base,
       type: isIncome ? 'gelir' : 'gider',
       category: (data['category'] ?? data['categoryName'] ?? 'Diğer').toString(),
       date: parsedDate,
       paymentMethod: data['paymentMethod']?.toString(),
       description: desc,
+      currency: cur.currency,
+      exchangeRate: cur.rate,
+      originalAmount: cur.original,
     );
   }
 
@@ -76,6 +103,9 @@ class TransactionModel {
       date: parsedDate,
       paymentMethod: appTrans.paymentMethodEnum.title,
       description: desc,
+      currency: appTrans.currency,
+      exchangeRate: appTrans.exchangeRate,
+      originalAmount: appTrans.originalAmount,
     );
   }
 
@@ -89,6 +119,10 @@ class TransactionModel {
       'date': Timestamp.fromDate(date),
       if (paymentMethod != null) 'paymentMethod': paymentMethod,
       if (description != null) 'description': description,
+      'currency': currency,
+      'exchangeRate': exchangeRate,
+      'originalAmount': originalAmount,
+      'baseAmount': baseAmount,
     };
   }
 
@@ -101,6 +135,9 @@ class TransactionModel {
     DateTime? date,
     String? paymentMethod,
     String? description,
+    String? currency,
+    double? exchangeRate,
+    double? originalAmount,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -111,6 +148,9 @@ class TransactionModel {
       date: date ?? this.date,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       description: description ?? this.description,
+      currency: currency ?? this.currency,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
+      originalAmount: originalAmount ?? this.originalAmount,
     );
   }
 }

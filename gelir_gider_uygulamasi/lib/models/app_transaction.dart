@@ -1,9 +1,13 @@
 
 
+import 'package:gelir_gider_uygulamasi/models/app_currency.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 
 class AppTransaction {
   String id;
+
+  /// TRY cinsinden tutar (= baseAmount). Tüm toplam/bütçe/grafik hesapları
+  /// bu alan üzerinden yapılır; eski kayıtlarla birebir uyumludur.
   String amount;
   String type;
   String description;
@@ -14,6 +18,15 @@ class AppTransaction {
   String updatedAt;
   Category? category; // Null olabilmesi için '?' eklendi
   String? paymentMethod; // 'cash', 'bank_card', 'credit_card'
+
+  /// İşlemin girildiği para birimi kodu ('TRY', 'USD', 'EUR', 'GBP', 'XAU')
+  String currency;
+
+  /// İşlem anındaki 1 birim = X TRY kuru
+  double exchangeRate;
+
+  /// Kullanıcının girdiği orijinal döviz/altın tutarı (eski kayıtlarda null)
+  double? originalAmount;
 
   AppTransaction({
     required this.id,
@@ -27,9 +40,46 @@ class AppTransaction {
     required this.updatedAt,
     this.category, // required kaldırıldı, opsiyonel yapıldı
     this.paymentMethod,
+    this.currency = CurrencyHelper.baseCode,
+    this.exchangeRate = 1.0,
+    this.originalAmount,
   });
 
   PaymentMethod get paymentMethodEnum => PaymentMethod.fromKey(paymentMethod);
+
+  AppCurrency get currencyEnum => CurrencyHelper.fromCode(currency);
+
+  /// TRY karşılığı — tüm raporlama hesaplamalarında kullanılmalı
+  double get baseAmount {
+    final v = double.tryParse(amount.replaceAll(',', '.').trim()) ?? 0.0;
+    return v.isFinite ? v : 0.0;
+  }
+
+  /// Orijinal birimdeki tutar (eski kayıtlarda TRY tutarına eşittir)
+  double get originalAmountValue => originalAmount ?? baseAmount;
+
+  /// TRY dışı bir birimle mi girildi?
+  bool get isForeignCurrency => !currencyEnum.isBase;
+
+  /// Ham Map/JSON'dan para birimi alanlarını güvenle okur.
+  static ({String currency, double rate, double? original}) parseCurrencyFields(
+    Map<String, dynamic> json,
+  ) {
+    final code = CurrencyHelper.fromCode(json['currency']?.toString()).code;
+    final rawRate = json['exchangeRate'] ?? json['exchange_rate'];
+    final rate = rawRate is num
+        ? rawRate.toDouble()
+        : double.tryParse(rawRate?.toString() ?? '') ?? 1.0;
+    final rawOriginal = json['originalAmount'] ?? json['original_amount'];
+    final original = rawOriginal is num
+        ? rawOriginal.toDouble()
+        : double.tryParse(rawOriginal?.toString() ?? '');
+    return (
+      currency: code,
+      rate: (rate.isFinite && rate > 0) ? rate : 1.0,
+      original: original,
+    );
+  }
 
   factory AppTransaction.fromJson(Map<String, dynamic> json) {
     Category? parsedCategory;
@@ -78,6 +128,8 @@ class AppTransaction {
       }
     }
 
+    final cur = parseCurrencyFields(json);
+
     return AppTransaction(
       id: json['id'] ?? '',
       amount: json['amount']?.toString() ?? '',
@@ -91,6 +143,9 @@ class AppTransaction {
       category: parsedCategory,
       paymentMethod:
           json['payment_method'] ?? json['paymentMethod'] ?? json['account'],
+      currency: cur.currency,
+      exchangeRate: cur.rate,
+      originalAmount: cur.original,
     );
   }
 
@@ -108,6 +163,10 @@ class AppTransaction {
     if (paymentMethod != null) {
       data['payment_method'] = paymentMethod;
     }
+    data['currency'] = currency;
+    data['exchangeRate'] = exchangeRate;
+    data['originalAmount'] = originalAmountValue;
+    data['baseAmount'] = baseAmount;
     if (category != null) {
       data['Category'] = category!.toJson();
       data['category'] = category!.name;

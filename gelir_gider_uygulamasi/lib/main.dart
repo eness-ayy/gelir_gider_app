@@ -13,6 +13,7 @@ import 'package:gelir_gider_uygulamasi/services/api_services.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
+import 'package:gelir_gider_uygulamasi/services/currency_service.dart';
 import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/network_service.dart';
@@ -50,6 +51,11 @@ void main(List<String> args) async {
   final storageService = StorgeService();
   await storageService.init();
   Get.put<StorgeService>(storageService, permanent: true);
+
+  // 1.1 Canlı Döviz Kuru servisini ayağa kaldır
+  final currencyService = CurrencyService();
+  await currencyService.init();
+  Get.put<CurrencyService>(currencyService, permanent: true);
 
   // 2. Dio / Api servisini ayağa kaldır
   final apiServices = ApiServices();

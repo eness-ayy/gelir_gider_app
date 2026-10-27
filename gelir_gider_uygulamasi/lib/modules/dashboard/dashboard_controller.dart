@@ -255,7 +255,7 @@ class DashboardController extends BaseController {
       }).toList();
 
       for (var tr in currentMonthTransactions) {
-        final amount = double.tryParse(tr.amount) ?? 0.0;
+        final amount = tr.baseAmount;
         if (tr.type == 'income') {
           aylikGelir.value += amount;
         } else {
@@ -364,18 +364,10 @@ class DashboardController extends BaseController {
         });
         break;
       case 'amount_desc':
-        list.sort((a, b) {
-          final aAmt = double.tryParse(a.amount) ?? 0.0;
-          final bAmt = double.tryParse(b.amount) ?? 0.0;
-          return bAmt.compareTo(aAmt);
-        });
+        list.sort((a, b) => b.baseAmount.compareTo(a.baseAmount));
         break;
       case 'amount_asc':
-        list.sort((a, b) {
-          final aAmt = double.tryParse(a.amount) ?? 0.0;
-          final bAmt = double.tryParse(b.amount) ?? 0.0;
-          return aAmt.compareTo(bAmt);
-        });
+        list.sort((a, b) => a.baseAmount.compareTo(b.baseAmount));
         break;
       case 'date_desc':
       default:
@@ -436,7 +428,7 @@ class DashboardController extends BaseController {
     double total = 0.0;
     for (var tr in myTransaction) {
       if (tr.type == 'income' && _matchesDateRange(tr, now)) {
-        total += double.tryParse(tr.amount) ?? 0.0;
+        total += tr.baseAmount;
       }
     }
     return total;
@@ -447,7 +439,7 @@ class DashboardController extends BaseController {
     double total = 0.0;
     for (var tr in myTransaction) {
       if (tr.type == 'expense' && _matchesDateRange(tr, now)) {
-        total += double.tryParse(tr.amount) ?? 0.0;
+        total += tr.baseAmount;
       }
     }
     return total;
@@ -460,7 +452,7 @@ class DashboardController extends BaseController {
     double total = 0.0;
     for (var tr in filteredTransactions) {
       if (tr.type == 'income') {
-        total += double.tryParse(tr.amount) ?? 0.0;
+        total += tr.baseAmount;
       }
     }
     return total;
@@ -470,7 +462,7 @@ class DashboardController extends BaseController {
     double total = 0.0;
     for (var tr in filteredTransactions) {
       if (tr.type == 'expense') {
-        total += double.tryParse(tr.amount) ?? 0.0;
+        total += tr.baseAmount;
       }
     }
     return total;

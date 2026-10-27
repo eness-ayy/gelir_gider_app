@@ -100,8 +100,7 @@ class BudgetService extends GetxService {
 
     double spent = 0.0;
     for (final tr in categoryExpenses) {
-      final cleaned = tr.amount.replaceAll(',', '.').trim();
-      final amount = double.tryParse(cleaned) ?? 0.0;
+      final amount = tr.baseAmount;
       if (amount.isFinite) {
         spent += amount;
       }

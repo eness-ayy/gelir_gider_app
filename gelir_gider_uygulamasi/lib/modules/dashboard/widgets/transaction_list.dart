@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gelir_gider_uygulamasi/models/app_currency.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
@@ -281,8 +282,14 @@ class TransactionList extends GetView<DashboardController> {
                     ? Colors.redAccent.shade100
                     : Colors.red.shade700;
 
-                final parsedAmount =
-                    double.tryParse(oankiTransaction.amount) ?? 0.0;
+                final parsedAmount = oankiTransaction.baseAmount;
+                final isForeign = oankiTransaction.isForeignCurrency;
+                final amountLabel = isForeign
+                    ? CurrencyHelper.format(
+                        oankiTransaction.originalAmountValue,
+                        oankiTransaction.currencyEnum,
+                      )
+                    : CurrencyHelper.formatBase(parsedAmount);
                 final parsedDate =
                     DateTime.tryParse(oankiTransaction.date) ?? DateTime.now();
 
@@ -440,13 +447,26 @@ class TransactionList extends GetView<DashboardController> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '${isIncome ? '+' : '-'} ${NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2).format(parsedAmount)}',
+                          '${isIncome ? '+' : '-'} $amountLabel',
                           style: TextStyle(
                             color: isIncome ? incomeColor : expenseColor,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        if (isForeign) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '~${CurrencyHelper.formatBase(parsedAmount)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 4),
                         Text(
                           DateFormat('dd.MM.yyyy').format(parsedDate),

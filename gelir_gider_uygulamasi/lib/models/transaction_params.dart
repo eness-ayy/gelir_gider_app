@@ -1,5 +1,7 @@
 class Transaction {
   final String? id;
+
+  /// TRY karşılığı (baseAmount)
   final double? amount;
   final String? type;
   final String? description;
@@ -9,6 +11,15 @@ class Transaction {
   final String? categoryIcon;
   final String? userId;
   final String? paymentMethod;
+
+  /// Para birimi kodu ('TRY' varsayılan)
+  final String currency;
+
+  /// 1 birim = X TRY
+  final double exchangeRate;
+
+  /// Kullanıcının girdiği orijinal tutar
+  final double? originalAmount;
 
   Transaction({
     this.id,
@@ -21,7 +32,18 @@ class Transaction {
     this.categoryIcon,
     this.userId,
     this.paymentMethod,
+    this.currency = 'TRY',
+    this.exchangeRate = 1.0,
+    this.originalAmount,
   });
+
+  /// Firestore/cache için para birimi alanları
+  Map<String, dynamic> get currencyFields => {
+    'currency': currency,
+    'exchangeRate': exchangeRate,
+    'originalAmount': originalAmount ?? amount ?? 0.0,
+    'baseAmount': amount ?? 0.0,
+  };
 
   factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
     id: json['id'],
@@ -34,6 +56,11 @@ class Transaction {
     categoryIcon: json['category_icon'] ?? json['categoryIcon'],
     userId: json['user_id'],
     paymentMethod: json['payment_method'] ?? json['paymentMethod'] ?? json['account'],
+    currency: (json['currency'] ?? 'TRY').toString(),
+    exchangeRate: double.tryParse('${json['exchangeRate'] ?? 1.0}') ?? 1.0,
+    originalAmount: json['originalAmount'] != null
+        ? double.tryParse(json['originalAmount'].toString())
+        : null,
   );
 
   Map<String, dynamic> toJson() => {
@@ -48,5 +75,6 @@ class Transaction {
     if (categoryIcon != null) 'category_icon': categoryIcon,
     'user_id': userId,
     if (paymentMethod != null) 'payment_method': paymentMethod,
+    ...currencyFields,
   };
 }

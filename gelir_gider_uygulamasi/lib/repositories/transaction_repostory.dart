@@ -164,6 +164,8 @@ class TransactionRepostory extends GetxService {
               type: data['type'] ?? 'expense',
             );
 
+            final cur = AppTransaction.parseCurrencyFields(data);
+
             return AppTransaction(
               id: doc.id,
               amount: (data['amount'] ?? 0.0).toString(),
@@ -176,6 +178,9 @@ class TransactionRepostory extends GetxService {
               paymentMethod: data['paymentMethod'] ?? 'cash',
               createdAt: parsedDate.toIso8601String(),
               updatedAt: parsedDate.toIso8601String(),
+              currency: cur.currency,
+              exchangeRate: cur.rate,
+              originalAmount: cur.original,
             );
           }).toList();
 
@@ -286,6 +291,7 @@ class TransactionRepostory extends GetxService {
           'categoryName': categoryName,
           'categoryIcon': categoryIcon,
           'paymentMethod': transaction.paymentMethod ?? 'cash',
+          ...transaction.currencyFields,
           'date': Timestamp.fromDate(now),
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
@@ -330,6 +336,9 @@ class TransactionRepostory extends GetxService {
       createdAt: nowIso,
       updatedAt: nowIso,
       paymentMethod: transaction.paymentMethod,
+      currency: transaction.currency,
+      exchangeRate: transaction.exchangeRate,
+      originalAmount: transaction.originalAmount,
     );
 
     final cached = getCachedTransactions();
@@ -406,6 +415,7 @@ class TransactionRepostory extends GetxService {
           'categoryName': categoryName,
           'categoryIcon': categoryIcon,
           'paymentMethod': transaction.paymentMethod ?? 'cash',
+          ...transaction.currencyFields,
           'date': Timestamp.fromDate(now),
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
@@ -428,6 +438,9 @@ class TransactionRepostory extends GetxService {
       createdAt: nowIso,
       updatedAt: nowIso,
       paymentMethod: transaction.paymentMethod,
+      currency: transaction.currency,
+      exchangeRate: transaction.exchangeRate,
+      originalAmount: transaction.originalAmount,
     );
 
     final cached = getCachedTransactions();

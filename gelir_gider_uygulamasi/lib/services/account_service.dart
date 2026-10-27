@@ -96,7 +96,7 @@ class AccountService extends GetxService {
         }
       }
 
-      final amount = double.tryParse(tr.amount.replaceAll(',', '.').trim()) ?? 0.0;
+      final amount = tr.baseAmount;
       if (amount <= 0 || !amount.isFinite) continue;
 
       // Önce işlemin kendi paymentMethod alanına, yoksa yerel kayıtlı servise bak
