@@ -7,12 +7,14 @@ class SharedBudgetCard extends StatelessWidget {
   final GroupModel group;
   final VoidCallback onTap;
   final VoidCallback onCopyCode;
+  final VoidCallback? onShareLink;
 
   const SharedBudgetCard({
     super.key,
     required this.group,
     required this.onTap,
     required this.onCopyCode,
+    this.onShareLink,
   });
 
   static const List<List<Color>> _houseGradients = [
@@ -205,45 +207,74 @@ class SharedBudgetCard extends StatelessWidget {
                       ),
                     ),
 
-                    // Davet Kodu ve Kopyalama
-                    InkWell(
-                      onTap: onCopyCode,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              const Color(0xFF0D9488).withValues(alpha: 0.12),
-                          border: Border.all(
-                            color:
-                                const Color(0xFF0D9488).withValues(alpha: 0.35),
-                          ),
+                    // Davet Kodu ve Kopyalama / Paylaşma
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          onTap: onCopyCode,
                           borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  const Color(0xFF0D9488).withValues(alpha: 0.12),
+                              border: Border.all(
+                                color:
+                                    const Color(0xFF0D9488).withValues(alpha: 0.35),
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Kod: ${group.inviteCode}",
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                    color: Color(0xFF0D9488),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.copy_rounded,
+                                  size: 14,
+                                  color: Color(0xFF0D9488),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "Kod: ${group.inviteCode}",
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
+                        if (onShareLink != null) ...[
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: onShareLink,
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color:
+                                    const Color(0xFF0D9488).withValues(alpha: 0.12),
+                                border: Border.all(
+                                  color:
+                                      const Color(0xFF0D9488).withValues(alpha: 0.35),
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.share_rounded,
+                                size: 14,
                                 color: Color(0xFF0D9488),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            const Icon(
-                              Icons.copy_rounded,
-                              size: 14,
-                              color: Color(0xFF0D9488),
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),

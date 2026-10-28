@@ -12,7 +12,12 @@
           "package_name": "com.example.gelir_gider_uygulamasi"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "991558928854-53nnkn8srbndk2nif478pqhgmvorujv1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyArrRyIpBX9WKGdFFSzFLNgblQpfiGgSbM"
@@ -20,7 +25,55 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "991558928854-53nnkn8srbndk2nif478pqhgmvorujv1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "991558928854-rfs6cq81ongcuslrf9hh1h4hbc2uis47.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.gelirGiderUygulamasi"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:991558928854:android:abfd2c9250751b42f07c77",
+        "android_client_info": {
+          "package_name": "com.hesaply.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "991558928854-53nnkn8srbndk2nif478pqhgmvorujv1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArrRyIpBX9WKGdFFSzFLNgblQpfiGgSbM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "991558928854-53nnkn8srbndk2nif478pqhgmvorujv1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "991558928854-rfs6cq81ongcuslrf9hh1h4hbc2uis47.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.gelirGiderUygulamasi"
+              }
+            }
+          ]
         }
       }
     }

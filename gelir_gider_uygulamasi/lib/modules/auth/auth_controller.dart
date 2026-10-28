@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/services/category_service.dart';
+import 'package:gelir_gider_uygulamasi/services/invite_link_service.dart';
 
 /// E-posta & Şifre ile kimlik doğrulama, kayıt ve şifre sıfırlama controller'ı
 class AuthController extends BaseController {
@@ -176,6 +177,9 @@ class AuthController extends BaseController {
       if (Get.currentRoute != AppRoutes.home) {
         _isNavigating = true;
         Get.offAllNamed(AppRoutes.home);
+        if (Get.isRegistered<InviteLinkService>()) {
+          Get.find<InviteLinkService>().checkPendingInviteAfterLogin();
+        }
         Future.delayed(
           const Duration(milliseconds: 300),
           () => _isNavigating = false,
@@ -292,6 +296,9 @@ class AuthController extends BaseController {
       if (user != null) {
         // Başarılı giriş sonrası doğrudan Cüzdan sayfasına (/home) yönlendir
         Get.offAllNamed(AppRoutes.home);
+        if (Get.isRegistered<InviteLinkService>()) {
+          Get.find<InviteLinkService>().checkPendingInviteAfterLogin();
+        }
       }
     } on FirebaseAuthException catch (e) {
       debugPrint("Giriş FirebaseAuthException: [${e.code}] ${e.message}");
@@ -341,6 +348,9 @@ class AuthController extends BaseController {
       if (user != null) {
         // Başarılı kayıt sonrası doğrudan Cüzdan sayfasına (/home) yönlendir
         Get.offAllNamed(AppRoutes.home);
+        if (Get.isRegistered<InviteLinkService>()) {
+          Get.find<InviteLinkService>().checkPendingInviteAfterLogin();
+        }
       }
     } on FirebaseAuthException catch (e) {
       debugPrint("Kayıt FirebaseAuthException: [${e.code}] ${e.message}");
@@ -392,6 +402,9 @@ class AuthController extends BaseController {
 
       if (success) {
         Get.offAllNamed(AppRoutes.home);
+        if (Get.isRegistered<InviteLinkService>()) {
+          Get.find<InviteLinkService>().checkPendingInviteAfterLogin();
+        }
       }
     } catch (e) {
       debugPrint("Google login hatası: $e");
@@ -416,6 +429,9 @@ class AuthController extends BaseController {
           await CategoryService().initializeDefaultCategories(user.uid);
         } catch (_) {}
         Get.offAllNamed(AppRoutes.home);
+        if (Get.isRegistered<InviteLinkService>()) {
+          Get.find<InviteLinkService>().checkPendingInviteAfterLogin();
+        }
       }
     } on FirebaseAuthException catch (e) {
       debugPrint(

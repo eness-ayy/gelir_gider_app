@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/recurring_transaction.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/recurring/widgets/add_recurring_transaction_sheet.dart';
 import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
@@ -27,7 +28,7 @@ class RecurringTransactionsPage extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddRecurringDialog(context),
+        onPressed: () => AddRecurringTransactionSheet.show(context),
         backgroundColor: const Color(0xFFA855F7),
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text(
@@ -186,7 +187,6 @@ class RecurringTransactionsPage extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -199,266 +199,151 @@ class RecurringTransactionsPage extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // İkon
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFA855F7).withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.event_repeat_rounded,
-              color: Color(0xFFA855F7),
-              size: 22,
-            ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => AddRecurringTransactionSheet.show(
+            context,
+            itemToEdit: item,
           ),
-          const SizedBox(width: 12),
-
-          // Bilgiler
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
+                // İkon
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFA855F7).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.event_repeat_rounded,
+                    color: Color(0xFFA855F7),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Bilgiler
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.lightTextPrimary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFA855F7)
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              periodText,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFA855F7),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Text(
+                            "Her ayın ${item.paymentDay}. günü",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              daysRemaining == 0
+                                  ? "Bugün!"
+                                  : "$daysRemaining gün kaldı",
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: daysRemaining <= 3
+                                    ? Colors.redAccent
+                                    : Colors.amber.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Tutar ve Aktiflik
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      item.title,
-                      style: TextStyle(
+                      currencyFormatter.format(item.amount),
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color:
-                            isDark ? Colors.white : AppColors.lightTextPrimary,
+                        color: Color(0xFFA855F7),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFA855F7).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        periodText,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFA855F7),
-                        ),
-                      ),
+                    const SizedBox(height: 2),
+                    Switch(
+                      value: item.isActive,
+                      activeThumbColor: const Color(0xFFA855F7),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      onChanged: (val) => service.toggleActive(item.id),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Text(
-                      "Her ayın ${item.paymentDay}. günü",
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 1.5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        daysRemaining == 0
-                            ? "Bugün!"
-                            : "$daysRemaining gün kaldı",
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: daysRemaining <= 3
-                              ? Colors.redAccent
-                              : Colors.amber.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
+
+                // Silme Butonu
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      size: 20, color: Colors.grey),
+                  onPressed: () => service.deleteItem(item.id),
                 ),
               ],
             ),
           ),
-
-          // Tutar ve Aktiflik
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                currencyFormatter.format(item.amount),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFA855F7),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Switch(
-                value: item.isActive,
-                activeThumbColor: const Color(0xFFA855F7),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                onChanged: (val) => service.toggleActive(item.id),
-              ),
-            ],
-          ),
-
-          // Silme Butonu
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded,
-                size: 20, color: Colors.grey),
-            onPressed: () => service.deleteItem(item.id),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddRecurringDialog(BuildContext context,
-      {RecurringTransaction? itemToEdit}) {
-    final isEditing = itemToEdit != null;
-    final titleController =
-        TextEditingController(text: itemToEdit?.title ?? '');
-    final amountController = TextEditingController(
-      text: itemToEdit?.amount.toStringAsFixed(0) ?? '',
-    );
-    final dayController = TextEditingController(
-      text: itemToEdit?.paymentDay.toString() ?? '1',
-    );
-    String selectedPeriod = itemToEdit?.period ?? 'monthly';
-    String selectedCategory = itemToEdit?.category ?? 'Abonelikler';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(isEditing
-                ? "Ödemeyi Düzenle"
-                : "Yeni Tekrarlayan Ödeme"),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: "Hizmet / Başlık",
-                      hintText: "Örn: Netflix, Ev Kirası, İnternet",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: "Tutar (₺)",
-                      hintText: "Örn: 249",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: dayController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: "Ödeme Günü (Ayın 1-31'i)",
-                      hintText: "Örn: 15",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedPeriod,
-                    decoration: const InputDecoration(
-                      labelText: "Periyot",
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'monthly', child: Text("Aylık")),
-                      DropdownMenuItem(value: 'weekly', child: Text("Haftalık")),
-                      DropdownMenuItem(value: 'yearly', child: Text("Yıllık")),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => selectedPeriod = val);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: "Kategori",
-                      hintText: "Örn: Abonelikler, Kira & Ev, Faturalar",
-                      border: OutlineInputBorder(),
-                    ),
-                    controller:
-                        TextEditingController(text: selectedCategory),
-                    onChanged: (val) => selectedCategory = val,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Vazgeç"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final title = titleController.text.trim();
-                  final amount =
-                      double.tryParse(amountController.text.trim()) ?? 0.0;
-                  final day = int.tryParse(dayController.text.trim()) ?? 1;
-
-                  if (title.isNotEmpty && amount > 0) {
-                    if (isEditing) {
-                      service.updateItem(itemToEdit.copyWith(
-                        title: title,
-                        amount: amount,
-                        paymentDay: day.clamp(1, 31),
-                        period: selectedPeriod,
-                        category: selectedCategory,
-                      ));
-                    } else {
-                      service.addItem(RecurringTransaction(
-                        id: 'rec_${DateTime.now().millisecondsSinceEpoch}',
-                        title: title,
-                        amount: amount,
-                        paymentDay: day.clamp(1, 31),
-                        period: selectedPeriod,
-                        category: selectedCategory,
-                        isActive: true,
-                      ));
-                    }
-                    Navigator.pop(ctx);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFA855F7),
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(isEditing ? "Güncelle" : "Kaydet"),
-              ),
-            ],
-          );
-        },
+        ),
       ),
     );
   }

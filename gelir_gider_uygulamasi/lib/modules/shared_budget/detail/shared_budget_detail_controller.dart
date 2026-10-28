@@ -12,6 +12,7 @@ import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/firestore_group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/invite_link_service.dart';
 import 'package:get/get.dart';
 
 /// Ortak Ev & Yurt Bütçesi Detay Controller'ı
@@ -357,6 +358,13 @@ class SharedBudgetDetailController extends BaseController {
       message: "Ev/Oda davet kodu ($code) panoya kopyalandı.",
       duration: const Duration(seconds: 2),
     );
+  }
+
+  void shareInviteLink() {
+    final currentGroup = group.value;
+    if (currentGroup != null && Get.isRegistered<InviteLinkService>()) {
+      Get.find<InviteLinkService>().shareGroup(currentGroup);
+    }
   }
 
   // ===========================================================================

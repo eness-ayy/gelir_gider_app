@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/savings_goal.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/savings/widgets/add_savings_goal_sheet.dart';
 import 'package:gelir_gider_uygulamasi/services/savings_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
@@ -27,7 +28,7 @@ class SavingsGoalsPage extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddGoalDialog(context),
+        onPressed: () => AddSavingsGoalSheet.show(context),
         backgroundColor: const Color(0xFF3B82F6),
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text(
@@ -282,7 +283,7 @@ class SavingsGoalsPage extends StatelessWidget {
                 icon: const Icon(Icons.more_vert_rounded, size: 20),
                 onSelected: (val) {
                   if (val == 'edit') {
-                    _showAddGoalDialog(context, goalToEdit: goal);
+                    AddSavingsGoalSheet.show(context, goalToEdit: goal);
                   } else if (val == 'delete') {
                     service.deleteGoal(goal.id);
                   }
@@ -428,138 +429,4 @@ class SavingsGoalsPage extends StatelessWidget {
     );
   }
 
-  void _showAddGoalDialog(BuildContext context, {SavingsGoal? goalToEdit}) {
-    final isEditing = goalToEdit != null;
-    final titleController =
-        TextEditingController(text: goalToEdit?.title ?? '');
-    final targetController = TextEditingController(
-      text: goalToEdit?.targetAmount.toStringAsFixed(0) ?? '',
-    );
-    final savedController = TextEditingController(
-      text: goalToEdit?.savedAmount.toStringAsFixed(0) ?? '0',
-    );
-    final categoryController =
-        TextEditingController(text: goalToEdit?.category ?? 'Genel');
-    DateTime selectedDate =
-        goalToEdit?.targetDate ?? DateTime.now().add(const Duration(days: 90));
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(isEditing ? "Hedefi Düzenle" : "Yeni Birikim Hedefi"),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: "Hedef Adı",
-                      hintText: "Örn: Tatil Kumbarası, Yeni Telefon",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: targetController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: "Hedeflenen Tutar (₺)",
-                      hintText: "Örn: 25000",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: savedController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: "Şu Anki Birikim (₺)",
-                      hintText: "Örn: 2000",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: categoryController,
-                    decoration: const InputDecoration(
-                      labelText: "Kategori",
-                      hintText: "Örn: Seyahat, Teknoloji, Acil Durum",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text("Hedef Tarih"),
-                    subtitle: Text(
-                      DateFormat('dd.MM.yyyy').format(selectedDate),
-                    ),
-                    trailing: const Icon(Icons.calendar_month_rounded),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2035),
-                      );
-                      if (picked != null) {
-                        setState(() => selectedDate = picked);
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Vazgeç"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final title = titleController.text.trim();
-                  final target =
-                      double.tryParse(targetController.text.trim()) ?? 0.0;
-                  final saved =
-                      double.tryParse(savedController.text.trim()) ?? 0.0;
-
-                  if (title.isNotEmpty && target > 0) {
-                    if (isEditing) {
-                      service.updateGoal(goalToEdit.copyWith(
-                        title: title,
-                        targetAmount: target,
-                        savedAmount: saved,
-                        category: categoryController.text.trim(),
-                        targetDate: selectedDate,
-                      ));
-                    } else {
-                      service.addGoal(SavingsGoal(
-                        id: 'goal_${DateTime.now().millisecondsSinceEpoch}',
-                        title: title,
-                        targetAmount: target,
-                        savedAmount: saved,
-                        category: categoryController.text.trim(),
-                        targetDate: selectedDate,
-                      ));
-                    }
-                    Navigator.pop(ctx);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(isEditing ? "Güncelle" : "Kaydet"),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
 }

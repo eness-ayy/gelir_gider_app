@@ -52,27 +52,27 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyArrRyIpBX9WKGdFFSzFLNgblQpfiGgSbM',
-    appId: '1:991558928854:android:fb3316321f167c23f07c77',
+    appId: '1:991558928854:android:abfd2c9250751b42f07c77',
     messagingSenderId: '991558928854',
     projectId: 'gelir-gider-app-9ae8f',
     storageBucket: 'gelir-gider-app-9ae8f.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyArQqn0fEBS4Jj0zVPE4euK5TZvSmPsMic',
     appId: '1:991558928854:ios:8f7727cfe80c5c22f07c77',
     messagingSenderId: '991558928854',
     projectId: 'gelir-gider-app-9ae8f',
     storageBucket: 'gelir-gider-app-9ae8f.firebasestorage.app',
+    iosClientId: '991558928854-rfs6cq81ongcuslrf9hh1h4hbc2uis47.apps.googleusercontent.com',
     iosBundleId: 'com.example.gelirGiderUygulamasi',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyArQqn0fEBS4Jj0zVPE4euK5TZvSmPsMic',
     appId: '1:991558928854:ios:8f7727cfe80c5c22f07c77',
     messagingSenderId: '991558928854',
     projectId: 'gelir-gider-app-9ae8f',
     storageBucket: 'gelir-gider-app-9ae8f.firebasestorage.app',
+    iosClientId: '991558928854-rfs6cq81ongcuslrf9hh1h4hbc2uis47.apps.googleusercontent.com',
     iosBundleId: 'com.example.gelirGiderUygulamasi',
   );
 

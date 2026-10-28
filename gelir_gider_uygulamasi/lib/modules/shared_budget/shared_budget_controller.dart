@@ -5,6 +5,7 @@ import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_model.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:gelir_gider_uygulamasi/services/firestore_group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/invite_link_service.dart';
 import 'package:get/get.dart';
 
 /// Ortak Ev & Yurt Bütçesi Lobi Controller'ı
@@ -546,6 +547,12 @@ class SharedBudgetController extends BaseController {
       message: "Davet kodu ($code) panoya kopyalandı.",
       duration: const Duration(seconds: 2),
     );
+  }
+
+  void shareInviteLink(GroupModel group) {
+    if (Get.isRegistered<InviteLinkService>()) {
+      Get.find<InviteLinkService>().shareGroup(group);
+    }
   }
 
   void openGroupDetail(GroupModel group) {

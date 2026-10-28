@@ -375,37 +375,59 @@ class SharedBudgetDetailPage extends GetView<SharedBudgetDetailController> {
                     ],
                   ),
                 ),
-                InkWell(
-                  onTap: () => controller.copyInviteCode(group.inviteCode),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D9488).withValues(alpha: 0.12),
-                      border: Border.all(
-                        color: const Color(0xFF0D9488).withValues(alpha: 0.35),
-                      ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkWell(
+                      onTap: () => controller.copyInviteCode(group.inviteCode),
                       borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          "Kod: ${group.inviteCode}",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.1,
-                            color: Color(0xFF0D9488),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                          border: Border.all(
+                            color: const Color(0xFF0D9488).withValues(alpha: 0.35),
                           ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        const SizedBox(width: 5),
-                        const Icon(Icons.copy_rounded,
-                            size: 13, color: Color(0xFF0D9488)),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "Kod: ${group.inviteCode}",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.1,
+                                color: Color(0xFF0D9488),
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            const Icon(Icons.copy_rounded,
+                                size: 13, color: Color(0xFF0D9488)),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () => controller.shareInviteLink(),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                          border: Border.all(
+                            color: const Color(0xFF0D9488).withValues(alpha: 0.35),
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.share_rounded,
+                            size: 14, color: Color(0xFF0D9488)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

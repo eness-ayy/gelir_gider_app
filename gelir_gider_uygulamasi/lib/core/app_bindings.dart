@@ -7,6 +7,7 @@ import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/services/currency_service.dart';
 import 'package:gelir_gider_uygulamasi/services/firestore_group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/invite_link_service.dart';
 import 'package:gelir_gider_uygulamasi/services/network_service.dart';
 import 'package:get/get.dart';
 
@@ -26,6 +27,7 @@ class AppBindings extends Bindings {
     Get.lazyPut<GroupService>(() => GroupService(), fenix: true);
     Get.lazyPut<CurrencyService>(() => CurrencyService(), fenix: true);
     Get.lazyPut<FirestoreGroupService>(() => FirestoreGroupService(), fenix: true);
+    Get.lazyPut<InviteLinkService>(() => InviteLinkService(), fenix: true);
     Get.lazyPut<UserSessionController>(() => UserSessionController(), fenix: true);
   }
 }

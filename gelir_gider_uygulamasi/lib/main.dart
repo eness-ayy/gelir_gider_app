@@ -16,6 +16,7 @@ import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/currency_service.dart';
 import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/invite_link_service.dart';
 import 'package:gelir_gider_uygulamasi/services/network_service.dart';
 import 'package:gelir_gider_uygulamasi/services/notification_service.dart';
 import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
@@ -28,6 +29,9 @@ import 'package:intl/date_symbol_data_local.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Emülatör veya klavye kullanımında ekranda beliren yeşil odak çerçevesini kapatır
+  FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
 
   // Firebase'i servislerden önce en başta ayağa kaldırıyoruz
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -107,6 +111,9 @@ void main(List<String> args) async {
 
   // 10. AuthController'ı oturum akışını dinlemesi için kalıcı olarak başlat
   Get.put<AuthController>(AuthController(), permanent: true);
+
+  // 11. Derin Bağlantı (Deep Link) & Davet Linki Servisi
+  Get.put<InviteLinkService>(InviteLinkService(), permanent: true);
 
   runApp(const MyApp());
 }

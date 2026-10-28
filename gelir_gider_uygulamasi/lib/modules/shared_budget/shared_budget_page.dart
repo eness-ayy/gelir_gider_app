@@ -86,6 +86,8 @@ class SharedBudgetPage extends GetView<SharedBudgetController> {
                         onTap: () => controller.openGroupDetail(group),
                         onCopyCode: () =>
                             controller.copyInviteCode(group.inviteCode),
+                        onShareLink: () =>
+                            controller.shareInviteLink(group),
                       );
                     },
                   );
