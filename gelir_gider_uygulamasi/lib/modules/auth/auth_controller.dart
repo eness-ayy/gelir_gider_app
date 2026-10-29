@@ -283,6 +283,7 @@ class AuthController extends BaseController {
 
   /// 1. E-posta & Şifre ile Giriş Yap (Satır içi hata yönetimi, snackbar yok)
   Future<void> loginWithEmail() async {
+    if (isLoading) return;
     clearErrors();
     if (!(loginFormKey.currentState?.validate() ?? false)) return;
 
@@ -318,6 +319,7 @@ class AuthController extends BaseController {
 
   /// 2. E-posta & Şifre ile Kayıt Ol (Satır içi hata yönetimi & canlı kriter kontrolü)
   Future<void> registerWithEmail() async {
+    if (isLoading) return;
     clearErrors();
     if (!(registerFormKey.currentState?.validate() ?? false)) return;
 
@@ -370,6 +372,7 @@ class AuthController extends BaseController {
 
   /// 3. Şifre Sıfırlama Bağlantısı Gönder (Satır içi hata yönetimi, snackbar yok)
   Future<void> sendPasswordReset() async {
+    if (isResetLoading.value) return;
     clearResetEmailError();
     if (!(resetFormKey.currentState?.validate() ?? false)) return;
 

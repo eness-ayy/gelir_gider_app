@@ -449,30 +449,63 @@ class GroupDetailPage extends GetView<GroupDetailController> {
       );
     }
 
+    final paidCount = settlements.where((s) => s.isPaid).length;
+    final allPaid = paidCount == settlements.length;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
       children: [
-        // Bilgi Kartı
+        // Bilgi ve Ödeme Durumu Kartı
         Container(
           padding: const EdgeInsets.all(12),
           margin: const EdgeInsets.only(bottom: 14),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.08),
+            color: allPaid
+                ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                : AppColors.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+            border: Border.all(
+              color: allPaid
+                  ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                  : AppColors.primary.withValues(alpha: 0.2),
+            ),
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.auto_awesome_rounded,
-                color: AppColors.primary,
+              Icon(
+                allPaid
+                    ? Icons.check_circle_rounded
+                    : Icons.auto_awesome_rounded,
+                color: allPaid ? const Color(0xFF10B981) : AppColors.primary,
                 size: 20,
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  "En az sayıda transfer ile borçların kapanması için otomatik sadeleştirilmiş hesaplaşma planı:",
-                  style: TextStyle(fontSize: 12),
+                  allPaid
+                      ? "Gruptaki tüm ödemeler tamamlandı! Herkes ödeşti."
+                      : "Ödeme yapan kişilerin yanındaki 'Ödendi' kutucuğunu işaretleyerek takibi kolayca yapabilirsiniz:",
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: allPaid
+                      ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                      : AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  "$paidCount / ${settlements.length}",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: allPaid
+                        ? const Color(0xFF10B981)
+                        : AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -507,12 +540,20 @@ class GroupDetailPage extends GetView<GroupDetailController> {
 
     final isMeFrom = fromP?.isCurrentUser ?? false;
     final isMeTo = toP?.isCurrentUser ?? false;
+    final isPaid = settle.isPaid;
 
     // Durum ve tema renkleri
     final Color accentColor;
     final String amountText;
 
-    if (isMeTo) {
+    if (isPaid) {
+      accentColor = const Color(0xFF10B981);
+      amountText = isMeTo
+          ? "+${currencyFormat.format(settle.amount)}"
+          : (isMeFrom
+              ? "-${currencyFormat.format(settle.amount)}"
+              : currencyFormat.format(settle.amount));
+    } else if (isMeTo) {
       // 1. Kullanıcı alacaklı (Örn: Faruk bana ödeyecek)
       accentColor = const Color(0xFF10B981); // Zümrüt yeşili
       amountText = "+${currencyFormat.format(settle.amount)}";
@@ -526,132 +567,213 @@ class GroupDetailPage extends GetView<GroupDetailController> {
       amountText = currencyFormat.format(settle.amount);
     }
 
-    final Color cardBorderColor = isMeTo
-        ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.4 : 0.3)
-        : (isMeFrom
-            ? const Color(0xFFEF4444).withValues(alpha: isDark ? 0.4 : 0.3)
-            : (isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : Colors.grey.shade200));
+    final Color cardBorderColor = isPaid
+        ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.5 : 0.4)
+        : (isMeTo
+            ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.4 : 0.3)
+            : (isMeFrom
+                ? const Color(0xFFEF4444).withValues(alpha: isDark ? 0.4 : 0.3)
+                : (isDark
+                    ? const Color(0xFF334155).withValues(alpha: 0.5)
+                    : Colors.grey.shade200)));
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
-      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      color: isPaid
+          ? (isDark
+              ? const Color(0xFF10B981).withValues(alpha: 0.08)
+              : const Color(0xFFECFDF5).withValues(alpha: 0.6))
+          : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: cardBorderColor, width: 1.2),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            // Transfer Akışı (Borçlu ──► Alacaklı)
-            Expanded(
-              child: Row(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => controller.toggleSettlementPaid(settle),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              // Ödendi Checkbox
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Checkbox(
+                  value: isPaid,
+                  onChanged: (_) => controller.toggleSettlementPaid(settle),
+                  activeColor: const Color(0xFF10B981),
+                  checkColor: Colors.white,
+                  side: BorderSide(
+                    color: isPaid
+                        ? const Color(0xFF10B981)
+                        : (isDark ? Colors.white38 : Colors.grey.shade400),
+                    width: 1.8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Transfer Akışı (Borçlu ──► Alacaklı)
+              Expanded(
+                child: Opacity(
+                  opacity: isPaid ? 0.65 : 1.0,
+                  child: Row(
+                    children: [
+                      // Borçlu (Ödeyen) Avatarı
+                      CircleAvatar(
+                        radius: 15,
+                        backgroundColor: isMeFrom
+                            ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                            : (isDark
+                                ? const Color(0xFF334155)
+                                : Colors.grey.shade200),
+                        child: Text(
+                          fromP?.initial ?? '?',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isMeFrom
+                                ? const Color(0xFFEF4444)
+                                : (isDark ? Colors.white : Colors.black87),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+
+                      // Borçlu Adı
+                      Flexible(
+                        child: Text(
+                          fromName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            decoration:
+                                isPaid ? TextDecoration.lineThrough : null,
+                            color: isMeFrom
+                                ? const Color(0xFFEF4444)
+                                : (isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A)),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+
+                      // Yön Oku
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF262626)
+                                : const Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 12,
+                            color: isDark ? Colors.white60 : Colors.black45,
+                          ),
+                        ),
+                      ),
+
+                      // Alacaklı (Alan) Avatarı
+                      CircleAvatar(
+                        radius: 15,
+                        backgroundColor: isMeTo
+                            ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                            : (isDark
+                                ? const Color(0xFF334155)
+                                : Colors.grey.shade200),
+                        child: Text(
+                          toP?.initial ?? '?',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isMeTo
+                                ? const Color(0xFF10B981)
+                                : (isDark ? Colors.white : Colors.black87),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+
+                      // Alacaklı Adı
+                      Flexible(
+                        child: Text(
+                          toName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            decoration:
+                                isPaid ? TextDecoration.lineThrough : null,
+                            color: isMeTo
+                                ? const Color(0xFF10B981)
+                                : (isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A)),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              // Tutar ve Ödendi Rozeti
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Borçlu (Ödeyen) Avatarı
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: isMeFrom
-                        ? const Color(0xFFEF4444).withValues(alpha: 0.2)
-                        : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
-                    child: Text(
-                      fromP?.initial ?? '?',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: isMeFrom
-                            ? const Color(0xFFEF4444)
-                            : (isDark ? Colors.white : Colors.black87),
-                      ),
+                  Text(
+                    amountText,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      decoration: isPaid ? TextDecoration.lineThrough : null,
+                      color: accentColor,
                     ),
                   ),
-                  const SizedBox(width: 8),
-
-                  // Borçlu Adı
-                  Flexible(
+                  const SizedBox(height: 3),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isPaid
+                          ? const Color(0xFF10B981).withValues(alpha: 0.16)
+                          : (isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.grey.shade100),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                     child: Text(
-                      fromName,
+                      isPaid ? "✓ Ödendi" : "Ödendi",
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: isMeFrom
-                            ? const Color(0xFFEF4444)
-                            : (isDark ? Colors.white : const Color(0xFF0F172A)),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-
-                  // Yön Oku
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF262626)
-                            : const Color(0xFFF1F5F9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 13,
-                        color: isDark ? Colors.white60 : Colors.black45,
-                      ),
-                    ),
-                  ),
-
-                  // Alacaklı (Alan) Avatarı
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: isMeTo
-                        ? const Color(0xFF10B981).withValues(alpha: 0.2)
-                        : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
-                    child: Text(
-                      toP?.initial ?? '?',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: isMeTo
+                        color: isPaid
                             ? const Color(0xFF10B981)
-                            : (isDark ? Colors.white : Colors.black87),
+                            : (isDark ? Colors.white54 : Colors.grey.shade600),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Alacaklı Adı
-                  Flexible(
-                    child: Text(
-                      toName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isMeTo
-                            ? const Color(0xFF10B981)
-                            : (isDark ? Colors.white : const Color(0xFF0F172A)),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // Tutar
-            Text(
-              amountText,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: accentColor,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

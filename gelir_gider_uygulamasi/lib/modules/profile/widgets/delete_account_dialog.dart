@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
@@ -44,9 +45,20 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
     super.dispose();
   }
 
+  bool get _requiresPassword {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return true;
+      if (user.isAnonymous) return false;
+      return user.providerData.any((p) => p.providerId == 'password');
+    } catch (_) {
+      return true;
+    }
+  }
+
   Future<void> _handleDelete() async {
     final password = _passwordController.text.trim();
-    if (password.isEmpty) {
+    if (_requiresPassword && password.isEmpty) {
       setState(() {
         _errorMessage = "Hesabınızı silmek için şifrenizi girmelisiniz.";
       });
@@ -311,48 +323,60 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
                     ),
                   ],
 
-                  const SizedBox(height: 20),
+                  if (_requiresPassword) ...[
+                    const SizedBox(height: 20),
 
-                  // Şifre Girişi
-                  const Text(
-                    "Güvenlik Doğrulaması",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                    // Şifre Girişi
+                    const Text(
+                      "Güvenlik Doğrulaması",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    "Hesabınızı silmek için mevcut şifrenizi giriniz:",
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 6),
+                    const Text(
+                      "Hesabınızı silmek için mevcut şifrenizi giriniz:",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 10),
 
-                  TextField(
-                    controller: _passwordController,
-                    enabled: !_isDeleting,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: "Şifreniz",
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                    TextField(
+                      controller: _passwordController,
+                      enabled: !_isDeleting,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: "Şifreniz",
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        errorText: _errorMessage,
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      errorText: _errorMessage,
                     ),
-                  ),
+                  ] else if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 24),
 

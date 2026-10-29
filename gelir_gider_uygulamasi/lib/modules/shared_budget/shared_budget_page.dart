@@ -36,7 +36,7 @@ class SharedBudgetPage extends GetView<SharedBudgetController> {
           tooltip: Navigator.canPop(context) ? "Geri" : "Ana Sayfa",
         ),
         title: const Text(
-          "Ortak Ev & Yurt Bütçesi",
+          "Ortak Hesap",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         elevation: 0,
@@ -318,7 +318,7 @@ class SharedBudgetPage extends GetView<SharedBudgetController> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Kira, fatura, mutfak ve market masraflarını canlı bölüşmek için bir oda kur ya da arkadaşından aldığın kodla katıl.",
+            "Kira, fatura, mutfak ve market masraflarını bölüşmek için bir oda kur ya da arkadaşından aldığın kodla katıl.",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,

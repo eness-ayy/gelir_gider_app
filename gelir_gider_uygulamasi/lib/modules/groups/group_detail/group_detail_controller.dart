@@ -161,4 +161,12 @@ class GroupDetailController extends BaseController {
       showErrorSnackbar(message: "Katılımcı eklenirken hata oluştu");
     }
   }
+
+  Future<void> toggleSettlementPaid(GroupSettlement settle) async {
+    try {
+      await _groupService.toggleSettlementPaid(groupId, settle.key);
+    } catch (e) {
+      showErrorSnackbar(message: "Ödeme durumu güncellenemedi");
+    }
+  }
 }

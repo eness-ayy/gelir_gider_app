@@ -177,12 +177,17 @@ class TransactionList extends GetView<DashboardController> {
                 final category = oankiTransaction.category;
                 final isIncome = oankiTransaction.type == "income";
 
-                // Grup harcaması tespiti: [grup_adi] aciklama formatı
+                // Grup harcaması tespiti: [grup_adi] aciklama veya [grup_adi|600.00] aciklama formatı
                 final groupMatch = RegExp(r'^\[(.*?)\]\s*(.*)$').firstMatch(
                   oankiTransaction.description.trim(),
                 );
                 final isGroupTransaction = groupMatch != null;
-                final groupName = groupMatch?.group(1)?.trim() ?? '';
+                final rawGroupHeader = groupMatch?.group(1)?.trim() ?? '';
+                final headerParts = rawGroupHeader.split('|');
+                final groupName = headerParts.first.trim();
+                final double? totalGroupAmount = headerParts.length > 1
+                    ? double.tryParse(headerParts[1].trim())
+                    : null;
                 final expenseDesc = groupMatch?.group(2)?.trim() ?? '';
 
                 // Kategori adını ve ikonunu akıllıca tespit et (Asla "İsimsiz Kategori" veya kullanıcının açıklaması olmasın):
@@ -443,6 +448,7 @@ class TransactionList extends GetView<DashboardController> {
                       },
                     ),
                     trailing: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -452,14 +458,31 @@ class TransactionList extends GetView<DashboardController> {
                             color: isIncome ? incomeColor : expenseColor,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
+                            height: 1.1,
                           ),
                         ),
-                        if (isForeign) ...[
+                        if (isGroupTransaction &&
+                            totalGroupAmount != null &&
+                            totalGroupAmount > parsedAmount + 0.01) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Toplam: ${CurrencyHelper.formatBase(totalGroupAmount)}',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              height: 1.1,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                        ] else if (isForeign) ...[
                           const SizedBox(height: 2),
                           Text(
                             '~${CurrencyHelper.formatBase(parsedAmount)}',
                             style: TextStyle(
                               fontSize: 11,
+                              height: 1.1,
                               fontWeight: FontWeight.w500,
                               color: isDark
                                   ? AppColors.darkTextSecondary
@@ -467,11 +490,13 @@ class TransactionList extends GetView<DashboardController> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           DateFormat('dd.MM.yyyy').format(parsedDate),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
+                                fontSize: 11,
+                                height: 1.1,
                                 color: isDark
                                     ? AppColors.darkTextSecondary
                                     : AppColors.lightTextSecondary,

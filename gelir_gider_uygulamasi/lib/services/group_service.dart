@@ -21,13 +21,13 @@ class GroupService extends GetxService {
 
   TransactionRepostory get _transactionRepository =>
       Get.isRegistered<TransactionRepostory>()
-          ? Get.find<TransactionRepostory>()
-          : Get.put(TransactionRepostory());
+      ? Get.find<TransactionRepostory>()
+      : Get.put(TransactionRepostory());
 
   CategoryRepository get _categoryRepository =>
       Get.isRegistered<CategoryRepository>()
-          ? Get.find<CategoryRepository>()
-          : Get.put(CategoryRepository());
+      ? Get.find<CategoryRepository>()
+      : Get.put(CategoryRepository());
 
   AccountService get _accountService => Get.isRegistered<AccountService>()
       ? Get.find<AccountService>()
@@ -182,18 +182,27 @@ class GroupService extends GetxService {
 
     String? linkedTxId;
 
-    // KURAL: Eğer parayı kullanıcı ödediyse, ana cüzdandan tüm tutarı düş
+    // KURAL: Eğer parayı kullanıcı ödediyse, ana cüzdandan sadece kullanıcının kendi payına düşen tutarı düş
     if (isPayerCurrentUser) {
       try {
+        final splitCount = splitParticipantIds.isEmpty
+            ? 1
+            : splitParticipantIds.length;
+        final userShareAmount = double.parse(
+          (amount / splitCount).toStringAsFixed(2),
+        );
         linkedTxId = await _createWalletTransactionForExpense(
           groupTitle: group.title,
           expenseTitle: title,
+          userShareAmount: userShareAmount,
           totalAmount: amount,
           paymentMethod: paymentMethod ?? 'cash',
           date: date ?? DateTime.now(),
         );
       } catch (e) {
-        debugPrint("Cüzdana işlem eklenirken hata (grup içi yine de eklenecek): $e");
+        debugPrint(
+          "Cüzdana işlem eklenirken hata (grup içi yine de eklenecek): $e",
+        );
       }
     }
 
@@ -231,7 +240,9 @@ class GroupService extends GetxService {
     if (expense.linkedTransactionId != null &&
         expense.linkedTransactionId!.isNotEmpty) {
       try {
-        await _transactionRepository.deleteTransaction(expense.linkedTransactionId!);
+        await _transactionRepository.deleteTransaction(
+          expense.linkedTransactionId!,
+        );
         await _accountService.removePaymentMethod(expense.linkedTransactionId!);
         if (Get.isRegistered<DashboardController>()) {
           Get.find<DashboardController>().refreshDashboard();
@@ -249,10 +260,34 @@ class GroupService extends GetxService {
     return true;
   }
 
-  /// Cüzdana grup harcaması için işlem kaydı oluşturur
+  /// Hesaplaşma transferinin "Ödendi" durumunu değiştirir (toggle) ve kaydeder
+  Future<bool> toggleSettlementPaid(
+    String groupId,
+    String settlementKey,
+  ) async {
+    final index = groups.indexWhere((g) => g.id == groupId);
+    if (index == -1) return false;
+
+    final group = groups[index];
+    final updatedKeys = List<String>.from(group.paidSettlementKeys);
+
+    final isNowPaid = !updatedKeys.contains(settlementKey);
+    if (isNowPaid) {
+      updatedKeys.add(settlementKey);
+    } else {
+      updatedKeys.remove(settlementKey);
+    }
+
+    groups[index] = group.copyWith(paidSettlementKeys: updatedKeys);
+    await _persist();
+    return isNowPaid;
+  }
+
+  /// Cüzdana grup harcaması için işlem kaydı oluşturur (Kullanıcının kendi payı tutarında)
   Future<String?> _createWalletTransactionForExpense({
     required String groupTitle,
     required String expenseTitle,
+    required double userShareAmount,
     required double totalAmount,
     required String paymentMethod,
     required DateTime date,
@@ -271,10 +306,14 @@ class GroupService extends GetxService {
       }
     } catch (_) {}
 
+    final formattedDesc = (totalAmount - userShareAmount).abs() > 0.01
+        ? "[$groupTitle|${totalAmount.toStringAsFixed(2)}] $expenseTitle"
+        : "[$groupTitle] $expenseTitle";
+
     final transaction = Transaction(
       id: '',
-      amount: totalAmount,
-      description: "[$groupTitle] $expenseTitle",
+      amount: userShareAmount,
+      description: formattedDesc,
       type: 'expense',
       date: date.toIso8601String(),
       categoryId: categoryId,

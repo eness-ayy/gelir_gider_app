@@ -252,6 +252,8 @@ class TransactionController extends BaseController {
   }
 
   Future<void> saveTransaction() async {
+    if (isLoading) return;
+
     // 1. Kategori kontrolü: Eğer kategori seçili değilse otomatik ilk uygun kategoriyi ata
     if (selectedCategoryId.value.isEmpty) {
       final available = categories.where(

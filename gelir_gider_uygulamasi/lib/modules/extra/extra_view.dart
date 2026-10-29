@@ -81,18 +81,14 @@ class ExtraView extends GetView<ExtraController> {
                     onTap: controller.goToGroups,
                   ),
 
-                  // 2. Ortak Ev & Yurt Bütçesi (Ev / Yurt Arkadaşları - Canlı)
+                  // 2. Ortak Hesap (Ev / Yurt Arkadaşları)
                   ExtraModuleCard(
                     icon: Icons.cottage_rounded,
                     iconColor: Colors.white,
                     iconBgColor: const Color(0xFF0D9488), // Canlı Teal
-                    title: "Ortak Ev & Yurt Bütçesi",
+                    title: "Ortak Hesap",
                     subtitle:
-                        "Ev ve yurt arkadaşlarınızla canlı ortak kasa ve bütçe tutun.",
-                    badgeText: "Canlı",
-                    badgeTextColor: const Color(0xFF14B8A6),
-                    badgeBgColor:
-                        const Color(0xFF0D9488).withValues(alpha: 0.15),
+                        "Ev ve yurt arkadaşlarınızla ortak kasa ve bütçe tutun.",
                     onTap: controller.goToSharedBudget,
                   ),
 

@@ -155,12 +155,14 @@ class InviteLinkService extends GetxService {
     if (!isAuth) {
       // Oturum yoksa kodu sakla, kullanıcı giriş yapınca tetikleriz
       pendingInviteCode = cleanCode;
-      Get.snackbar(
-        "Davet Kodu Algılandı 📩",
-        "Odaya katılmak için lütfen önce giriş yapın.",
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 4),
-      );
+      if (!Get.testMode && Get.context != null) {
+        Get.snackbar(
+          "Davet Kodu Algılandı 📩",
+          "Odaya katılmak için lütfen önce giriş yapın.",
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+        );
+      }
       return;
     }
 

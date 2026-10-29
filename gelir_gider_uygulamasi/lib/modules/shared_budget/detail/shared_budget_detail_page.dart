@@ -1557,61 +1557,153 @@ class SharedBudgetDetailPage extends GetView<SharedBudgetDetailController> {
                 final balance = paid - share;
                 final isPositive = balance > 0.01;
                 final isNegative = balance < -0.01;
+                final memberKey = member.trim().toLowerCase();
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.04)
-                        : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            member,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            "Ödediği: ${currencyFormatter.format(paid)} | Payı: ${currencyFormatter.format(share)}",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? Colors.white60
-                                  : Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
+                return Obx(() {
+                  final isSettled =
+                      controller.paidSettlementMembers.contains(memberKey);
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: isSettled
+                          ? (isDark
+                              ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                              : const Color(0xFFECFDF5).withValues(alpha: 0.7))
+                          : (isDark
+                              ? Colors.white.withValues(alpha: 0.04)
+                              : Colors.grey.shade50),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSettled
+                            ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                            : Colors.transparent,
                       ),
-                      Text(
-                        isPositive
-                            ? "+${currencyFormatter.format(balance)}"
-                            : isNegative
-                                ? currencyFormatter.format(balance)
-                                : "0,00 ₺",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: isPositive
-                              ? const Color(0xFF10B981)
-                              : isNegative
-                                  ? const Color(0xFFEF4444)
-                                  : Colors.grey,
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => controller.toggleSettlementPaid(memberKey),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: Checkbox(
+                                value: isSettled,
+                                onChanged: (_) =>
+                                    controller.toggleSettlementPaid(memberKey),
+                                activeColor: const Color(0xFF10B981),
+                                checkColor: Colors.white,
+                                side: BorderSide(
+                                  color: isSettled
+                                      ? const Color(0xFF10B981)
+                                      : (isDark
+                                          ? Colors.white38
+                                          : Colors.grey.shade400),
+                                  width: 1.8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Opacity(
+                                opacity: isSettled ? 0.65 : 1.0,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      member,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: isSettled
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      "Ödediği: ${currencyFormatter.format(paid)} | Payı: ${currencyFormatter.format(share)}",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark
+                                            ? Colors.white60
+                                            : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  isPositive
+                                      ? "+${currencyFormatter.format(balance)}"
+                                      : isNegative
+                                          ? currencyFormatter.format(balance)
+                                          : "0,00 ₺",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: isSettled
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    color: isSettled
+                                        ? const Color(0xFF10B981)
+                                        : (isPositive
+                                            ? const Color(0xFF10B981)
+                                            : isNegative
+                                                ? const Color(0xFFEF4444)
+                                                : Colors.grey),
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isSettled
+                                        ? const Color(0xFF10B981)
+                                            .withValues(alpha: 0.16)
+                                        : (isDark
+                                            ? Colors.white
+                                                .withValues(alpha: 0.06)
+                                            : Colors.grey.shade200),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    isSettled ? "✓ Ödendi" : "Ödendi",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSettled
+                                          ? const Color(0xFF10B981)
+                                          : (isDark
+                                              ? Colors.white54
+                                              : Colors.grey.shade600),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                );
+                    ),
+                  );
+                });
               }),
             ],
           ),

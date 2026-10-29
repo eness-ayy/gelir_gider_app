@@ -6,10 +6,12 @@ import 'package:gelir_gider_uygulamasi/models/account_balances.dart';
 import 'package:gelir_gider_uygulamasi/models/app_category.dart';
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
+import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/category_service.dart';
+import 'package:gelir_gider_uygulamasi/services/group_service.dart';
 import 'package:gelir_gider_uygulamasi/utils/turkish_string_helper.dart';
 import 'package:get/get.dart';
 
@@ -42,12 +44,15 @@ class DashboardController extends BaseController {
 
   final searchQuery = ''.obs;
   final selectedType = 'all'.obs; // 'all', 'income', 'expense'
-  final selectedAccountFilter = 'all'.obs; // 'all', 'cash', 'bank_card', 'credit_card'
-  final selectedDateRange = 'this_month'.obs; // 'this_month', 'this_week', 'last_month', 'all', 'custom'
+  final selectedAccountFilter =
+      'all'.obs; // 'all', 'cash', 'bank_card', 'credit_card'
+  final selectedDateRange = 'this_month'
+      .obs; // 'this_month', 'this_week', 'last_month', 'all', 'custom'
   final customStartDate = Rxn<DateTime>();
   final customEndDate = Rxn<DateTime>();
   final selectedCategoryId = Rxn<String>();
-  final selectedSort = 'date_desc'.obs; // 'date_desc', 'date_asc', 'amount_desc', 'amount_asc'
+  final selectedSort =
+      'date_desc'.obs; // 'date_desc', 'date_asc', 'amount_desc', 'amount_asc'
 
   // Summary amounts (aylık özet & filtrelenmiş özet)
   final aylikGelir = 0.0.obs;
@@ -73,9 +78,14 @@ class DashboardController extends BaseController {
     // 3. Kullanıcının varsayılan kategorilerini sessizce denetle / başlat
     final fbUser = FirebaseAuth.instance.currentUser;
     if (fbUser != null) {
-      unawaited(CategoryService().initializeDefaultCategories(fbUser.uid).then((_) {
-        loadCategories();
-      }).catchError((_) {}));
+      unawaited(
+        CategoryService()
+            .initializeDefaultCategories(fbUser.uid)
+            .then((_) {
+              loadCategories();
+            })
+            .catchError((_) {}),
+      );
     }
   }
 
@@ -99,11 +109,63 @@ class DashboardController extends BaseController {
 
   void _enrichTransactionsWithCategories() {
     bool hasChanged = false;
+    final groupService = Get.isRegistered<GroupService>()
+        ? Get.find<GroupService>()
+        : null;
+
     for (int i = 0; i < myTransaction.length; i++) {
       final tr = myTransaction[i];
       final currentCatName = tr.category?.name.trim() ?? '';
       final desc = tr.description.trim();
-      final isMistakenDesc = desc.isNotEmpty &&
+
+      // Mevcut (eski) grup harcamalarını "Sadece Kendi Payım + Toplam Bilgi" formatına normalize et
+      if (groupService != null && desc.startsWith('[')) {
+        final match = RegExp(r'^\[(.*?)\]\s*(.*)$').firstMatch(desc);
+        if (match != null) {
+          final rawHeader = match.group(1)?.trim() ?? '';
+          final expTitle = match.group(2)?.trim() ?? '';
+          if (!rawHeader.contains('|')) {
+            for (final grp in groupService.groups) {
+              for (final exp in grp.expenses) {
+                final isMatched =
+                    (exp.linkedTransactionId == tr.id) ||
+                    (grp.title.trim().toLowerCase() ==
+                            rawHeader.toLowerCase() &&
+                        exp.title.trim().toLowerCase() ==
+                            expTitle.toLowerCase());
+                if (isMatched && exp.splitParticipantIds.length > 1) {
+                  final share = double.parse(
+                    exp.perPersonAmount.toStringAsFixed(2),
+                  );
+                  if ((tr.baseAmount - exp.amount).abs() < 0.05 ||
+                      !tr.description.contains('|')) {
+                    tr.amount = share.toStringAsFixed(2);
+                    tr.description =
+                        "[${grp.title}|${exp.amount.toStringAsFixed(2)}] ${exp.title}";
+                    hasChanged = true;
+                    _transactionRepostory.updateTransaction(
+                      tr.id,
+                      Transaction(
+                        id: tr.id,
+                        amount: share,
+                        description: tr.description,
+                        type: tr.type,
+                        date: tr.date,
+                        categoryId: tr.categoryId,
+                        userId: tr.userId,
+                        paymentMethod: tr.paymentMethod,
+                      ),
+                    );
+                  }
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      final isMistakenDesc =
+          desc.isNotEmpty &&
           currentCatName == desc &&
           desc != 'Gelir İşlemi' &&
           desc != 'Gider İşlemi';
@@ -142,12 +204,13 @@ class DashboardController extends BaseController {
             hasChanged = true;
           } else {
             // 3. CategoryRepository varsayılanlarından ara
-            final defRepo = CategoryRepository.defaultCategories.firstWhereOrNull(
-              (c) =>
-                  c.id == tr.categoryId ||
-                  (c.name != null &&
-                      c.name!.toLowerCase() == tr.categoryId.toLowerCase()),
-            );
+            final defRepo = CategoryRepository.defaultCategories
+                .firstWhereOrNull(
+                  (c) =>
+                      c.id == tr.categoryId ||
+                      (c.name != null &&
+                          c.name!.toLowerCase() == tr.categoryId.toLowerCase()),
+                );
             if (defRepo != null && defRepo.name != null) {
               tr.category = Category(
                 name: defRepo.name!,
@@ -225,7 +288,9 @@ class DashboardController extends BaseController {
 
   Future<bool> deleteTransactions(String id) async {
     try {
-      final transactionsResult = await _transactionRepostory.deleteTransaction(id);
+      final transactionsResult = await _transactionRepostory.deleteTransaction(
+        id,
+      );
       if (transactionsResult) {
         myTransaction.removeWhere((element) => element.id == id);
         await accountService.removePaymentMethod(id);
@@ -309,7 +374,8 @@ class DashboardController extends BaseController {
       }
 
       // 2. Kategori Filtresi
-      if (selectedCategoryId.value != null && selectedCategoryId.value!.isNotEmpty) {
+      if (selectedCategoryId.value != null &&
+          selectedCategoryId.value!.isNotEmpty) {
         if (tr.categoryId != selectedCategoryId.value) {
           return false;
         }
@@ -336,17 +402,31 @@ class DashboardController extends BaseController {
       // 4. Arama Sorgusu (Türkçe karakter ve toleranslı arama destekli)
       final query = searchQuery.value.trim();
       if (query.isNotEmpty) {
-        final groupMatch = RegExp(r'^\[(.*?)\]\s*(.*)$').firstMatch(tr.description.trim());
-        final groupTitle = groupMatch?.group(1);
+        final groupMatch = RegExp(
+          r'^\[(.*?)\]\s*(.*)$',
+        ).firstMatch(tr.description.trim());
+        final groupTitle = groupMatch?.group(1)?.split('|').first.trim();
         final expenseDesc = groupMatch?.group(2);
-        final groupTitleMatch = groupTitle != null &&
+        final groupTitleMatch =
+            groupTitle != null &&
             TurkishStringHelper.containsSearch(groupTitle, query);
-        final expenseDescMatch = expenseDesc != null &&
+        final expenseDescMatch =
+            expenseDesc != null &&
             TurkishStringHelper.containsSearch(expenseDesc, query);
-        final descMatch = TurkishStringHelper.containsSearch(tr.description, query);
-        final catMatch = TurkishStringHelper.containsSearch(tr.category?.name, query);
+        final descMatch = TurkishStringHelper.containsSearch(
+          tr.description,
+          query,
+        );
+        final catMatch = TurkishStringHelper.containsSearch(
+          tr.category?.name,
+          query,
+        );
         final amountMatch = tr.amount.contains(query);
-        if (!descMatch && !catMatch && !amountMatch && !groupTitleMatch && !expenseDescMatch) {
+        if (!descMatch &&
+            !catMatch &&
+            !amountMatch &&
+            !groupTitleMatch &&
+            !expenseDescMatch) {
           return false;
         }
       }
@@ -394,10 +474,14 @@ class DashboardController extends BaseController {
         final targetMonth = now.month == 1 ? 12 : now.month - 1;
         return parsedDate.year == targetYear && parsedDate.month == targetMonth;
       case 'this_week':
-        final startOfWeek = DateTime(now.year, now.month, now.day)
-            .subtract(Duration(days: now.weekday - 1));
+        final startOfWeek = DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(Duration(days: now.weekday - 1));
         final endOfWeek = startOfWeek.add(const Duration(days: 7));
-        return !parsedDate.isBefore(startOfWeek) && parsedDate.isBefore(endOfWeek);
+        return !parsedDate.isBefore(startOfWeek) &&
+            parsedDate.isBefore(endOfWeek);
       case 'custom':
         if (customStartDate.value != null && customEndDate.value != null) {
           final start = DateTime(

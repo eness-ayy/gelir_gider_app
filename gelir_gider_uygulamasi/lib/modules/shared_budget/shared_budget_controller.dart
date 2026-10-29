@@ -187,7 +187,11 @@ class SharedBudgetController extends BaseController {
       ),
       isDismissible: isDismissible,
       enableDrag: isDismissible,
-    );
+    ).whenComplete(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        textController.dispose();
+      });
+    });
   }
 
   // ===========================================================================
@@ -331,10 +335,15 @@ class SharedBudgetController extends BaseController {
       ),
       isDismissible: true,
       enableDrag: true,
-    );
+    ).whenComplete(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        nameController.dispose();
+      });
+    });
   }
 
   Future<void> _createGroup(String groupName) async {
+    if (isLoading) return;
     try {
       setLoading(true);
       final newGroup = await firestoreService.createGroup(
@@ -506,10 +515,15 @@ class SharedBudgetController extends BaseController {
       ),
       isDismissible: true,
       enableDrag: true,
-    );
+    ).whenComplete(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        codeController.dispose();
+      });
+    });
   }
 
   Future<void> _joinGroup(String inviteCode) async {
+    if (isLoading) return;
     try {
       setLoading(true);
       final group = await firestoreService.joinGroupByInviteCode(

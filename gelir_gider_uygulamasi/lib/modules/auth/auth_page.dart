@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/auth/auth_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/auth/widgets/forgot_password_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/widgets/legal_document_sheet.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
@@ -294,7 +295,7 @@ class AuthPage extends GetView<AuthController> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: () => _showForgotPasswordDialog(context, isDark),
+              onPressed: () => _showForgotPasswordDialog(context),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                 minimumSize: Size.zero,
@@ -746,145 +747,18 @@ class AuthPage extends GetView<AuthController> {
   }
 
   // ===========================================================================
-  // 9. ŞİFREMİ UNUTTUM DİYALOĞU (Satır İçi Hata Destekli)
+  // 9. ŞİFREMİ UNUTTUM DİYALOĞU (İzole, GPU & Rebuild Optimize)
   // ===========================================================================
-  void _showForgotPasswordDialog(BuildContext context, bool isDark) {
+  void _showForgotPasswordDialog(BuildContext context) {
     controller.resetEmailController.text =
         controller.loginEmailController.text.trim();
     controller.clearResetEmailError();
 
     Get.bottomSheet(
-      Container(
-        padding: EdgeInsets.only(
-          left: 22,
-          right: 22,
-          top: 22,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 22,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: Form(
-          key: controller.resetFormKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Üst Sürükleme Tutamacı
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // Başlık ve Açıklama
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.lock_reset_rounded,
-                      color: AppColors.primary,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Şifre Sıfırlama",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          "E-posta adresinize sıfırlama bağlantısı gönderilecektir.",
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // E-posta Girişi
-              Obx(() {
-                return _AuthTextField(
-                  controller: controller.resetEmailController,
-                  label: "E-posta Adresiniz",
-                  hint: "ornek@gmail.com",
-                  icon: Icons.alternate_email_rounded,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: controller.validateEmail,
-                  errorText: controller.resetEmailError.value,
-                  onChanged: (_) => controller.clearResetEmailError(),
-                  isDark: isDark,
-                );
-              }),
-              const SizedBox(height: 20),
-
-              // Gönder Butonu
-              Obx(() {
-                final isSending = controller.isResetLoading.value;
-                return ElevatedButton(
-                  onPressed:
-                      isSending ? null : () => controller.sendPasswordReset(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 2,
-                    shadowColor: AppColors.primary.withValues(alpha: 0.25),
-                  ),
-                  child: isSending
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          "Sıfırlama Bağlantısı Gönder",
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                );
-              }),
-            ],
-          ),
-        ),
-      ),
+      const ForgotPasswordSheet(),
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      enableDrag: true,
     );
   }
 }
@@ -1025,17 +899,10 @@ class _AuthTextFieldState extends State<_AuthTextField> {
             filled: true,
             fillColor:
                 widget.isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-            prefixIcon: AnimatedTheme(
-              data: Theme.of(context),
-              child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(color: activeIconColor),
-                child: Icon(
-                  widget.icon,
-                  size: 20,
-                  color: activeIconColor,
-                ),
-              ),
+            prefixIcon: Icon(
+              widget.icon,
+              size: 20,
+              color: activeIconColor,
             ),
             suffixIcon: widget.suffixIcon,
             contentPadding:

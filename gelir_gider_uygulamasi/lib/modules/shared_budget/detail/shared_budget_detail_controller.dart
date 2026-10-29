@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gelir_gider_uygulamasi/controllers/user_session_controller.dart';
@@ -13,29 +14,30 @@ import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/firestore_group_service.dart';
 import 'package:gelir_gider_uygulamasi/services/invite_link_service.dart';
+import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
 
 /// Ortak Ev & Yurt Bütçesi Detay Controller'ı
 class SharedBudgetDetailController extends BaseController {
   final FirestoreGroupService _firestoreService =
       Get.isRegistered<FirestoreGroupService>()
-          ? Get.find<FirestoreGroupService>()
-          : Get.put(FirestoreGroupService());
+      ? Get.find<FirestoreGroupService>()
+      : Get.put(FirestoreGroupService());
 
   final UserSessionController _userSession =
       Get.isRegistered<UserSessionController>()
-          ? Get.find<UserSessionController>()
-          : Get.put(UserSessionController());
+      ? Get.find<UserSessionController>()
+      : Get.put(UserSessionController());
 
   TransactionRepostory get _transactionRepository =>
       Get.isRegistered<TransactionRepostory>()
-          ? Get.find<TransactionRepostory>()
-          : Get.put(TransactionRepostory());
+      ? Get.find<TransactionRepostory>()
+      : Get.put(TransactionRepostory());
 
   CategoryRepository get _categoryRepository =>
       Get.isRegistered<CategoryRepository>()
-          ? Get.find<CategoryRepository>()
-          : Get.put(CategoryRepository());
+      ? Get.find<CategoryRepository>()
+      : Get.put(CategoryRepository());
 
   AccountService get _accountService => Get.isRegistered<AccountService>()
       ? Get.find<AccountService>()
@@ -51,6 +53,14 @@ class SharedBudgetDetailController extends BaseController {
   final TextEditingController quickNeedController = TextEditingController();
   final RxBool isAddingNeed = false.obs;
   final RxInt selectedTabIndex = 0.obs; // 0: Harcamalar, 1: İhtiyaçlar
+  final RxSet<String> paidSettlementMembers = <String>{}.obs;
+
+  StorgeService get _storageService => Get.isRegistered<StorgeService>()
+      ? Get.find<StorgeService>()
+      : Get.put(StorgeService());
+
+  String get _paidSettlementStorageKey =>
+      'shared_budget_paid_settlements_$groupId';
 
   StreamSubscription<GroupModel?>? _groupSubscription;
   StreamSubscription<List<ExpenseModel>>? _expensesSubscription;
@@ -77,8 +87,7 @@ class SharedBudgetDetailController extends BaseController {
     final name = currentUserName.toLowerCase();
     if (name.isEmpty) return 0.0;
     return expenses
-        .where((e) =>
-            e.splitMembers.any((m) => m.toLowerCase() == name))
+        .where((e) => e.splitMembers.any((m) => m.toLowerCase() == name))
         .fold<double>(0.0, (sum, item) => sum + item.perPersonAmount);
   }
 
@@ -88,8 +97,39 @@ class SharedBudgetDetailController extends BaseController {
   void onInit() {
     super.onInit();
     _extractGroupId();
+    _loadPaidSettlements();
     _subscribeToFirestore();
   }
+
+  void _loadPaidSettlements() {
+    if (groupId.isEmpty) return;
+    try {
+      final raw = _storageService.getValue<String>(_paidSettlementStorageKey);
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = (jsonDecode(raw) as List).map((e) => e.toString());
+        paidSettlementMembers.assignAll(decoded);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> toggleSettlementPaid(String memberKey) async {
+    final normalized = memberKey.trim().toLowerCase();
+    if (normalized.isEmpty) return;
+    if (paidSettlementKeysContains(normalized)) {
+      paidSettlementMembers.remove(normalized);
+    } else {
+      paidSettlementMembers.add(normalized);
+    }
+    try {
+      await _storageService.setValue<String>(
+        _paidSettlementStorageKey,
+        jsonEncode(paidSettlementMembers.toList()),
+      );
+    } catch (_) {}
+  }
+
+  bool paidSettlementKeysContains(String memberKey) =>
+      paidSettlementMembers.contains(memberKey.trim().toLowerCase());
 
   @override
   void onClose() {
@@ -123,43 +163,45 @@ class SharedBudgetDetailController extends BaseController {
       return;
     }
 
-    _groupSubscription = _firestoreService.getGroupStream(groupId).listen(
-      (updatedGroup) {
-        if (updatedGroup != null) {
-          group.value = updatedGroup;
-          _userSession.selectActiveGroup(updatedGroup);
-        }
-      },
-      onError: (e) => debugPrint("Grup dinlenirken hata: $e"),
-    );
+    _groupSubscription = _firestoreService.getGroupStream(groupId).listen((
+      updatedGroup,
+    ) {
+      if (updatedGroup != null) {
+        group.value = updatedGroup;
+        _userSession.selectActiveGroup(updatedGroup);
+      }
+    }, onError: (e) => debugPrint("Grup dinlenirken hata: $e"));
 
     _expensesSubscription = _firestoreService
         .getExpensesStream(groupId, descending: true)
         .listen(
-      (updatedExpenses) {
-        expenses.assignAll(updatedExpenses);
-        isInitialLoading.value = false;
-      },
-      onError: (e) {
-        debugPrint("Harcamalar dinlenirken hata: $e");
-        isInitialLoading.value = false;
-      },
-    );
+          (updatedExpenses) {
+            expenses.assignAll(updatedExpenses);
+            isInitialLoading.value = false;
+          },
+          onError: (e) {
+            debugPrint("Harcamalar dinlenirken hata: $e");
+            isInitialLoading.value = false;
+          },
+        );
 
-    _needsSubscription = _firestoreService.getNeedsStream(groupId).listen(
-      (updatedNeeds) {
-        needs.assignAll(updatedNeeds);
-      },
-      onError: (e) {
-        debugPrint("İhtiyaçlar dinlenirken hata: $e");
-      },
-    );
+    _needsSubscription = _firestoreService
+        .getNeedsStream(groupId)
+        .listen(
+          (updatedNeeds) {
+            needs.assignAll(updatedNeeds);
+          },
+          onError: (e) {
+            debugPrint("İhtiyaçlar dinlenirken hata: $e");
+          },
+        );
   }
 
-  /// Harcama kullanıcının kendisi tarafından ödendiyse ana cüzdana işlem kaydı açar
+  /// Harcama kullanıcının kendisi tarafından ödendiyse ana cüzdana işlem kaydı açar (Kullanıcının kendi payı tutarında)
   Future<String?> _createWalletTransactionForExpense({
     required String groupTitle,
     required String expenseTitle,
+    required double userShareAmount,
     required double totalAmount,
     required String paymentMethod,
     required DateTime date,
@@ -178,10 +220,14 @@ class SharedBudgetDetailController extends BaseController {
       }
     } catch (_) {}
 
+    final formattedDesc = (totalAmount - userShareAmount).abs() > 0.01
+        ? "[$groupTitle|${totalAmount.toStringAsFixed(2)}] $expenseTitle"
+        : "[$groupTitle] $expenseTitle";
+
     final transaction = Transaction(
       id: '',
-      amount: totalAmount,
-      description: "[$groupTitle] $expenseTitle",
+      amount: userShareAmount,
+      description: formattedDesc,
       type: 'expense',
       date: date.toIso8601String(),
       categoryId: categoryId,
@@ -208,6 +254,7 @@ class SharedBudgetDetailController extends BaseController {
     String paymentMethod = 'cash',
     DateTime? date,
   }) async {
+    if (isLoading) return false;
     final cleanTitle = title.trim();
     if (cleanTitle.isEmpty) {
       showErrorSnackbar(message: "Lütfen bir harcama başlığı girin.");
@@ -240,12 +287,17 @@ class SharedBudgetDetailController extends BaseController {
       final expenseDate = date ?? DateTime.now();
       final groupTitle = group.value?.name ?? 'Ev/Yurt Bütçesi';
 
-      // Eğer harcamayı aktif kullanıcı ödediyse cüzdana işlem kaydı aç
+      // Eğer harcamayı aktif kullanıcı ödediyse cüzdana sadece kendi payı kadar işlem kaydı aç
       if (isPayerCurrentUser) {
         try {
+          final splitCount = splitMembers.isEmpty ? 1 : splitMembers.length;
+          final userShareAmount = double.parse(
+            (amount / splitCount).toStringAsFixed(2),
+          );
           linkedTxId = await _createWalletTransactionForExpense(
             groupTitle: groupTitle,
             expenseTitle: cleanTitle,
+            userShareAmount: userShareAmount,
             totalAmount: amount,
             paymentMethod: paymentMethod,
             date: expenseDate,
@@ -328,8 +380,12 @@ class SharedBudgetDetailController extends BaseController {
       if (expense.linkedTransactionId != null &&
           expense.linkedTransactionId!.isNotEmpty) {
         try {
-          await _transactionRepository.deleteTransaction(expense.linkedTransactionId!);
-          await _accountService.removePaymentMethod(expense.linkedTransactionId!);
+          await _transactionRepository.deleteTransaction(
+            expense.linkedTransactionId!,
+          );
+          await _accountService.removePaymentMethod(
+            expense.linkedTransactionId!,
+          );
           if (Get.isRegistered<DashboardController>()) {
             Get.find<DashboardController>().refreshDashboard();
           }
@@ -373,6 +429,7 @@ class SharedBudgetDetailController extends BaseController {
 
   /// Yeni bir ihtiyaç ekler (hızlı çubuktan veya diyalogdan)
   Future<bool> addNeed([String? customTitle]) async {
+    if (isAddingNeed.value) return false;
     final title = (customTitle ?? quickNeedController.text).trim();
     if (title.isEmpty) {
       showErrorSnackbar(message: "Lütfen neyin eksik olduğunu yazın.");
@@ -381,8 +438,9 @@ class SharedBudgetDetailController extends BaseController {
 
     try {
       isAddingNeed.value = true;
-      final addedBy =
-          currentUserName.isNotEmpty ? currentUserName : "Ev Arkadaşı";
+      final addedBy = currentUserName.isNotEmpty
+          ? currentUserName
+          : "Ev Arkadaşı";
 
       await _firestoreService.addNeed(
         groupId: groupId,
@@ -427,10 +485,7 @@ class SharedBudgetDetailController extends BaseController {
   /// İhtiyacı kalıcı olarak siler
   Future<void> deleteNeed(String needId) async {
     try {
-      await _firestoreService.deleteNeed(
-        groupId: groupId,
-        needId: needId,
-      );
+      await _firestoreService.deleteNeed(groupId: groupId, needId: needId);
       showSuccessSnackbar(
         message: "İhtiyaç listeden silindi.",
         duration: const Duration(seconds: 2),
@@ -462,104 +517,124 @@ class SharedBudgetDetailController extends BaseController {
             right: 20,
             top: 14,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D9488).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.checklist_rounded,
-                      color: Color(0xFF0D9488),
-                      size: 24,
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text(
-                        "Odaya Ne Lazım?",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFF0D9488,
+                          ).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.checklist_rounded,
+                          color: Color(0xFF0D9488),
+                          size: 24,
                         ),
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        "Eksik bir ihtiyaç veya alınacak ürün yazın",
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Odaya Ne Lazım?",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              "Eksik bir ihtiyaç veya alınacak ürün yazın",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: textController,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: "Örn: Deterjan, Yumurta, Ekmek, Tuvalet Kağıdı",
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: const Icon(Icons.add_shopping_cart_rounded),
+                    ),
+                    onSubmitted: (val) async {
+                      if (val.trim().isNotEmpty) {
+                        Navigator.of(ctx).pop();
+                        await addNeed(val);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final text = textController.text.trim();
+                      if (text.isNotEmpty) {
+                        Navigator.of(ctx).pop();
+                        await addNeed(text);
+                      }
+                    },
+                    icon: const Icon(Icons.check_rounded),
+                    label: const Text(
+                      "Listeye Ekle",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0D9488),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 18),
-              TextField(
-                controller: textController,
-                autofocus: true,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: "Örn: Deterjan, Yumurta, Ekmek, Tuvalet Kağıdı",
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.add_shopping_cart_rounded),
-                ),
-                onSubmitted: (val) async {
-                  if (val.trim().isNotEmpty) {
-                    Navigator.of(ctx).pop();
-                    await addNeed(val);
-                  }
-                },
-              ),
-              const SizedBox(height: 18),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final text = textController.text.trim();
-                  if (text.isNotEmpty) {
-                    Navigator.of(ctx).pop();
-                    await addNeed(text);
-                  }
-                },
-                icon: const Icon(Icons.check_rounded),
-                label: const Text(
-                  "Listeye Ekle",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D9488),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
-    );
+    ).whenComplete(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        textController.dispose();
+      });
+    });
   }
 }

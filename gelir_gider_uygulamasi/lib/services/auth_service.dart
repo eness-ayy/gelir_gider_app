@@ -403,29 +403,33 @@ class AuthService extends GetxController {
       throw Exception("Oturum açmış kullanıcı bulunamadı.");
     }
 
-    final email = user.email ?? currentUser.value?.email;
-    if (email == null || email.isEmpty) {
-      throw Exception("Kullanıcı e-posta adresi bulunamadı.");
-    }
+    final hasPasswordProvider =
+        user.providerData.any((p) => p.providerId == 'password');
 
-    // 1. Şifre ile kimlik doğrulama (Re-authentication)
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: email.trim(),
-        password: password,
-      );
-      await user.reauthenticateWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        throw Exception("Girdiğiniz şifre hatalı. Lütfen kontrol ediniz.");
-      } else if (e.code == 'user-mismatch') {
-        throw Exception("Kullanıcı kimliği uyuşmuyor.");
-      } else if (e.code == 'user-not-found') {
-        throw Exception("Kullanıcı kaydı bulunamadı.");
-      } else if (e.code == 'too-many-requests') {
-        throw Exception("Çok fazla başarısız deneme yapıldı. Lütfen biraz bekleyin.");
+    // 1. E-posta & Şifre sağlayıcısı olan hesaplarda şifre ile kimlik doğrulama (Re-authentication)
+    if (hasPasswordProvider) {
+      final email = user.email ?? currentUser.value?.email;
+      if (email == null || email.isEmpty) {
+        throw Exception("Kullanıcı e-posta adresi bulunamadı.");
       }
-      throw Exception(e.message ?? "Kimlik doğrulama başarısız oldu.");
+      try {
+        final credential = EmailAuthProvider.credential(
+          email: email.trim(),
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          throw Exception("Girdiğiniz şifre hatalı. Lütfen kontrol ediniz.");
+        } else if (e.code == 'user-mismatch') {
+          throw Exception("Kullanıcı kimliği uyuşmuyor.");
+        } else if (e.code == 'user-not-found') {
+          throw Exception("Kullanıcı kaydı bulunamadı.");
+        } else if (e.code == 'too-many-requests') {
+          throw Exception("Çok fazla başarısız deneme yapıldı. Lütfen biraz bekleyin.");
+        }
+        throw Exception(e.message ?? "Kimlik doğrulama başarısız oldu.");
+      }
     }
 
     final uid = user.uid;

@@ -25,7 +25,7 @@ class ExpenseModel {
 
   /// Kişi başı düşen pay tutarı
   double get perPersonAmount {
-    if (splitMembers.isEmpty) return 0.0;
+    if (splitMembers.isEmpty || !amount.isFinite || amount <= 0) return 0.0;
     return amount / splitMembers.length;
   }
 
@@ -57,12 +57,15 @@ class ExpenseModel {
 
     // num -> double tip dönüşümünü güvenli şekilde ele al
     final rawAmount = map['amount'];
-    final double parsedAmount;
+    double parsedAmount;
     if (rawAmount is num) {
       parsedAmount = rawAmount.toDouble();
     } else if (rawAmount is String) {
       parsedAmount = double.tryParse(rawAmount.replaceAll(',', '.')) ?? 0.0;
     } else {
+      parsedAmount = 0.0;
+    }
+    if (!parsedAmount.isFinite || parsedAmount < 0) {
       parsedAmount = 0.0;
     }
 

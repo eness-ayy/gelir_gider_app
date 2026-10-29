@@ -10,6 +10,7 @@ class ExpenseGroup {
   final List<GroupExpense> expenses;
   final DateTime createdAt;
   final String? icon;
+  final List<String> paidSettlementKeys;
 
   const ExpenseGroup({
     required this.id,
@@ -18,6 +19,7 @@ class ExpenseGroup {
     required this.expenses,
     required this.createdAt,
     this.icon,
+    this.paidSettlementKeys = const [],
   });
 
   /// Gruptaki mevcut kullanıcı
@@ -72,11 +74,25 @@ class ExpenseGroup {
     return balances;
   }
 
-  /// Giriş yapan kullanıcının bu gruptaki net bakiyesi
+  /// Giriş yapan kullanıcının bu gruptaki kalan net bakiyesi
+  /// (Ödendi olarak işaretlenen transferler düşülerek hesaplanır)
   double get userNetBalance {
     final user = currentUser;
     if (user == null) return 0.0;
-    return participantBalances[user.id] ?? 0.0;
+    double balance = participantBalances[user.id] ?? 0.0;
+
+    if (paidSettlementKeys.isNotEmpty) {
+      for (final s in calculateSettlements()) {
+        if (s.isPaid) {
+          if (s.toParticipantId == user.id) {
+            balance -= s.amount;
+          } else if (s.fromParticipantId == user.id) {
+            balance += s.amount;
+          }
+        }
+      }
+    }
+    return balance;
   }
 
   /// Borç sadeleştirme algoritması (Debt Simplification)
@@ -114,11 +130,13 @@ class ExpenseGroup {
       final settlementAmount = min(creditor.amount, debtor.amount);
 
       if (settlementAmount > 0.01) {
+        final key = '${debtor.id}_${creditor.id}';
         settlements.add(
           GroupSettlement(
             fromParticipantId: debtor.id,
             toParticipantId: creditor.id,
             amount: double.parse(settlementAmount.toStringAsFixed(2)),
+            isPaid: paidSettlementKeys.contains(key),
           ),
         );
       }
@@ -144,6 +162,7 @@ class ExpenseGroup {
     List<GroupExpense>? expenses,
     DateTime? createdAt,
     String? icon,
+    List<String>? paidSettlementKeys,
   }) {
     return ExpenseGroup(
       id: id ?? this.id,
@@ -152,6 +171,7 @@ class ExpenseGroup {
       expenses: expenses ?? this.expenses,
       createdAt: createdAt ?? this.createdAt,
       icon: icon ?? this.icon,
+      paidSettlementKeys: paidSettlementKeys ?? this.paidSettlementKeys,
     );
   }
 
@@ -171,6 +191,10 @@ class ExpenseGroup {
           ? (DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
           : DateTime.now(),
       icon: json['icon']?.toString(),
+      paidSettlementKeys: (json['paidSettlementKeys'] as List?)
+              ?.map((k) => k.toString())
+              .toList() ??
+          const [],
     );
   }
 
@@ -181,6 +205,7 @@ class ExpenseGroup {
         'expenses': expenses.map((e) => e.toJson()).toList(),
         'createdAt': createdAt.toIso8601String(),
         if (icon != null) 'icon': icon,
+        'paidSettlementKeys': paidSettlementKeys,
       };
 }
 
