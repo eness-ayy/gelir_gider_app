@@ -332,6 +332,84 @@ class SharedBudgetDetailController extends BaseController {
     }
   }
 
+  Future<bool> updateExpense({
+    required ExpenseModel oldExpense,
+    required String title,
+    required double amount,
+    required String paidBy,
+    required List<String> splitMembers,
+    String paymentMethod = 'cash',
+  }) async {
+    if (isLoading) return false;
+    final cleanTitle = title.trim();
+    final cleanPaidBy = paidBy.trim();
+    if (cleanTitle.isEmpty ||
+        amount <= 0 ||
+        cleanPaidBy.isEmpty ||
+        splitMembers.isEmpty) {
+      return false;
+    }
+
+    try {
+      setLoading(true);
+
+      if (oldExpense.linkedTransactionId != null &&
+          oldExpense.linkedTransactionId!.isNotEmpty) {
+        try {
+          await _transactionRepository.deleteTransaction(
+            oldExpense.linkedTransactionId!,
+          );
+          await _accountService.removePaymentMethod(
+            oldExpense.linkedTransactionId!,
+          );
+        } catch (_) {}
+      }
+
+      final isPayerCurrentUser =
+          cleanPaidBy.toLowerCase() == currentUserName.trim().toLowerCase();
+      String? newLinkedTxId;
+      final groupTitle = group.value?.name ?? 'Ortak Hesap';
+
+      if (isPayerCurrentUser) {
+        try {
+          final splitCount = splitMembers.isEmpty ? 1 : splitMembers.length;
+          final userShareAmount =
+              double.parse((amount / splitCount).toStringAsFixed(2));
+          newLinkedTxId = await _createWalletTransactionForExpense(
+            groupTitle: groupTitle,
+            expenseTitle: cleanTitle,
+            userShareAmount: userShareAmount,
+            totalAmount: amount,
+            paymentMethod: paymentMethod,
+            date: oldExpense.date,
+          );
+        } catch (_) {}
+      } else if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().refreshDashboard();
+      }
+
+      await _firestoreService.updateExpense(
+        groupId: groupId,
+        expenseId: oldExpense.id,
+        title: cleanTitle,
+        amount: amount,
+        paidBy: cleanPaidBy,
+        splitMembers: splitMembers,
+        date: oldExpense.date,
+        paymentMethod: paymentMethod,
+        linkedTransactionId: newLinkedTxId,
+      );
+
+      showSuccessSnackbar(message: "Ortak gider güncellendi.");
+      return true;
+    } catch (e) {
+      showErrorSnackbar(message: "Harcama güncellenirken hata oluştu: $e");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   Future<void> confirmDeleteExpense(ExpenseModel expense) async {
     final confirmed = await Get.dialog<bool>(
       AlertDialog(

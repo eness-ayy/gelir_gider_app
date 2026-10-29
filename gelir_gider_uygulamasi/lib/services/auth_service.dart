@@ -8,6 +8,11 @@ import 'package:gelir_gider_uygulamasi/models/app_user.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/api_services.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
+import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
+import 'package:gelir_gider_uygulamasi/services/group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
+import 'package:gelir_gider_uygulamasi/services/savings_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -142,9 +147,30 @@ class AuthService extends GetxController {
         StorageKeys.userData,
         jsonEncode(user.toJson()),
       );
+      _reloadUserScopedServices();
     } catch (e) {
       debugPrint("Kullanıcı kaydetme hatası: $e");
     }
+  }
+
+  void _reloadUserScopedServices() {
+    try {
+      if (Get.isRegistered<GroupService>()) {
+        Get.find<GroupService>().loadGroups();
+      }
+      if (Get.isRegistered<SavingsService>()) {
+        Get.find<SavingsService>().loadGoals();
+      }
+      if (Get.isRegistered<DebtService>()) {
+        Get.find<DebtService>().loadDebts();
+      }
+      if (Get.isRegistered<RecurringService>()) {
+        Get.find<RecurringService>().loadItems();
+      }
+      if (Get.isRegistered<CreditCardService>()) {
+        Get.find<CreditCardService>().loadData();
+      }
+    } catch (_) {}
   }
 
   Future<AppUser?> signInWithGoogle() async {
@@ -232,6 +258,8 @@ class AuthService extends GetxController {
           acc.transactionPaymentMethods.clear();
         } catch (_) {}
       }
+
+      _reloadUserScopedServices();
     } catch (e) {
       debugPrint("Oturum temizleme hatası: $e");
     }

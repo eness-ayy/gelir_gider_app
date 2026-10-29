@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:get/state_manager.dart';
+import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 abstract class StorageKeys {
@@ -18,6 +20,39 @@ class StorgeService extends GetxController {
     _preferences = await SharedPreferences.getInstance();
     return this;
   }
+
+  /// Aktif kullanıcıya özel (UID / e-posta bazlı) depolama anahtarı üretir.
+  String get activeUserKey {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null && uid.isNotEmpty) {
+        return uid.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+      }
+    } catch (_) {}
+
+    try {
+      if (Get.isRegistered<AuthService>()) {
+        final user = Get.find<AuthService>().currentUser.value;
+        if (user?.id != null && user!.id!.trim().isNotEmpty) {
+          return user.id!
+              .trim()
+              .toLowerCase()
+              .replaceAll(RegExp(r'[^a-z0-9]'), '_');
+        }
+        if (user?.email != null && user!.email!.trim().isNotEmpty) {
+          return user.email!
+              .trim()
+              .toLowerCase()
+              .replaceAll(RegExp(r'[^a-z0-9]'), '_');
+        }
+      }
+    } catch (_) {}
+
+    return 'guest_user';
+  }
+
+  /// Verilen temel anahtarı aktif kullanıcıya özel hale getirir.
+  String scopedKey(String baseKey) => '${baseKey}_$activeUserKey';
 
   Future<bool> setValue<T>(String key, T value) async {
     try {

@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:gelir_gider_uygulamasi/models/group/expense_model.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/shared_budget/detail/shared_budget_detail_controller.dart';
 import 'package:get/get.dart';
 
-/// Ortak Ev & Yurt bütçesi için harcama ekleme modalı
+/// Ortak Hesap için harcama ekleme / düzenleme modalı
 class AddSharedExpenseSheet extends StatefulWidget {
-  const AddSharedExpenseSheet({super.key});
+  final ExpenseModel? expenseToEdit;
 
-  static Future<void> show(BuildContext context) {
+  const AddSharedExpenseSheet({super.key, this.expenseToEdit});
+
+  static Future<void> show(
+    BuildContext context, {
+    ExpenseModel? expenseToEdit,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const AddSharedExpenseSheet(),
+      builder: (_) => AddSharedExpenseSheet(expenseToEdit: expenseToEdit),
     );
   }
 
@@ -40,6 +46,23 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
 
     final members = _controller.members;
     final current = _controller.currentUserName;
+    final editing = widget.expenseToEdit;
+
+    if (editing != null) {
+      _titleController.text = editing.title;
+      _amountController.text = editing.amount.toStringAsFixed(2);
+      _selectedPayer = members.any(
+              (m) => m.toLowerCase() == editing.paidBy.toLowerCase())
+          ? members.firstWhere(
+              (m) => m.toLowerCase() == editing.paidBy.toLowerCase())
+          : (members.isNotEmpty ? members.first : editing.paidBy);
+      _selectedPaymentMethod = PaymentMethod.fromKey(editing.paymentMethod);
+      _selectedSplitMembers.addAll(editing.splitMembers);
+      if (_selectedSplitMembers.isEmpty) {
+        _selectedSplitMembers.addAll(members);
+      }
+      return;
+    }
 
     if (members.any((m) => m.toLowerCase() == current.toLowerCase())) {
       _selectedPayer = members.firstWhere(
@@ -121,13 +144,26 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
     setState(() => _isSaving = true);
 
     try {
-      final success = await _controller.addExpense(
-        title: title,
-        amount: amount,
-        paidBy: _selectedPayer!,
-        splitMembers: _selectedSplitMembers.toList(),
-        paymentMethod: _selectedPaymentMethod.key,
-      );
+      final editing = widget.expenseToEdit;
+      final bool success;
+      if (editing != null) {
+        success = await _controller.updateExpense(
+          oldExpense: editing,
+          title: title,
+          amount: amount,
+          paidBy: _selectedPayer!,
+          splitMembers: _selectedSplitMembers.toList(),
+          paymentMethod: _selectedPaymentMethod.key,
+        );
+      } else {
+        success = await _controller.addExpense(
+          title: title,
+          amount: amount,
+          paidBy: _selectedPayer!,
+          splitMembers: _selectedSplitMembers.toList(),
+          paymentMethod: _selectedPaymentMethod.key,
+        );
+      }
 
       if (success && mounted) {
         Navigator.of(context).pop();
@@ -198,20 +234,24 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Yeni Ev / Yurt Harcaması",
-                        style: TextStyle(
+                        widget.expenseToEdit != null
+                            ? "Harcamayı Düzenle"
+                            : "Yeni Ortak Hesap Harcaması",
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        "Kira, fatura, mutfak ve ortak gider ekleyin",
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                        widget.expenseToEdit != null
+                            ? "Tutar, ödeyen veya paylaşan kişileri güncelleyin"
+                            : "Kira, fatura, mutfak ve ortak gider ekleyin",
+                        style: const TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -474,9 +514,11 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        "Harcamayı Kaydet",
-                        style: TextStyle(
+                    : Text(
+                        widget.expenseToEdit != null
+                            ? "Değişiklikleri Kaydet"
+                            : "Harcamayı Kaydet",
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),

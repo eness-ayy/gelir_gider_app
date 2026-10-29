@@ -286,114 +286,134 @@ class GroupDetailPage extends GetView<GroupDetailController> {
               color: isDark ? Colors.white10 : Colors.grey.shade200,
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                // İkon Avatar
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                  child: const Icon(
-                    Icons.shopping_bag_outlined,
-                    color: AppColors.primary,
-                    size: 20,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => AddGroupExpenseSheet.show(context, expenseToEdit: exp),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  // İkon Avatar
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                    child: const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
+                  const SizedBox(width: 12),
 
-                // Başlık & Kimin Ödediği
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // Başlık & Kimin Ödediği
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exp.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          "${isMePayer ? 'Sen ödedin' : '$payerName ödedi'} • ${exp.splitParticipantIds.length} kişi bölüştü",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormat('dd MMM yyyy, HH:mm').format(exp.date),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isDark ? Colors.white38 : Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Tutar & Silme / Düzenleme Menüsü
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        exp.title,
+                        currencyFormat.format(exp.amount),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: 15,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 2),
                       Text(
-                        "${isMePayer ? 'Sen ödedin' : '$payerName ödedi'} • ${exp.splitParticipantIds.length} kişi bölüştü",
+                        "Kişi başı: ${currencyFormat.format(exp.perPersonAmount)}",
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           color: isDark
                               ? AppColors.darkTextSecondary
                               : AppColors.lightTextSecondary,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        DateFormat('dd MMM yyyy, HH:mm').format(exp.date),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isDark ? Colors.white38 : Colors.grey.shade500,
+                    ],
+                  ),
+                  PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      size: 18,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
+                    onSelected: (val) {
+                      if (val == 'edit') {
+                        AddGroupExpenseSheet.show(context, expenseToEdit: exp);
+                      } else if (val == 'delete') {
+                        _confirmDeleteExpense(context, exp);
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.edit_outlined,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text("Harcamayı Düzenle"),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              "Harcamayı Sil",
+                              style: TextStyle(color: Colors.redAccent),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-
-                // Tutar & Silme Menüsü
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      currencyFormat.format(exp.amount),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      "Kişi başı: ${currencyFormat.format(exp.perPersonAmount)}",
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    size: 18,
-                    color: isDark ? Colors.white54 : Colors.grey,
-                  ),
-                  onSelected: (val) {
-                    if (val == 'delete') {
-                      _confirmDeleteExpense(context, exp);
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete_outline,
-                            color: Colors.redAccent,
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            "Harcamayı Sil",
-                            style: TextStyle(color: Colors.redAccent),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

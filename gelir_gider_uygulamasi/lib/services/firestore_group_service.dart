@@ -387,6 +387,52 @@ class FirestoreGroupService extends GetxService {
     return expense;
   }
 
+  /// Seçili gruptaki mevcut bir harcamayı günceller.
+  Future<ExpenseModel> updateExpense({
+    required String groupId,
+    required String expenseId,
+    required String title,
+    required double amount,
+    required String paidBy,
+    required List<String> splitMembers,
+    DateTime? date,
+    String? paymentMethod,
+    String? linkedTransactionId,
+  }) async {
+    final cleanGroupId = groupId.trim();
+    final cleanExpenseId = expenseId.trim();
+    final cleanTitle = title.trim();
+    final cleanPaidBy = paidBy.trim();
+
+    if (cleanGroupId.isEmpty || cleanExpenseId.isEmpty) {
+      throw ArgumentError("Grup ID ve Harcama ID boş olamaz.");
+    }
+    final cleanSplit = splitMembers
+        .map((m) => m.trim())
+        .where((m) => m.isNotEmpty)
+        .toSet()
+        .toList();
+
+    final docRef = _groupsCollection
+        .doc(cleanGroupId)
+        .collection('expenses')
+        .doc(cleanExpenseId);
+
+    final updated = ExpenseModel(
+      id: cleanExpenseId,
+      title: cleanTitle,
+      amount: amount,
+      paidBy: cleanPaidBy,
+      splitMembers: cleanSplit,
+      date: date ?? DateTime.now(),
+      paymentMethod: paymentMethod,
+      linkedTransactionId: linkedTransactionId,
+    );
+
+    await docRef.set(updated.toMap());
+    return updated;
+  }
+
   /// Seçili gruptan belirli bir harcamayı siler.
   Future<void> deleteExpense({
     required String groupId,

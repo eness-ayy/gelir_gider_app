@@ -103,12 +103,12 @@ class ExtraView extends GetView<ExtraController> {
                     onTap: controller.goToSavingsGoals,
                   ),
 
-                  // 3. Borç & Alacak Defteri
+                  // 3. Borçlar
                   ExtraModuleCard(
                     icon: Icons.account_balance_wallet_rounded,
                     iconColor: Colors.white,
                     iconBgColor: const Color(0xFFF97316), // Canlı Turuncu
-                    title: "Borç & Alacak Defteri",
+                    title: "Borçlar",
                     subtitle:
                         "Kime ne kadar borcunuz var, kimden ne alacağınız var takip edin.",
                     onTap: controller.goToDebts,

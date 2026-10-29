@@ -29,7 +29,7 @@ class _DebtsPageState extends State<DebtsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Borç & Alacak Defteri",
+          "Borçlar",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),

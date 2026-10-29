@@ -66,6 +66,39 @@ class AccountBalancesCard extends GetView<DashboardController> {
                       ),
                     ),
                   ),
+                  InkWell(
+                    onTap: () => _showTransferSheet(context, isDark),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.swap_horiz_rounded,
+                            size: 15,
+                            color: AppColors.primary,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            "Transfer / Borç Öde",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   if (selectedFilter != 'all') ...[
                     const SizedBox(width: 8),
                     InkWell(
@@ -343,6 +376,215 @@ class AccountBalancesCard extends GetView<DashboardController> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showTransferSheet(BuildContext context, bool isDark) {
+    final amountController = TextEditingController();
+    int selectedPreset = 0;
+    // Presets:
+    // 0: Banka -> Nakit (ATM Para Çekme)
+    // 1: Nakit -> Banka (Para Yatırma)
+    // 2: Banka -> Kredi Kartı (Kart Borcu Ödeme)
+    // 3: Nakit -> Kredi Kartı (Nakit Kart Borcu Ödeme)
+    final presets = <({String label, String fromKey, String toKey, IconData icon})>[
+      (
+        label: "Banka ➔ Nakit (ATM Para Çekme)",
+        fromKey: PaymentMethod.bankCard.key,
+        toKey: PaymentMethod.cash.key,
+        icon: Icons.local_atm_rounded,
+      ),
+      (
+        label: "Nakit ➔ Banka (Hesaba Yatırma)",
+        fromKey: PaymentMethod.cash.key,
+        toKey: PaymentMethod.bankCard.key,
+        icon: Icons.account_balance_rounded,
+      ),
+      (
+        label: "Banka ➔ Kredi Kartı (Kart Borcu Öde)",
+        fromKey: PaymentMethod.bankCard.key,
+        toKey: PaymentMethod.creditCard.key,
+        icon: Icons.credit_score_rounded,
+      ),
+      (
+        label: "Nakit ➔ Kredi Kartı (Kart Borcu Öde)",
+        fromKey: PaymentMethod.cash.key,
+        toKey: PaymentMethod.creditCard.key,
+        icon: Icons.payments_rounded,
+      ),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 16,
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white24 : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const Text(
+                      "Hesaplar Arası Transfer & Kart Borcu Öde",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Aylık gelir/gider toplamınızı şişirmeden hesaplarınız arasında para aktarın veya kart borcunuzu kapatın.",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white60 : Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    ...List.generate(presets.length, (i) {
+                      final p = presets[i];
+                      final isSel = selectedPreset == i;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => setModalState(() => selectedPreset = i),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSel
+                                  ? AppColors.primary.withValues(alpha: 0.12)
+                                  : (isDark
+                                      ? Colors.white.withValues(alpha: 0.04)
+                                      : Colors.grey.shade50),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSel
+                                    ? AppColors.primary
+                                    : (isDark
+                                        ? Colors.white12
+                                        : Colors.grey.shade200),
+                                width: isSel ? 1.6 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  p.icon,
+                                  size: 20,
+                                  color: isSel
+                                      ? AppColors.primary
+                                      : (isDark
+                                          ? Colors.white70
+                                          : Colors.black54),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    p.label,
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: isSel
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                if (isSel)
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: AppColors.primary,
+                                    size: 18,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: amountController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: "Transfer Tutarı (₺)",
+                        hintText: "Örn: 1500",
+                        prefixIcon: const Icon(Icons.currency_lira_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final raw = amountController.text
+                              .replaceAll(',', '.')
+                              .trim();
+                          final amt = double.tryParse(raw) ?? 0.0;
+                          if (amt <= 0) return;
+                          final chosen = presets[selectedPreset];
+                          Navigator.of(ctx).pop();
+                          await controller.createAccountTransfer(
+                            fromKey: chosen.fromKey,
+                            toKey: chosen.toKey,
+                            amount: amt,
+                            title: chosen.label,
+                          );
+                        },
+                        icon: const Icon(Icons.swap_horiz_rounded),
+                        label: const Text(
+                          "Transferi Tamamla",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

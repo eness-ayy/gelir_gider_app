@@ -15,6 +15,8 @@ import 'package:get/get.dart';
 class GroupService extends GetxService {
   static const String _storageKey = 'expense_groups_v1';
 
+  String get _scopedStorageKey => _storageService.scopedKey(_storageKey);
+
   StorgeService get _storageService => Get.isRegistered<StorgeService>()
       ? Get.find<StorgeService>()
       : Get.put(StorgeService());
@@ -41,10 +43,19 @@ class GroupService extends GetxService {
     loadGroups();
   }
 
-  /// Yerel hafızadan grupları yükler
+  /// Yerel hafızadan aktif kullanıcıya özel grupları yükler
   void loadGroups() {
     try {
-      final jsonString = _storageService.getValue<String>(_storageKey);
+      String? jsonString = _storageService.getValue<String>(_scopedStorageKey);
+      // Geriye dönük uyumluluk: Eski ortak anahtarda veri varsa ve yeni anahtar boşsa taşı
+      if ((jsonString == null || jsonString.isEmpty) &&
+          _storageService.hasKey(_storageKey)) {
+        jsonString = _storageService.getValue<String>(_storageKey);
+        if (jsonString != null && jsonString.isNotEmpty) {
+          _storageService.setValue<String>(_scopedStorageKey, jsonString);
+          _storageService.remove(_storageKey);
+        }
+      }
       if (jsonString != null && jsonString.isNotEmpty) {
         final List<dynamic> decoded = jsonDecode(jsonString);
         final list = decoded
@@ -69,7 +80,10 @@ class GroupService extends GetxService {
   Future<void> _persist() async {
     try {
       final listMap = groups.map((g) => g.toJson()).toList();
-      await _storageService.setValue<String>(_storageKey, jsonEncode(listMap));
+      await _storageService.setValue<String>(
+        _scopedStorageKey,
+        jsonEncode(listMap),
+      );
     } catch (e) {
       debugPrint("Grup verileri kaydedilirken hata: $e");
     }
@@ -223,6 +237,86 @@ class GroupService extends GetxService {
     groups[index] = group.copyWith(expenses: updatedExpenses);
     await _persist();
     return newExpense;
+  }
+
+  /// Mevcut grup harcamasını günceller (bağlı cüzdan işlemini de senkronize eder)
+  Future<GroupExpense> updateExpense({
+    required String groupId,
+    required String expenseId,
+    required String title,
+    required double amount,
+    required String paidById,
+    required List<String> splitParticipantIds,
+    DateTime? date,
+    String? paymentMethod = 'cash',
+  }) async {
+    final gIndex = groups.indexWhere((g) => g.id == groupId);
+    if (gIndex == -1) throw Exception("Grup bulunamadı");
+
+    final group = groups[gIndex];
+    final expIndex = group.expenses.indexWhere((e) => e.id == expenseId);
+    if (expIndex == -1) throw Exception("Harcama bulunamadı");
+
+    final oldExpense = group.expenses[expIndex];
+    final payer = group.findParticipant(paidById);
+    final isPayerCurrentUser = payer?.isCurrentUser ?? false;
+
+    // Eski cüzdan işlemini temizle
+    if (oldExpense.linkedTransactionId != null &&
+        oldExpense.linkedTransactionId!.isNotEmpty) {
+      try {
+        await _transactionRepository.deleteTransaction(
+          oldExpense.linkedTransactionId!,
+        );
+        await _accountService.removePaymentMethod(
+          oldExpense.linkedTransactionId!,
+        );
+      } catch (e) {
+        debugPrint("Eski bağlı cüzdan işlemi silinirken hata: $e");
+      }
+    }
+
+    String? newLinkedTxId;
+    if (isPayerCurrentUser) {
+      try {
+        final splitCount = splitParticipantIds.isEmpty
+            ? 1
+            : splitParticipantIds.length;
+        final userShareAmount = double.parse(
+          (amount / splitCount).toStringAsFixed(2),
+        );
+        newLinkedTxId = await _createWalletTransactionForExpense(
+          groupTitle: group.title,
+          expenseTitle: title.trim(),
+          userShareAmount: userShareAmount,
+          totalAmount: amount,
+          paymentMethod: paymentMethod ?? 'cash',
+          date: date ?? oldExpense.date,
+        );
+      } catch (e) {
+        debugPrint("Güncel cüzdan işlemi oluşturulurken hata: $e");
+      }
+    } else if (Get.isRegistered<DashboardController>()) {
+      Get.find<DashboardController>().refreshDashboard();
+    }
+
+    final updatedExpense = GroupExpense(
+      id: oldExpense.id,
+      title: title.trim(),
+      amount: amount,
+      paidById: paidById,
+      date: date ?? oldExpense.date,
+      splitParticipantIds: splitParticipantIds,
+      paymentMethod: paymentMethod,
+      linkedTransactionId: newLinkedTxId,
+    );
+
+    final updatedExpenses = List<GroupExpense>.from(group.expenses);
+    updatedExpenses[expIndex] = updatedExpense;
+
+    groups[gIndex] = group.copyWith(expenses: updatedExpenses);
+    await _persist();
+    return updatedExpense;
   }
 
   /// Harcamayı sil (eğer cüzdana bağlı işlem varsa cüzdandan da silinir)

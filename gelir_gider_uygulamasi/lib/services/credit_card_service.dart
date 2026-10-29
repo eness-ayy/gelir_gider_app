@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/models/installment_purchase_model.dart';
+import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
+import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/services/notification_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
@@ -11,6 +14,9 @@ class CreditCardService extends GetxService {
   static const String _installmentsStorageKey = 'credit_card_installments_data_v1';
 
   late final StorgeService _storage;
+
+  String get _scopedCardsKey => _storage.scopedKey(_cardsStorageKey);
+  String get _scopedInstallmentsKey => _storage.scopedKey(_installmentsStorageKey);
 
   final cards = <CreditCardModel>[].obs;
   final installments = <InstallmentPurchaseModel>[].obs;
@@ -24,92 +30,37 @@ class CreditCardService extends GetxService {
   void loadData() {
     try {
       // 1. Kartları yükle
-      final rawCards = _storage.getValue<String>(_cardsStorageKey);
+      final rawCards = _storage.getValue<String>(_scopedCardsKey);
       if (rawCards != null && rawCards.isNotEmpty) {
         final decoded = jsonDecode(rawCards) as List;
         cards.value = decoded
             .map((item) => CreditCardModel.fromJson(item as Map<String, dynamic>))
+            .where((c) => c.id != 'card_1' && c.id != 'card_2')
             .toList();
       } else {
-        // Örnek Başlangıç Kartları
-        cards.value = [
-          CreditCardModel(
-            id: 'card_1',
-            cardName: 'Garanti Bonus Platinum',
-            bankName: 'Garanti BBVA',
-            totalLimit: 75000.0,
-            cutoffDay: 15,
-            dueDay: 25,
-            colorHex: '#1E1B4B', // Derin İndigo
-            last4Digits: '5824',
-          ),
-          CreditCardModel(
-            id: 'card_2',
-            cardName: 'Maximum Kart',
-            bankName: 'İş Bankası',
-            totalLimit: 50000.0,
-            cutoffDay: 8,
-            dueDay: 18,
-            colorHex: '#0F172A', // Koyu Slate / Titanyum
-            last4Digits: '9142',
-          ),
-        ];
-        _saveCards();
+        cards.clear();
       }
 
       // 2. Taksitli Harcamaları yükle
-      final rawInstallments = _storage.getValue<String>(_installmentsStorageKey);
+      final rawInstallments = _storage.getValue<String>(_scopedInstallmentsKey);
       if (rawInstallments != null && rawInstallments.isNotEmpty) {
         final decoded = jsonDecode(rawInstallments) as List;
         installments.value = decoded
             .map((item) =>
                 InstallmentPurchaseModel.fromJson(item as Map<String, dynamic>))
+            .where((i) =>
+                i.id != 'inst_1' &&
+                i.id != 'inst_2' &&
+                i.id != 'inst_3' &&
+                i.id != 'inst_4')
             .toList();
       } else {
-        // Örnek Başlangıç Taksitleri (Kullanıcının istediği 4 Taksit)
-        final now = DateTime.now();
-        installments.value = [
-          InstallmentPurchaseModel(
-            id: 'inst_1',
-            cardId: 'card_1',
-            title: 'Dyson V15 Süpürge',
-            totalAmount: 24000.0,
-            totalInstallments: 6,
-            paidInstallments: 2,
-            startDate: DateTime(now.year, now.month - 2, 1),
-          ),
-          InstallmentPurchaseModel(
-            id: 'inst_2',
-            cardId: 'card_1',
-            title: 'Uçak Bileti (İstanbul - Roma)',
-            totalAmount: 12000.0,
-            totalInstallments: 3,
-            paidInstallments: 1,
-            startDate: DateTime(now.year, now.month - 1, 5),
-          ),
-          InstallmentPurchaseModel(
-            id: 'inst_3',
-            cardId: 'card_2',
-            title: 'Beyaz Eşya Paketi',
-            totalAmount: 36000.0,
-            totalInstallments: 9,
-            paidInstallments: 3,
-            startDate: DateTime(now.year, now.month - 3, 10),
-          ),
-          InstallmentPurchaseModel(
-            id: 'inst_4',
-            cardId: 'card_2',
-            title: 'Ofis Koltuğu & Masa',
-            totalAmount: 8000.0,
-            totalInstallments: 4,
-            paidInstallments: 1,
-            startDate: DateTime(now.year, now.month - 1, 12),
-          ),
-        ];
-        _saveInstallments();
+        installments.clear();
       }
     } catch (e) {
       debugPrint("Kredi kartı verileri yüklenirken hata: $e");
+      cards.clear();
+      installments.clear();
     }
   }
 
@@ -184,6 +135,33 @@ class CreditCardService extends GetxService {
         isCompleted: completed,
       );
       await _saveInstallments();
+
+      try {
+        if (Get.isRegistered<TransactionRepostory>() &&
+            current.monthlyAmount > 0) {
+          final repo = Get.find<TransactionRepostory>();
+          await repo.createTransaction(
+            Transaction(
+              id: '',
+              amount: current.monthlyAmount,
+              description:
+                  "Taksit Ödemesi (${current.title} - $nextPaid/${current.totalInstallments})",
+              type: 'expense',
+              date: DateTime.now().toIso8601String(),
+              categoryId: 'Kredi Kartı & Taksit',
+              categoryName: 'Kredi Kartı & Taksit',
+              categoryIcon: 'credit_card',
+              userId: '',
+              paymentMethod: 'credit_card',
+            ),
+          );
+          if (Get.isRegistered<DashboardController>()) {
+            await Get.find<DashboardController>().refreshDashboard();
+          }
+        }
+      } catch (e) {
+        debugPrint("Taksit ödemesi cüzdana işlenirken hata: $e");
+      }
     }
   }
 
@@ -209,7 +187,7 @@ class CreditCardService extends GetxService {
   Future<void> _saveCards() async {
     try {
       final jsonList = cards.map((c) => c.toJson()).toList();
-      await _storage.setValue<String>(_cardsStorageKey, jsonEncode(jsonList));
+      await _storage.setValue<String>(_scopedCardsKey, jsonEncode(jsonList));
       if (Get.isRegistered<NotificationService>()) {
         Get.find<NotificationService>().scheduleCreditCardReminders();
       }
@@ -222,7 +200,7 @@ class CreditCardService extends GetxService {
     try {
       final jsonList = installments.map((i) => i.toJson()).toList();
       await _storage.setValue<String>(
-          _installmentsStorageKey, jsonEncode(jsonList));
+          _scopedInstallmentsKey, jsonEncode(jsonList));
     } catch (e) {
       debugPrint("Taksitler kaydedilirken hata: $e");
     }

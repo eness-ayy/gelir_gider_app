@@ -320,6 +320,9 @@ class DashboardController extends BaseController {
       }).toList();
 
       for (var tr in currentMonthTransactions) {
+        if (tr.description.trim().startsWith('[TRANSFER:')) {
+          continue; // Hesaplar arası virman / kart borcu ödemesi toplam gelir-gideri şişirmez
+        }
         final amount = tr.baseAmount;
         if (tr.type == 'income') {
           aylikGelir.value += amount;
@@ -328,6 +331,49 @@ class DashboardController extends BaseController {
         }
       }
     }
+  }
+
+  /// Hesaplar arası para transferi (Nakit ⇄ Banka) veya Kredi Kartı Borç Ödemesi oluşturur
+  Future<bool> createAccountTransfer({
+    required String fromKey,
+    required String toKey,
+    required double amount,
+    String? title,
+  }) async {
+    if (amount <= 0 || fromKey == toKey) return false;
+    try {
+      final fromMethod = PaymentMethod.fromKey(fromKey);
+      final toMethod = PaymentMethod.fromKey(toKey);
+      final defaultLabel = toKey == PaymentMethod.creditCard.key
+          ? "Kredi Kartı Borç Ödemesi (${fromMethod.title})"
+          : "${fromMethod.title} ➔ ${toMethod.title} Transferi";
+      final cleanTitle =
+          (title != null && title.trim().isNotEmpty) ? title.trim() : defaultLabel;
+
+      final tx = Transaction(
+        id: '',
+        amount: amount,
+        description: "[TRANSFER:$fromKey:$toKey] $cleanTitle",
+        type: 'expense',
+        date: DateTime.now().toIso8601String(),
+        categoryId: 'Hesap Transferi',
+        categoryName: 'Hesap Transferi',
+        categoryIcon: 'swap_horiz',
+        userId: '',
+        paymentMethod: fromKey,
+      );
+
+      final created = await _transactionRepostory.createTransaction(tx);
+      if (created.id.isNotEmpty) {
+        await accountService.setPaymentMethod(created.id, fromKey);
+        await refreshDashboard();
+        showSuccessSnackbar(message: "$cleanTitle tamamlandı");
+        return true;
+      }
+    } catch (e) {
+      showErrorSnackbar(message: "Transfer işlemi sırasında hata oluştu");
+    }
+    return false;
   }
 
   // MARK: - Account Balances (Cebimdeki Nakit, Bankadaki Para, Kredi Kartı)

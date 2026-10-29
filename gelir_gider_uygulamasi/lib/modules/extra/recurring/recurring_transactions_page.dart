@@ -334,7 +334,28 @@ class RecurringTransactionsPage extends StatelessWidget {
                   ],
                 ),
 
-                // Silme Butonu
+                // Cüzdana İşle ve Silme Butonu
+                IconButton(
+                  tooltip: "Bu Ödemeyi Cüzdandan Düş",
+                  icon: const Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 21,
+                    color: Color(0xFF10B981),
+                  ),
+                  onPressed: () async {
+                    final ok = await service.recordPaymentToWallet(item);
+                    if (ok && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "${item.title} (${currencyFormatter.format(item.amount)}) cüzdana gider olarak işlendi.",
+                          ),
+                          backgroundColor: const Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline_rounded,
                       size: 20, color: Colors.grey),

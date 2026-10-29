@@ -1333,6 +1333,10 @@ class SharedBudgetDetailPage extends GetView<SharedBudgetDetailController> {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
+          onTap: () => AddSharedExpenseSheet.show(
+            context,
+            expenseToEdit: expense,
+          ),
           onLongPress: () => controller.confirmDeleteExpense(expense),
           child: Padding(
             padding: const EdgeInsets.all(16),

@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/recurring_transaction.dart';
+import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
+import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/services/notification_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
@@ -8,6 +11,8 @@ import 'package:get/get.dart';
 class RecurringService extends GetxService {
   static const String _storageKey = 'recurring_transactions_data';
   late final StorgeService _storage;
+
+  String get _scopedStorageKey => _storage.scopedKey(_storageKey);
 
   final items = <RecurringTransaction>[].obs;
 
@@ -19,61 +24,66 @@ class RecurringService extends GetxService {
 
   void loadItems() {
     try {
-      final raw = _storage.getValue<String>(_storageKey);
+      final raw = _storage.getValue<String>(_scopedStorageKey);
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw) as List;
         items.value = decoded
             .map((item) =>
                 RecurringTransaction.fromJson(item as Map<String, dynamic>))
+            .where((i) => i.id != 'rec_1' && i.id != 'rec_2' && i.id != 'rec_3')
             .toList();
       } else {
-        // İlk kullanım için örnek 3 adet tekrarlayan ödeme
-        items.value = [
-          RecurringTransaction(
-            id: 'rec_1',
-            title: 'Netflix Aboneliği',
-            amount: 229.99,
-            category: 'Abonelikler',
-            period: 'monthly',
-            paymentDay: 15,
-            isActive: true,
-          ),
-          RecurringTransaction(
-            id: 'rec_2',
-            title: 'Ev Kirası',
-            amount: 15000,
-            category: 'Kira & Ev',
-            period: 'monthly',
-            paymentDay: 1,
-            isActive: true,
-          ),
-          RecurringTransaction(
-            id: 'rec_3',
-            title: 'Spotify Premium',
-            amount: 59.99,
-            category: 'Abonelikler',
-            period: 'monthly',
-            paymentDay: 28,
-            isActive: true,
-          ),
-        ];
-        _saveToStorage();
+        items.clear();
       }
     } catch (e) {
       debugPrint("Tekrarlayan işlemler yüklenirken hata: $e");
+      items.clear();
     }
   }
 
   Future<void> _saveToStorage() async {
     try {
       final jsonList = items.map((i) => i.toJson()).toList();
-      await _storage.setValue<String>(_storageKey, jsonEncode(jsonList));
+      await _storage.setValue<String>(_scopedStorageKey, jsonEncode(jsonList));
       if (Get.isRegistered<NotificationService>()) {
         Get.find<NotificationService>().scheduleRecurringReminders();
       }
     } catch (e) {
       debugPrint("Tekrarlayan işlemler kaydedilirken hata: $e");
     }
+  }
+
+  Future<bool> recordPaymentToWallet(
+    RecurringTransaction item, {
+    String paymentMethod = 'bank_card',
+  }) async {
+    if (item.amount <= 0) return false;
+    try {
+      if (Get.isRegistered<TransactionRepostory>()) {
+        final repo = Get.find<TransactionRepostory>();
+        await repo.createTransaction(
+          Transaction(
+            id: '',
+            amount: item.amount,
+            description: item.title,
+            type: 'expense',
+            date: DateTime.now().toIso8601String(),
+            categoryId: item.category,
+            categoryName: item.category,
+            categoryIcon: 'event_repeat',
+            userId: '',
+            paymentMethod: paymentMethod,
+          ),
+        );
+        if (Get.isRegistered<DashboardController>()) {
+          await Get.find<DashboardController>().refreshDashboard();
+        }
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Tekrarlayan ödeme cüzdana işlenirken hata: $e");
+    }
+    return false;
   }
 
   Future<void> addItem(RecurringTransaction item) async {

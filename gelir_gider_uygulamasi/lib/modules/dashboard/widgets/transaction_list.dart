@@ -177,10 +177,17 @@ class TransactionList extends GetView<DashboardController> {
                 final category = oankiTransaction.category;
                 final isIncome = oankiTransaction.type == "income";
 
+                final rawDesc = oankiTransaction.description.trim();
+                final transferMatch =
+                    RegExp(r'^\[TRANSFER:(.*?):(.*?)\]\s*(.*)$')
+                        .firstMatch(rawDesc);
+                final isTransferTransaction = transferMatch != null;
+                final transferDesc = transferMatch?.group(3)?.trim() ?? '';
+
                 // Grup harcaması tespiti: [grup_adi] aciklama veya [grup_adi|600.00] aciklama formatı
-                final groupMatch = RegExp(r'^\[(.*?)\]\s*(.*)$').firstMatch(
-                  oankiTransaction.description.trim(),
-                );
+                final groupMatch = isTransferTransaction
+                    ? null
+                    : RegExp(r'^\[(.*?)\]\s*(.*)$').firstMatch(rawDesc);
                 final isGroupTransaction = groupMatch != null;
                 final rawGroupHeader = groupMatch?.group(1)?.trim() ?? '';
                 final headerParts = rawGroupHeader.split('|');
@@ -260,7 +267,11 @@ class TransactionList extends GetView<DashboardController> {
                 }
 
                 String displayTitle;
-                if (isGroupTransaction) {
+                if (isTransferTransaction) {
+                  displayTitle = transferDesc.isNotEmpty
+                      ? transferDesc
+                      : 'Hesap Transferi';
+                } else if (isGroupTransaction) {
                   if (expenseDesc.isNotEmpty) {
                     displayTitle =
                         expenseDesc[0].toUpperCase() + expenseDesc.substring(1);
@@ -336,19 +347,25 @@ class TransactionList extends GetView<DashboardController> {
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: isIncome ? incomeBg : expenseBg,
+                        color: isTransferTransaction
+                            ? AppColors.primary.withValues(alpha: 0.14)
+                            : (isIncome ? incomeBg : expenseBg),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        isGroupTransaction
-                            ? Icons.groups_rounded
-                            : getCategoryIcon(
-                                iconName: categoryIcon,
-                                isSystem: true,
-                                type: category?.type ?? oankiTransaction.type,
-                                categoryName: displayTitle,
-                              ),
-                        color: isIncome ? incomeColor : expenseColor,
+                        isTransferTransaction
+                            ? Icons.swap_horiz_rounded
+                            : (isGroupTransaction
+                                ? Icons.groups_rounded
+                                : getCategoryIcon(
+                                    iconName: categoryIcon,
+                                    isSystem: true,
+                                    type: category?.type ?? oankiTransaction.type,
+                                    categoryName: displayTitle,
+                                  )),
+                        color: isTransferTransaction
+                            ? AppColors.primary
+                            : (isIncome ? incomeColor : expenseColor),
                       ),
                     ),
                     title: Text(
@@ -370,6 +387,7 @@ class TransactionList extends GetView<DashboardController> {
                               );
 
                         final hasUserDescription = !isGroupTransaction &&
+                            !isTransferTransaction &&
                             desc.isNotEmpty &&
                             desc != displayTitle &&
                             desc != 'Gelir İşlemi' &&
@@ -453,9 +471,11 @@ class TransactionList extends GetView<DashboardController> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '${isIncome ? '+' : '-'} $amountLabel',
+                          '${isTransferTransaction ? '⇄' : (isIncome ? '+' : '-')} $amountLabel',
                           style: TextStyle(
-                            color: isIncome ? incomeColor : expenseColor,
+                            color: isTransferTransaction
+                                ? AppColors.primary
+                                : (isIncome ? incomeColor : expenseColor),
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                             height: 1.1,

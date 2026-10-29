@@ -12,6 +12,8 @@ class AccountService extends GetxService {
   late StorgeService _storageService;
   final RxMap<String, String> transactionPaymentMethods = <String, String>{}.obs;
 
+  String get _scopedKey => _storageService.scopedKey(_storageKey);
+
   @override
   void onInit() {
     super.onInit();
@@ -21,7 +23,11 @@ class AccountService extends GetxService {
 
   void loadPaymentMethods() {
     try {
-      final jsonString = _storageService.getValue<String>(_storageKey);
+      String? jsonString = _storageService.getValue<String>(_scopedKey);
+      if ((jsonString == null || jsonString.isEmpty) &&
+          _storageService.hasKey(_storageKey)) {
+        jsonString = _storageService.getValue<String>(_storageKey);
+      }
       if (jsonString != null && jsonString.isNotEmpty) {
         final Map<String, dynamic> decoded = jsonDecode(jsonString);
         final map = <String, String>{};
@@ -40,7 +46,7 @@ class AccountService extends GetxService {
   Future<void> _persistPaymentMethods() async {
     try {
       final jsonString = jsonEncode(Map<String, String>.from(transactionPaymentMethods));
-      await _storageService.setValue<String>(_storageKey, jsonString);
+      await _storageService.setValue<String>(_scopedKey, jsonString);
     } catch (e) {
       debugPrint("Ödeme yöntemleri kaydedilirken hata: $e");
     }
@@ -99,6 +105,29 @@ class AccountService extends GetxService {
       final amount = tr.baseAmount;
       if (amount <= 0 || !amount.isFinite) continue;
 
+      // Hesaplar arası transfer / kredi kartı borç ödemesi kontrolü: [TRANSFER:fromKey:toKey]
+      final transferMatch =
+          RegExp(r'^\[TRANSFER:(.*?):(.*?)\]').firstMatch(tr.description.trim());
+      if (transferMatch != null) {
+        final fromKey = transferMatch.group(1)?.trim() ?? '';
+        final toKey = transferMatch.group(2)?.trim() ?? '';
+
+        if (fromKey == PaymentMethod.cash.key) {
+          cashExpense += amount;
+        } else if (fromKey == PaymentMethod.bankCard.key) {
+          bankExpense += amount;
+        }
+
+        if (toKey == PaymentMethod.cash.key) {
+          cashIncome += amount;
+        } else if (toKey == PaymentMethod.bankCard.key) {
+          bankIncome += amount;
+        } else if (toKey == PaymentMethod.creditCard.key) {
+          creditCardIncome += amount;
+        }
+        continue;
+      }
+
       // Önce işlemin kendi paymentMethod alanına, yoksa yerel kayıtlı servise bak
       PaymentMethod method;
       if (tr.paymentMethod != null && tr.paymentMethod!.isNotEmpty) {
@@ -136,6 +165,8 @@ class AccountService extends GetxService {
 
     final cashBalance = cashIncome - cashExpense;
     final bankBalance = bankIncome - bankExpense;
+    final netCreditCardExpense =
+        (creditCardExpense - creditCardIncome).clamp(0.0, double.infinity);
     final totalLiquidAssets = cashBalance + bankBalance;
 
     return AccountBalances(
@@ -145,7 +176,7 @@ class AccountService extends GetxService {
       bankBalance: bankBalance,
       bankIncome: bankIncome,
       bankExpense: bankExpense,
-      creditCardExpense: creditCardExpense,
+      creditCardExpense: netCreditCardExpense,
       creditCardIncome: creditCardIncome,
       totalLiquidAssets: totalLiquidAssets,
     );

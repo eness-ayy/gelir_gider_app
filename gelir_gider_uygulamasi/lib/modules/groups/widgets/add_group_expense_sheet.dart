@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gelir_gider_uygulamasi/models/group/group_expense.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_controller.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
@@ -9,9 +10,9 @@ import 'package:intl/intl.dart';
 class AddGroupExpenseSheet extends StatelessWidget {
   const AddGroupExpenseSheet({super.key});
 
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(BuildContext context, {GroupExpense? expenseToEdit}) {
     final controller = Get.find<GroupDetailController>();
-    controller.initExpenseForm();
+    controller.initExpenseForm(expenseToEdit: expenseToEdit);
 
     return showModalBottomSheet(
       context: context,
@@ -59,11 +60,15 @@ class AddGroupExpenseSheet extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "Grup Harcaması Ekle",
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                Obx(
+                  () => Text(
+                    controller.editingExpenseId.value != null
+                        ? "Grup Harcamasını Düzenle"
+                        : "Grup Harcaması Ekle",
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
                 ),
                 IconButton(
                   onPressed: () => Get.back(),
@@ -317,7 +322,7 @@ class AddGroupExpenseSheet extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        "(Tüm tutar cüzdandan düşer)",
+                        "(Kendi payınız cüzdandan düşer)",
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark ? Colors.white54 : Colors.grey.shade600,
@@ -433,9 +438,16 @@ class AddGroupExpenseSheet extends StatelessWidget {
                   ),
                 ),
                 icon: const Icon(Icons.check_rounded),
-                label: const Text(
-                  "Harcamayı Kaydet",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                label: Obx(
+                  () => Text(
+                    controller.editingExpenseId.value != null
+                        ? "Değişiklikleri Kaydet"
+                        : "Harcamayı Kaydet",
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),

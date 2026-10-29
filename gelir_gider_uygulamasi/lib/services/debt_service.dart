@@ -1,12 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/debt_item.dart';
+import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
+import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
 
 class DebtService extends GetxService {
   static const String _storageKey = 'debt_items_data';
   late final StorgeService _storage;
+
+  String get _scopedStorageKey => _storage.scopedKey(_storageKey);
 
   final debts = <DebtItem>[].obs;
 
@@ -18,45 +23,26 @@ class DebtService extends GetxService {
 
   void loadDebts() {
     try {
-      final raw = _storage.getValue<String>(_storageKey);
+      final raw = _storage.getValue<String>(_scopedStorageKey);
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw) as List;
         debts.value = decoded
             .map((item) => DebtItem.fromJson(item as Map<String, dynamic>))
+            .where((d) => d.id != 'debt_1' && d.id != 'debt_2')
             .toList();
       } else {
-        // İlk kullanım için örnek başlangıç borç/alacak kayıtları (+₺1.500 net)
-        debts.value = [
-          DebtItem(
-            id: 'debt_1',
-            personName: 'Ahmet Yılmaz',
-            type: 'receivable',
-            amount: 2500,
-            dueDate: DateTime.now().add(const Duration(days: 15)),
-            notes: 'Ortak tatil harcaması payı',
-            isPaid: false,
-          ),
-          DebtItem(
-            id: 'debt_2',
-            personName: 'Mehmet Demir',
-            type: 'payable',
-            amount: 1000,
-            dueDate: DateTime.now().add(const Duration(days: 5)),
-            notes: 'Kitap ve kırtasiye borcu',
-            isPaid: false,
-          ),
-        ];
-        _saveToStorage();
+        debts.clear();
       }
     } catch (e) {
       debugPrint("Borç/Alacak verileri yüklenirken hata: $e");
+      debts.clear();
     }
   }
 
   Future<void> _saveToStorage() async {
     try {
       final jsonList = debts.map((d) => d.toJson()).toList();
-      await _storage.setValue<String>(_storageKey, jsonEncode(jsonList));
+      await _storage.setValue<String>(_scopedStorageKey, jsonEncode(jsonList));
     } catch (e) {
       debugPrint("Borç/Alacak verileri kaydedilirken hata: $e");
     }
@@ -90,6 +76,36 @@ class DebtService extends GetxService {
         paidDate: newStatus ? DateTime.now() : null,
       );
       await _saveToStorage();
+
+      if (newStatus && current.amount > 0) {
+        try {
+          if (Get.isRegistered<TransactionRepostory>()) {
+            final repo = Get.find<TransactionRepostory>();
+            final isRec = current.isReceivable;
+            await repo.createTransaction(
+              Transaction(
+                id: '',
+                amount: current.amount,
+                description: isRec
+                    ? "Alacak Tahsilatı (${current.personName})"
+                    : "Borç Ödemesi (${current.personName})",
+                type: isRec ? 'income' : 'expense',
+                date: DateTime.now().toIso8601String(),
+                categoryId: isRec ? 'Diğer Gelir' : 'Diğer Gider',
+                categoryName: isRec ? 'Diğer Gelir' : 'Diğer Gider',
+                categoryIcon: 'account_balance_wallet',
+                userId: '',
+                paymentMethod: 'cash',
+              ),
+            );
+            if (Get.isRegistered<DashboardController>()) {
+              await Get.find<DashboardController>().refreshDashboard();
+            }
+          }
+        } catch (e) {
+          debugPrint("Borç/Alacak cüzdana yansıtılırken hata: $e");
+        }
+      }
     }
   }
 

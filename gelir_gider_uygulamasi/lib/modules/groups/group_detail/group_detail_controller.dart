@@ -13,7 +13,8 @@ class GroupDetailController extends BaseController {
 
   late final String groupId;
 
-  // Harcama ekleme form kontrolleri
+  // Harcama ekleme / düzenleme form kontrolleri
+  final editingExpenseId = RxnString();
   final expenseTitleController = TextEditingController();
   final expenseAmountController = TextEditingController();
   final selectedPayerId = ''.obs;
@@ -59,7 +60,20 @@ class GroupDetailController extends BaseController {
   List<GroupSettlement> get settlements =>
       group?.calculateSettlements() ?? [];
 
-  void initExpenseForm() {
+  void initExpenseForm({GroupExpense? expenseToEdit}) {
+    if (expenseToEdit != null) {
+      editingExpenseId.value = expenseToEdit.id;
+      expenseTitleController.text = expenseToEdit.title;
+      expenseAmountController.text = expenseToEdit.amount.toStringAsFixed(2);
+      expenseDate.value = expenseToEdit.date;
+      selectedPayerId.value = expenseToEdit.paidById;
+      selectedSplitParticipantIds.assignAll(expenseToEdit.splitParticipantIds);
+      selectedPaymentMethod.value =
+          PaymentMethod.fromKey(expenseToEdit.paymentMethod);
+      return;
+    }
+
+    editingExpenseId.value = null;
     expenseTitleController.clear();
     expenseAmountController.clear();
     expenseDate.value = DateTime.now();
@@ -121,19 +135,36 @@ class GroupDetailController extends BaseController {
 
     try {
       setLoading(true);
-      await _groupService.addExpense(
-        groupId: groupId,
-        title: title,
-        amount: amount,
-        paidById: selectedPayerId.value,
-        splitParticipantIds: selectedSplitParticipantIds.toList(),
-        date: expenseDate.value,
-        paymentMethod: selectedPaymentMethod.value.key,
-      );
+      final editId = editingExpenseId.value;
+      if (editId != null && editId.isNotEmpty) {
+        await _groupService.updateExpense(
+          groupId: groupId,
+          expenseId: editId,
+          title: title,
+          amount: amount,
+          paidById: selectedPayerId.value,
+          splitParticipantIds: selectedSplitParticipantIds.toList(),
+          date: expenseDate.value,
+          paymentMethod: selectedPaymentMethod.value.key,
+        );
+        Get.back();
+        initExpenseForm();
+        showSuccessSnackbar(message: "Grup harcaması güncellendi");
+      } else {
+        await _groupService.addExpense(
+          groupId: groupId,
+          title: title,
+          amount: amount,
+          paidById: selectedPayerId.value,
+          splitParticipantIds: selectedSplitParticipantIds.toList(),
+          date: expenseDate.value,
+          paymentMethod: selectedPaymentMethod.value.key,
+        );
 
-      Get.back(); // modal / bottomSheet kapat
-      initExpenseForm();
-      showSuccessSnackbar(message: "Grup harcaması eklendi");
+        Get.back(); // modal / bottomSheet kapat
+        initExpenseForm();
+        showSuccessSnackbar(message: "Grup harcaması eklendi");
+      }
     } catch (e) {
       showErrorSnackbar(message: "Harcama eklenirken hata oluştu");
     } finally {
