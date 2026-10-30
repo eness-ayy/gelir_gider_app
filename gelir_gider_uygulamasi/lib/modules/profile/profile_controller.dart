@@ -12,6 +12,11 @@ import 'package:gelir_gider_uygulamasi/services/api_services.dart';
 import 'package:gelir_gider_uygulamasi/services/auth_service.dart';
 import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/services/category_service.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
+import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
+import 'package:gelir_gider_uygulamasi/services/group_service.dart';
+import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
+import 'package:gelir_gider_uygulamasi/services/savings_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -438,6 +443,20 @@ class ProfileController extends BaseController {
         debugPrint("[RESET] Categories sıfırlanırken hata: $e");
       }
 
+      // 2.5 Firestore 'extra_modules' alt koleksiyonundaki kredi kartı, borç, kumbara ve sabit ödemeleri sil
+      try {
+        final extraSnapshot = await userDoc.collection('extra_modules').get();
+        if (extraSnapshot.docs.isNotEmpty) {
+          final batch = firestore.batch();
+          for (final doc in extraSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+        }
+      } catch (e) {
+        debugPrint("[RESET] Extra modüller silinirken hata: $e");
+      }
+
       // 3. Yerel önbellekleri temizle
       try {
         if (Get.isRegistered<StorgeService>()) {
@@ -449,13 +468,20 @@ class ProfileController extends BaseController {
           await storage.remove('${StorageKeys.cachedTransactions}_$safeKey');
           await storage.remove('${StorageKeys.cachedCategories}_$safeKey');
           await storage.remove("category_budget_limits");
+          await storage.remove(storage.scopedKey("category_budget_limits"));
           await storage.remove("transaction_payment_methods");
+          await storage.remove(storage.scopedKey("credit_cards_data"));
+          await storage.remove(storage.scopedKey("installment_purchases_data"));
+          await storage.remove(storage.scopedKey("debts_ledger_data"));
+          await storage.remove(storage.scopedKey("savings_goals_data"));
+          await storage.remove(storage.scopedKey("recurring_transactions_data"));
+          await storage.remove(storage.scopedKey("expense_groups_v1"));
         }
       } catch (e) {
         debugPrint("[RESET] Yerel önbellek temizlenirken hata: $e");
       }
 
-      // 4. Bütçe ve Ödeme Yöntemi servislerini sıfırla
+      // 4. Bütçe, Ödeme Yöntemi ve Extra servislerini sıfırla
       if (Get.isRegistered<BudgetService>()) {
         try {
           Get.find<BudgetService>().budgets.clear();
@@ -465,6 +491,38 @@ class ProfileController extends BaseController {
       if (Get.isRegistered<AccountService>()) {
         try {
           Get.find<AccountService>().transactionPaymentMethods.clear();
+        } catch (_) {}
+      }
+
+      if (Get.isRegistered<CreditCardService>()) {
+        try {
+          final cc = Get.find<CreditCardService>();
+          cc.cards.clear();
+          cc.installments.clear();
+        } catch (_) {}
+      }
+
+      if (Get.isRegistered<DebtService>()) {
+        try {
+          Get.find<DebtService>().debts.clear();
+        } catch (_) {}
+      }
+
+      if (Get.isRegistered<SavingsService>()) {
+        try {
+          Get.find<SavingsService>().goals.clear();
+        } catch (_) {}
+      }
+
+      if (Get.isRegistered<RecurringService>()) {
+        try {
+          Get.find<RecurringService>().items.clear();
+        } catch (_) {}
+      }
+
+      if (Get.isRegistered<GroupService>()) {
+        try {
+          Get.find<GroupService>().groups.clear();
         } catch (_) {}
       }
 

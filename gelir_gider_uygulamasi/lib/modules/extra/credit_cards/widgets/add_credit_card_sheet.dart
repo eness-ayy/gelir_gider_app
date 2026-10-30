@@ -1,20 +1,26 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_controller.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 class AddCreditCardSheet extends StatefulWidget {
-  const AddCreditCardSheet({super.key});
+  final CreditCardModel? cardToEdit;
 
-  static Future<void> show(BuildContext context) {
+  const AddCreditCardSheet({super.key, this.cardToEdit});
+
+  static Future<void> show(
+    BuildContext context, {
+    CreditCardModel? cardToEdit,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const AddCreditCardSheet(),
+      builder: (context) => AddCreditCardSheet(cardToEdit: cardToEdit),
     );
   }
 
@@ -56,6 +62,17 @@ class _AddCreditCardSheetState extends State<AddCreditCardSheet> {
   @override
   void initState() {
     super.initState();
+    final editing = widget.cardToEdit;
+    if (editing != null) {
+      _cardNameController.text = editing.cardName;
+      _bankNameController.text = editing.bankName;
+      _limitController.text = editing.totalLimit.toStringAsFixed(0);
+      _last4Controller.text =
+          editing.last4Digits == '0000' ? '' : editing.last4Digits;
+      _cutoffDay = editing.cutoffDay;
+      _dueDay = editing.dueDay;
+      _selectedColorHex = editing.colorHex;
+    }
     _cardNameController.addListener(_onFieldChanged);
     _bankNameController.addListener(_onFieldChanged);
     _limitController.addListener(_onFieldChanged);
@@ -219,15 +236,28 @@ class _AddCreditCardSheetState extends State<AddCreditCardSheet> {
         ? Get.find<CreditCardController>()
         : Get.put(CreditCardController());
 
-    controller.addNewCard(
-      cardName: cardName,
-      bankName: bankName.isNotEmpty ? bankName : "Banka",
-      totalLimit: limit,
-      cutoffDay: _cutoffDay,
-      dueDay: _dueDay,
-      colorHex: _selectedColorHex,
-      last4Digits: last4.isNotEmpty ? last4.padLeft(4, '0') : "0000",
-    );
+    if (widget.cardToEdit != null) {
+      controller.updateExistingCard(
+        id: widget.cardToEdit!.id,
+        cardName: cardName,
+        bankName: bankName.isNotEmpty ? bankName : "Banka",
+        totalLimit: limit,
+        cutoffDay: _cutoffDay,
+        dueDay: _dueDay,
+        colorHex: _selectedColorHex,
+        last4Digits: last4.isNotEmpty ? last4.padLeft(4, '0') : "0000",
+      );
+    } else {
+      controller.addNewCard(
+        cardName: cardName,
+        bankName: bankName.isNotEmpty ? bankName : "Banka",
+        totalLimit: limit,
+        cutoffDay: _cutoffDay,
+        dueDay: _dueDay,
+        colorHex: _selectedColorHex,
+        last4Digits: last4.isNotEmpty ? last4.padLeft(4, '0') : "0000",
+      );
+    }
 
     Navigator.of(context).pop();
   }
@@ -290,7 +320,9 @@ class _AddCreditCardSheetState extends State<AddCreditCardSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Yeni Kredi Kartı Ekle",
+                  widget.cardToEdit != null
+                      ? "Kredi Kartını Düzenle"
+                      : "Yeni Kredi Kartı Ekle",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -770,9 +802,14 @@ class _AddCreditCardSheetState extends State<AddCreditCardSheet> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  "Kartı Kaydet",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                child: Text(
+                  widget.cardToEdit != null
+                      ? "Değişiklikleri Kaydet"
+                      : "Kartı Kaydet",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

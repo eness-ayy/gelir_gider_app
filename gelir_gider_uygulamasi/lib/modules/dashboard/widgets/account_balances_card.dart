@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/payment_account_selector.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -379,9 +381,20 @@ class AccountBalancesCard extends GetView<DashboardController> {
     );
   }
 
-  void _showTransferSheet(BuildContext context, bool isDark) {
+  static void showTransferSheet(
+    BuildContext context, {
+    String? initialCreditCardId,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dashController = Get.find<DashboardController>();
     final amountController = TextEditingController();
-    int selectedPreset = 0;
+    int selectedPreset = initialCreditCardId != null ? 2 : 0;
+    String? selectedCreditCardId = initialCreditCardId ??
+        (Get.isRegistered<CreditCardService>() &&
+                Get.find<CreditCardService>().cards.isNotEmpty
+            ? Get.find<CreditCardService>().cards.first.id
+            : null);
+
     // Presets:
     // 0: Banka -> Nakit (ATM Para Çekme)
     // 1: Nakit -> Banka (Para Yatırma)
@@ -424,6 +437,9 @@ class AccountBalancesCard extends GetView<DashboardController> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
+            final isCardDebtPreset =
+                presets[selectedPreset].toKey == PaymentMethod.creditCard.key;
+
             return SafeArea(
               top: false,
               child: SingleChildScrollView(
@@ -528,6 +544,22 @@ class AccountBalancesCard extends GetView<DashboardController> {
                         ),
                       );
                     }),
+                    if (isCardDebtPreset) ...[
+                      Obx(() {
+                        final _ = Get.isRegistered<CreditCardService>()
+                            ? Get.find<CreditCardService>().cards.length
+                            : 0;
+                        return PaymentAccountSelector.buildCardPickerSection(
+                          context: ctx,
+                          isDark: isDark,
+                          selectedCardId: selectedCreditCardId,
+                          onSelectCard: (cardId) => setModalState(
+                            () => selectedCreditCardId = cardId,
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
                     const SizedBox(height: 8),
                     TextField(
                       controller: amountController,
@@ -560,12 +592,28 @@ class AccountBalancesCard extends GetView<DashboardController> {
                           final amt = double.tryParse(raw) ?? 0.0;
                           if (amt <= 0) return;
                           final chosen = presets[selectedPreset];
+                          String targetToKey = chosen.toKey;
+                          String transferTitle = chosen.label;
+                          if (chosen.toKey == PaymentMethod.creditCard.key) {
+                            targetToKey = PaymentMethod.buildCreditCardKey(
+                              selectedCreditCardId,
+                            );
+                            if (selectedCreditCardId != null &&
+                                Get.isRegistered<CreditCardService>()) {
+                              final card = Get.find<CreditCardService>()
+                                  .getCardById(selectedCreditCardId!);
+                              if (card != null) {
+                                transferTitle =
+                                    "${chosen.label} • ${card.cardName}";
+                              }
+                            }
+                          }
                           Navigator.of(ctx).pop();
-                          await controller.createAccountTransfer(
+                          await dashController.createAccountTransfer(
                             fromKey: chosen.fromKey,
-                            toKey: chosen.toKey,
+                            toKey: targetToKey,
                             amount: amt,
-                            title: chosen.label,
+                            title: transferTitle,
                           );
                         },
                         icon: const Icon(Icons.swap_horiz_rounded),
@@ -586,5 +634,9 @@ class AccountBalancesCard extends GetView<DashboardController> {
         );
       },
     );
+  }
+
+  void _showTransferSheet(BuildContext context, bool isDark) {
+    showTransferSheet(context);
   }
 }

@@ -126,20 +126,14 @@ class ExtraView extends GetView<ExtraController> {
                   ),
 
                   // 5. Kredi Kartları & Taksitler
-                  Obx(
-                    () => ExtraModuleCard(
-                      icon: Icons.credit_card_rounded,
-                      iconColor: Colors.white,
-                      iconBgColor: const Color(0xFF4F46E5), // Koyu Mavi / İndigo
-                      title: "Kredi Kartları & Taksitler",
-                      subtitle:
-                          "Hesap kesim tarihleri, kart limitleri ve taksit yükü takibi.",
-                      badgeText: controller.creditCardBadgeText,
-                      badgeTextColor: const Color(0xFF818CF8),
-                      badgeBgColor:
-                          const Color(0xFF6366F1).withValues(alpha: 0.15),
-                      onTap: controller.goToCreditCards,
-                    ),
+                  ExtraModuleCard(
+                    icon: Icons.credit_card_rounded,
+                    iconColor: Colors.white,
+                    iconBgColor: const Color(0xFF4F46E5), // Koyu Mavi / İndigo
+                    title: "Kredi Kartları & Taksitler",
+                    subtitle:
+                        "Hesap kesim tarihleri, kart limitleri ve taksit yükü takibi.",
+                    onTap: controller.goToCreditCards,
                   ),
                 ],
               ),

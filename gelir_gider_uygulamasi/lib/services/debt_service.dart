@@ -106,23 +106,23 @@ class DebtService extends GetxService {
     await _saveToStorage();
   }
 
-  Future<void> togglePaid(String id) async {
+  Future<void> togglePaid(String id, {String? paymentMethod}) async {
     final index = debts.indexWhere((d) => d.id == id);
     if (index != -1) {
       final current = debts[index];
       final newStatus = !current.isPaid;
-      debts[index] = current.copyWith(
-        isPaid: newStatus,
-        paidDate: newStatus ? DateTime.now() : null,
-      );
-      await _saveToStorage();
+      final effectiveMethod =
+          (paymentMethod != null && paymentMethod.isNotEmpty)
+              ? paymentMethod
+              : current.paymentMethod;
 
       if (newStatus && current.amount > 0) {
+        String? createdTxId;
         try {
           if (Get.isRegistered<TransactionRepostory>()) {
             final repo = Get.find<TransactionRepostory>();
             final isRec = current.isReceivable;
-            await repo.createTransaction(
+            final created = await repo.createTransaction(
               Transaction(
                 id: '',
                 amount: current.amount,
@@ -135,17 +135,62 @@ class DebtService extends GetxService {
                 categoryName: isRec ? 'Diğer Gelir' : 'Diğer Gider',
                 categoryIcon: 'account_balance_wallet',
                 userId: '',
-                paymentMethod: 'cash',
+                paymentMethod: effectiveMethod,
               ),
             );
+            createdTxId = created.id;
             if (Get.isRegistered<DashboardController>()) {
-              await Get.find<DashboardController>().refreshDashboard();
+              final dash = Get.find<DashboardController>();
+              if (created.id.isNotEmpty) {
+                await dash.accountService.setPaymentMethod(
+                  created.id,
+                  effectiveMethod,
+                );
+              }
+              await dash.refreshDashboard();
             }
           }
         } catch (e) {
           debugPrint("Borç/Alacak cüzdana yansıtılırken hata: $e");
         }
+        debts[index] = current.copyWith(
+          isPaid: true,
+          paidDate: DateTime.now(),
+          paymentMethod: effectiveMethod,
+          linkedTransactionId: createdTxId,
+        );
+      } else {
+        // Ödendi durumu geri alındığında cüzdandaki bağlı işlemi sil
+        final linkedId = current.linkedTransactionId;
+        if (linkedId != null && linkedId.isNotEmpty) {
+          try {
+            if (Get.isRegistered<TransactionRepostory>()) {
+              await Get.find<TransactionRepostory>().deleteTransaction(linkedId);
+            }
+            if (Get.isRegistered<DashboardController>()) {
+              final dash = Get.find<DashboardController>();
+              dash.myTransaction.removeWhere((t) => t.id == linkedId);
+              await dash.accountService.removePaymentMethod(linkedId);
+              dash.aylikOzet();
+            }
+          } catch (e) {
+            debugPrint("Bağlı borç işlemi silinirken hata: $e");
+          }
+        }
+        debts[index] = DebtItem(
+          id: current.id,
+          personName: current.personName,
+          type: current.type,
+          amount: current.amount,
+          dueDate: current.dueDate,
+          notes: current.notes,
+          isPaid: false,
+          paidDate: null,
+          paymentMethod: current.paymentMethod,
+          linkedTransactionId: null,
+        );
       }
+      await _saveToStorage();
     }
   }
 

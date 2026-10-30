@@ -8,6 +8,7 @@ import 'package:gelir_gider_uygulamasi/models/app_user.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/api_services.dart';
+import 'package:gelir_gider_uygulamasi/services/budget_service.dart';
 import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
@@ -169,6 +170,9 @@ class AuthService extends GetxController {
       }
       if (Get.isRegistered<CreditCardService>()) {
         Get.find<CreditCardService>().loadData();
+      }
+      if (Get.isRegistered<BudgetService>()) {
+        Get.find<BudgetService>().loadBudgets();
       }
     } catch (_) {}
   }
@@ -486,6 +490,12 @@ class AuthService extends GetxController {
       // Kategorileri sil
       final catDocs = await userDoc.collection('categories').get();
       for (final doc in catDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      // Extra modül verilerini (kredi kartları, borçlar, kumbara, sabit ödemeler) sil
+      final extraDocs = await userDoc.collection('extra_modules').get();
+      for (final doc in extraDocs.docs) {
         await doc.reference.delete();
       }
 

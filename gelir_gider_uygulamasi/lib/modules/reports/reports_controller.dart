@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
 import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:get/get.dart';
@@ -82,6 +83,14 @@ class ReportsController extends BaseController {
     super.onInit();
     _transactionRepository = Get.find<TransactionRepostory>();
     loadData();
+    if (Get.isRegistered<DashboardController>()) {
+      ever<List<AppTransaction>>(
+        Get.find<DashboardController>().myTransaction,
+        (list) {
+          transactions.value = List<AppTransaction>.from(list);
+        },
+      );
+    }
   }
 
   Future<void> loadData() async {
@@ -136,6 +145,7 @@ class ReportsController extends BaseController {
   List<AppTransaction> get selectedMonthTransactions {
     final target = selectedMonth.value;
     return transactions.where((tr) {
+      if (tr.description.trim().startsWith('[TRANSFER:')) return false;
       final pDate = DateTime.tryParse(tr.date);
       if (pDate == null) return false;
       return pDate.year == target.year && pDate.month == target.month;
@@ -243,6 +253,7 @@ class ReportsController extends BaseController {
       double expense = 0.0;
 
       for (var tr in transactions) {
+        if (tr.description.trim().startsWith('[TRANSFER:')) continue;
         final pDate = DateTime.tryParse(tr.date);
         if (pDate != null && pDate.year == year && pDate.month == month) {
           final amt = tr.baseAmount;

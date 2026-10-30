@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gelir_gider_uygulamasi/models/app_currency.dart';
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
+import 'package:get/get.dart';
 
 class TransactionModel {
   final String? id;
@@ -94,6 +97,24 @@ class TransactionModel {
     final desc = appTrans.description.trim();
     final catName = appTrans.category?.name.trim() ?? 'Diğer';
 
+    final method = appTrans.paymentMethodEnum;
+    String paymentMethodLabel = method.title;
+    if (method == PaymentMethod.creditCard &&
+        Get.isRegistered<CreditCardService>()) {
+      final cardService = Get.find<CreditCardService>();
+      final cardId = PaymentMethod.extractCreditCardId(appTrans.paymentMethod);
+      if (cardId != null) {
+        final matched =
+            cardService.cards.firstWhereOrNull((c) => c.id == cardId);
+        if (matched != null) {
+          paymentMethodLabel = "${method.title} (${matched.cardName})";
+        }
+      } else if (cardService.cards.length == 1) {
+        paymentMethodLabel =
+            "${method.title} (${cardService.cards.first.cardName})";
+      }
+    }
+
     return TransactionModel(
       id: appTrans.id,
       title: desc.isNotEmpty ? desc : catName,
@@ -101,7 +122,7 @@ class TransactionModel {
       type: isIncome ? 'gelir' : 'gider',
       category: catName,
       date: parsedDate,
-      paymentMethod: appTrans.paymentMethodEnum.title,
+      paymentMethod: paymentMethodLabel,
       description: desc,
       currency: appTrans.currency,
       exchangeRate: appTrans.exchangeRate,

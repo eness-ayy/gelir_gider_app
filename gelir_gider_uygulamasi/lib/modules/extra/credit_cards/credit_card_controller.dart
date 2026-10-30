@@ -324,6 +324,32 @@ class CreditCardController extends BaseController {
     _recomputeLimits();
   }
 
+  /// Mevcut kartı güncelleme
+  Future<void> updateExistingCard({
+    required String id,
+    required String cardName,
+    required String bankName,
+    required double totalLimit,
+    required int cutoffDay,
+    required int dueDay,
+    required String colorHex,
+    String last4Digits = '0000',
+  }) async {
+    final updated = CreditCardModel(
+      id: id,
+      cardName: cardName.trim(),
+      bankName: bankName.trim(),
+      totalLimit: totalLimit,
+      cutoffDay: cutoffDay,
+      dueDay: dueDay,
+      colorHex: colorHex,
+      last4Digits: last4Digits,
+    );
+
+    await _service.updateCard(updated);
+    _recomputeLimits();
+  }
+
   /// Kart silme
   Future<void> deleteCard(String cardId) async {
     await _service.deleteCard(cardId);

@@ -96,13 +96,16 @@ class RecurringService extends GetxService {
 
   Future<bool> recordPaymentToWallet(
     RecurringTransaction item, {
-    String paymentMethod = 'bank_card',
+    String? paymentMethod,
   }) async {
     if (item.amount <= 0 || item.isPaidThisMonth) return false;
+    final effectiveMethod = (paymentMethod != null && paymentMethod.isNotEmpty)
+        ? paymentMethod
+        : item.paymentMethod;
     try {
       if (Get.isRegistered<TransactionRepostory>()) {
         final repo = Get.find<TransactionRepostory>();
-        await repo.createTransaction(
+        final created = await repo.createTransaction(
           Transaction(
             id: '',
             amount: item.amount,
@@ -113,7 +116,7 @@ class RecurringService extends GetxService {
             categoryName: item.category,
             categoryIcon: 'event_repeat',
             userId: '',
-            paymentMethod: paymentMethod,
+            paymentMethod: effectiveMethod,
           ),
         );
         final idx = items.indexWhere((i) => i.id == item.id);
@@ -124,7 +127,14 @@ class RecurringService extends GetxService {
           await _saveToStorage();
         }
         if (Get.isRegistered<DashboardController>()) {
-          await Get.find<DashboardController>().refreshDashboard();
+          final dash = Get.find<DashboardController>();
+          if (created.id.isNotEmpty) {
+            await dash.accountService.setPaymentMethod(
+              created.id,
+              effectiveMethod,
+            );
+          }
+          await dash.refreshDashboard();
         }
         return true;
       }

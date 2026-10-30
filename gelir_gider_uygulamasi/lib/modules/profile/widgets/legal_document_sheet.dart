@@ -114,7 +114,7 @@ class LegalDocumentSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "Son Güncelleme: 24 Ekim 2026",
+                        "Son Güncelleme: 30 Ekim 2026",
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? Colors.white54 : Colors.grey.shade600,
@@ -200,57 +200,64 @@ class LegalDocumentSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildIntroText(
-          "Lütfen Hesaply mobil uygulamasını kullanmadan önce bu Kullanım Koşullarını dikkatlice okuyunuz. Uygulamayı indirerek, kurarak veya kullanarak işbu sözleşmede yer alan tüm şartları kabul etmiş sayılırsınız.",
+          "Lütfen Hesaply mobil uygulamasını kullanmadan önce işbu Kullanım Koşullarını dikkatlice okuyunuz. Uygulamayı indirerek, misafir veya kayıtlı hesap oluşturarak ya da kullanarak aşağıdaki tüm şartları kabul etmiş sayılırsınız.",
           isDark,
         ),
         const SizedBox(height: 16),
         _buildArticleItem(
           number: "1",
-          title: "Hizmetin Niteliği ve Kapsamı",
+          title: "Hizmetin Kapsamı ve Özellikleri",
           body:
-              "Hesaply, kullanıcıların kişisel gelir ve harcamalarını manuel olarak kayıt altına almalarını, bütçelerini grafiklerle görselleştirmelerini ve periyodik mali özet raporları (PDF) oluşturmalarını sağlayan bir kişisel finans yönetim asistanıdır.",
+              "Hesaply; kullanıcıların kişisel gelir ve giderlerini (Nakit, Banka Kartı, Kredi Kartı ve Döviz/Altın cinsinden) kaydetmelerini, kredi kartı ekstre/taksit takibi yapmalarını, sabit ödemelerini (kira, fatura, abonelik), birikim kumbaralarını ve borç/alacaklarını yönetmelerini, davet kodu ile ortak grup/ev bütçesi paylaşmalarını ve PDF finansal raporları oluşturmalarını sağlayan kapsamlı bir kişisel finans asistanıdır.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "2",
-          title: "Finansal Tavsiye ve Sorumluluk Reddi",
+          title: "Finansal Tavsiye ve Bankacılık Sorumluluk Reddi",
           body:
-              "Hesaply bir banka, resmi muhasebe ofisi veya portföy yönetim kuruluşu değildir. Uygulama içerisinde sunulan bakiye, grafik ve raporlar kullanıcının doğrudan kendi girdiği verilere dayanmaktadır ve yalnızca kişisel takip amaçlıdır. Hesaply, uygulama verilerine dayanılarak alınan kişisel harcama veya yatırım kararlarından doğabilecek maddi ya da manevi kayıplardan sorumlu tutulamaz.",
+              "Hesaply bir banka, ödeme kuruluşu, elektronik para şirketi veya yatırım danışmanlığı kurumu değildir. Uygulama üzerinden gerçek para transferi (EFT/Havale) veya kredi kartı tahsilatı yapılmaz; 'Transfer / Borç Öde', 'Taksit Öde' ve 'Ödendi' butonları yalnızca kullanıcının kendi kişisel kayıtlarını ve hesap bakiyelerini senkronize etmek içindir. Döviz ve altın kurları bilgilendirme amaçlı olup anlık piyasa farklılıklarından veya kullanıcıların mali kararlarından doğabilecek zararlardan geliştirici sorumlu tutulamaz.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "3",
-          title: "Hesap Güvenliği ve Kullanıcı Yükümlülüğü",
+          title: "Üyelik, Misafir Kullanımı ve Hesap Güvenliği",
           body:
-              "Kullanıcı, hesabına erişim sağlayan e-posta ve şifre bilgilerinin gizliliğini korumaktan şahsen sorumludur. Hesabınız üzerinden gerçekleştirilen tüm işlemler sizin yetkiniz dahilinde kabul edilir. Yetkisiz bir erişim fark ettiğinizde durumu gecikmeksizin destek adresimize bildirmeniz gerekir.",
+              "Uygulamayı E-posta/Şifre, Google Hesabı veya Misafir (Anonim) modda kullanabilirsiniz. Misafir kullanıcılar cihaz sıfırlandığında veya uygulama silindiğinde veri kaybı yaşamamak için Profil ekranından hesaplarını Google veya E-posta ile kalıcı hesaba bağlamalıdır. Hesap şifresinin ve ortak grup davet kodlarının güvenliğinden kullanıcı bizzat sorumludur.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "4",
-          title: "Kabul Edilebilir Kullanım Kuralları",
+          title: "Ortak Bütçe ve Grup Harcamaları Kuralları",
           body:
-              "Kullanıcılar uygulamayı hukuka uygun amaçlarla kullanmayı; uygulamanın güvenliğini tehlikeye atacak tersine mühendislik girişimlerinde bulunmamayı ve sistem kaynaklarını suistimal etmemeyi kabul eder. Kötü niyetli kullanım tespitinde hesaplar önceden bildirim yapılmaksızın askıya alınabilir.\n\nHesaply Mobil Uygulaması • Resmi Kullanım Sözleşmesi",
+              "6 haneli davet kodu ile oluşturulan veya katılınan Ortak Ev/Yurt Bütçesi ve Grup Harcamaları modüllerinde; gruba eklenen harcama başlıkları, tutarlar, ihtiyaç listesi maddeleri ve katılımcı adları o grubun diğer üyeleri tarafından görüntülenebilir. Kullanıcılar ortak gruplarda yanıltıcı, hukuka aykırı veya üçüncü kişilerin haklarını ihlal eden içerikler paylaşmamayı kabul eder.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "5",
-          title: "Fikri Mülkiyet Hakları",
+          title: "Kabul Edilebilir Kullanım ve Hizmet Bütünlüğü",
           body:
-              "Hesaply uygulamasının adı, görsel kimliği, arayüz tasarımları, logoları, kaynak kodları ve tüm yazılımsal bileşenleri geliştiriciye aittir. Telif hakları yasalarıyla korunmakta olup, geliştiricinin yazılı izni olmadan kısmen veya tamamen kopyalanamaz, çoğaltılamaz ve ticari amaçla dağıtılamaz.",
+              "Kullanıcılar uygulamayı yalnızca yasal ve kişisel bütçe yönetimi amacıyla kullanmayı; uygulamanın bulut veritabanı (Firebase) ve API servislerini suistimal edecek otomatik bot, tersine mühendislik veya yetkisiz erişim girişimlerinde bulunmamayı taahhüt eder. Güvenliği tehlikeye atan hesaplar askıya alınabilir.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "6",
-          title: "Hizmet Sürekliliği ve Değişiklikler",
+          title: "Fikri Mülkiyet Hakları",
           body:
-              "Geliştirici, uygulamanın işlevlerini iyileştirme, yeni özellikler ekleme veya mevcut modülleri güncelleme hakkını saklı tutar. Kullanım koşullarında yapılabilecek esaslı güncellemeler bu sayfa üzerinden duyurulur ve yürürlüğe girer.",
+              "Hesaply uygulamasının adı, arayüz tasarımları, grafik bileşenleri, kaynak kodları ve özgün içerikleri geliştiriciye aittir. Geliştiricinin yazılı izni olmaksızın kopyalanamaz, değiştirilemez veya ticari amaçla çoğaltılamaz.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "7",
-          title: "Destek ve İletişim",
+          title: "Veri Sıfırlama, Hesap Silme ve Değişiklikler",
           body:
-              "Geliştirici İletişim & Destek Masası\n\nKullanım Koşulları ve sözleşme maddeleri ile ilgili tüm bildirim, öneri veya şikayetleriniz için aşağıdaki resmi destek e-posta adresimiz üzerinden bizimle irtibat kurabilirsiniz.\n\nE-posta: ensayy63@gmail.com\n\nHesaply Mobil Uygulaması • Resmi Kullanım Sözleşmesi",
+              "Kullanıcı dilediği zaman Profil menüsünden 'Verileri Sıfırla' seçeneğiyle tüm finansal kayıtlarını temizleyebilir veya 'Hesabı Sil' seçeneğiyle hesabını kalıcı olarak kapatabilir. Geliştirici, uygulama özelliklerini ve kullanım koşullarını güncelleme hakkını saklı tutar.",
+          isDark: isDark,
+        ),
+        _buildArticleItem(
+          number: "8",
+          title: "İletişim ve Destek",
+          body:
+              "Kullanım Koşulları ile ilgili her türlü soru, görüş ve teknik destek talebiniz için uygulama içi 'Geri Bildirim & İletişim' formundan veya aşağıdaki e-posta adresinden bize ulaşabilirsiniz.\n\nE-posta: ensayy63@gmail.com\n\nHesaply Mobil Uygulaması • Resmi Kullanım Sözleşmesi",
           isDark: isDark,
         ),
       ],
@@ -263,57 +270,62 @@ class LegalDocumentSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildIntroText(
-          "Hesaply ekibi olarak kullanıcılarımızın gizliliğine ve kişisel verilerinin korunmasına azami önem veriyoruz. Bu Gizlilik Politikası, Hesaply mobil uygulamasını kullandığınızda hangi kişisel verilerin toplandığını, işlenme esaslarını ve güvenliğinin nasıl sağlandığını şeffaf bir şekilde açıklar.",
+          "Hesaply olarak kişisel ve finansal verilerinizin gizliliğini en üst düzeyde koruyoruz. İşbu Gizlilik Politikası, 6698 sayılı KVKK, GDPR ve Google Play / App Store veri güvenliği standartları uyarınca uygulamamızda hangi verilerin toplandığını, nerede kullanıldığını ve nasıl korunduğunu şeffaf biçimde açıklar.",
           isDark,
         ),
         const SizedBox(height: 16),
         _buildArticleItem(
           number: "1",
-          title: "Toplanan Bilgiler ve Veri Türleri",
+          title: "Toplanan Veriler ve Kapsamı",
           body:
-              "• Hesap Bilgileri: Uygulamaya kayıt olurken veya giriş yaparken ilettiğiniz e-posta adresi ve şifre gibi kimlik doğrulama verileri toplanır. Kullanıcı parolaları tarafımızca açık halde görüntülenemez; endüstri standardı kriptografik yöntemlerle şifrelenerek korunur.\n\n• Finansal ve İşlem Kayıtları: Uygulama içerisinde manuel olarak girdiğiniz gelir tutarları, gider tutarları, harcama kategorileri, işlem açıklamaları ve tarihler kayıt altına alınır. Hesaply bir banka veya resmi finans kuruluşu değildir; doğrudan banka hesaplarınıza, IBAN şifrelerinize veya kredi kartı detaylarınıza erişim talep etmez.\n\n• Cihaz ve Kullanım Verileri: Uygulama performansını izlemek, çökme raporlarını tespit etmek ve arayüz kararlılığını sağlamak için işletim sistemi sürümü ve genel kullanım istatistikleri toplanabilir.",
+              "Hesaply yalnızca uygulamanın işlevlerini sunabilmek için doğrudan sizin girdiğiniz aşağıdaki verileri işler:\n\n"
+              "• Kimlik ve Profil Bilgileri: Kayıt veya Google ile giriş sırasında alınan Ad, Soyad, E-posta adresi, kullanıcı kimliği (UID) ve uygulama içinden seçilen profil avatarı/fotoğrafı.\n\n"
+              "• Gelir, Gider ve Bütçe Kayıtları: Eklediğiniz gelir/gider tutarları, döviz/altın cinsi (TRY, USD, EUR, GBP, GAU), işlem tarihi, açıklaması, özel kategorileriniz, aylık kategori harcama limitleriniz ve ödeme yöntemi (Nakit, Banka Kartı, Kredi Kartı) tercihleriniz.\n\n"
+              "• Kredi Kartı, Taksit, Borç, Kumbara ve Sabit Ödemeler: Ekstra modüllerde takip amaçlı girdiğiniz kart adı, banka adı, kart limiti, kesim/son ödeme günü, isteğe bağlı kartın yalnızca son 4 hanesi, taksit planları, borç/alacak kayıtları, birikim hedefleri ve fatura/abonelik hatırlatmaları. (ÖNEMLİ: Uygulamamızda 16 haneli tam kredi kartı numarası, CVV/CVC güvenlik kodu, IBAN veya internet bankacılığı şifresi KESİNLİKLE talep edilmez ve saklanmaz.)\n\n"
+              "• Ortak Bütçe ve Grup Verileri: Ortak ev/yurt bütçesi veya harcama gruplarında oluşturduğunuz grup adı, katılımcı isimleri, ortak giderler, hesaplaşma durumları ve oda ihtiyaç listesi.\n\n"
+              "• Geri Bildirim Kayıtları: İsteğe bağlı gönderdiğiniz hata/öneri mesajları ile hesap silme sırasında seçtiğiniz ayrılma nedeni.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "2",
-          title: "Verilerin Kullanım Amaçları",
+          title: "Verilerin Hangi Amaçlarla ve Nerede Kullanıldığı",
           body:
-              "Toplanan tüm kişisel ve finansal veriler münhasıran aşağıdaki operasyonel amaçlar doğrultusunda işlenmektedir:\n\n• Uygulamanın temel işlevlerini eksiksiz yerine getirmek, gelir ve giderleri hesaplayıp bakiye dengesini sunmak.\n• Finansal verileri grafiksel ve kategorik özetlerle analiz edilebilir hale getirmek.\n• Kullanıcı tarafından talep edilen tarih aralıklarında yerel PDF formatında harcama raporu oluşturmak.\n• Kullanıcı oturum güvenliğini ve hesap bütünlüğünü sürdürmek.\n• Sistem hatalarını tespit ederek teknik destek sağlamak.\n\nHesaply Mobil Uygulaması • Resmi Yasal Belge",
+              "• Ana Ekran ve Raporlar: Gelir-gider dengesini, Nakit/Banka/Kredi Kartı hesap bakiyelerini ve son 6 aylık kategori/trend grafiklerini hesaplamak için kullanılır.\n"
+              "• Çoklu Cihaz ve Bulut Senkronizasyonu: Kayıtlı kullanıcıların verilerini cihaz değişiminde kaybetmemesi için Google Firebase (Cloud Firestore) üzerindeki kullanıcıya özel izole koleksiyonlarda (`users/{uid}`) senkronize etmek için kullanılır.\n"
+              "• Ortak Grup Paylaşımı: 6 haneli davet koduyla katılınan ortak gruplarda harcama ve ihtiyaç listesini yalnızca o grubun üyeleri arasında eşzamanlı göstermek için kullanılır.\n"
+              "• Hatırlatıcı ve Uyarılar: Fatura/abonelik günleri, kredi kartı kesim/son ödeme tarihleri ve bütçe limit aşımları için cihaz içi yerel bildirimler oluşturmak amacıyla kullanılır.\n"
+              "• PDF Raporlama: Seçtiğiniz tarih aralığındaki işlemleri cihazınızda yerel olarak PDF belgesine dönüştürüp paylaşabilmeniz için kullanılır.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "3",
-          title: "Verilerin Saklanması ve Güvenliği",
+          title: "Cihaz İzinleri ve Yerel Depolama",
           body:
-              "Hesaply kullanıcı verileri, Google Cloud altyapısı üzerinde yer alan güvenli bulut sunucularında muhafaza edilmektedir. İstemci ile sunucu arasındaki tüm veri transferi SSL/TLS şifreleme protokolleriyle güvence altına alınır. Kullanıcı verileri kesinlikle üçüncü taraflara satılmaz, kiralanmaz veya ticari amaçla devredilmez.",
+              "• Bildirim İzni: Yalnızca sizin aktif ettiğiniz günlük harcama, fatura, kart vadesi ve bütçe aşım uyarılarını cihazınızda göstermek için kullanılır.\n"
+              "• Geçici Dosya ve Yazdırma/Paylaşım Erişimi: 'Verileri Dışa Aktar (PDF)' özelliğini kullandığınızda PDF dosyası tamamen cihazınızın geçici belleğinde oluşturulur; harici bir sunucuya yüklenmez.\n"
+              "• Yerel Önbellek (SharedPreferences): Çevrimdışı çalışma, tema tercihi (Açık/Koyu mod) ve hızlı açılış için veriler cihazınızda kullanıcı kimliğinize özel anahtarlarla (`scopedKey`) izole edilerek saklanır.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "4",
-          title: "Dışa Aktarma ve Cihaz Depolama İzinleri",
+          title: "Veri Güvenliği ve Üçüncü Taraflarla Paylaşım",
           body:
-              "Uygulama üzerinden gelir ve gider verilerinizi PDF olarak dışa aktarmak istediğinizde, oluşturulan dosyanın cihaz belleğine kaydedilmesi veya paylaştırılabilmesi için depolama ve yazdırma erişimleri kullanılır. Bu erişim izinleri yalnızca oluşturulan PDF raporunun yönetimi amacıyla sınırlıdır.",
+              "Kullanıcı verileri hiçbir koşulda reklam ağlarına veya üçüncü taraflara satılmaz, kiralanmaz ve pazarlama amacıyla paylaşılmaz. Kimlik doğrulama ve bulut yedekleme işlemleri Google Firebase (Firebase Authentication & Cloud Firestore) altyapısı üzerinde HTTPS/TLS şifrelemesi ile korunmaktadır. Döviz kurları için harici kur servislerine yalnızca anonim kur sorgusu yapılır, kişisel veri iletilmez.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "5",
-          title: "Veri Silme ve Hesap İptali (Google Play & App Store Uyumu)",
+          title: "Verileri Sıfırlama ve Kalıcı Hesap Silme Hakkı",
           body:
-              "Kullanıcılar verileri üzerinde koşulsuz tasarruf hakkına sahiptir. Uygulama içerisindeki Profil ekranında yer alan Hesabımı Sil bağlantısını kullanarak dilediğiniz an hesabınızı ve hesaba ait tüm gelir, gider ve kategori kayıtlarını kalıcı olarak silebilirsiniz. Silinen veriler veritabanlarımızdan geri döndürülemez biçimde temizlenir.",
+              "• Verileri Sıfırla: Profil > Verileri Sıfırla adımıyla hesabınızı kapatmadan tüm gelir, gider, kategori, bütçe limiti, kredi kartı, taksit, borç, kumbara, sabit ödeme ve grup verilerinizi tek dokunuşla hem cihazdan hem buluttan temizleyebilirsiniz.\n\n"
+              "• Hesabı Sil: Profil > Hesabı Sil adımıyla hesabınızı sildiğinizde; Firebase Authentication kimlik kaydınız ile Firestore üzerindeki tüm kişisel profiliniz, işlemleriniz, kategorileriniz ve ekstra modül verileriniz geri döndürülemez biçimde kalıcı olarak silinir.",
           isDark: isDark,
         ),
         _buildArticleItem(
           number: "6",
-          title: "Üçüncü Taraf Altyapı Sağlayıcıları",
-          body:
-              "Uygulamamız kimlik doğrulama, oturum yönetimi ve veritabanı senkronizasyonu için Google Firebase altyapısını kullanmaktadır. Bu hizmetler uluslararası güvenlik ve veri koruma standartlarına tam uyumludur.",
-          isDark: isDark,
-        ),
-        _buildArticleItem(
-          number: "7",
           title: "İletişim ve Veri Sorumlusu",
           body:
-              "Geliştirici & Destek İletişim Kanalı\n\nGizlilik Politikası, veri silme talepleri veya kişisel veri haklarınız ile ilgili her türlü soru ve bildirim için bizimle e-posta yoluyla iletişime geçebilirsiniz.\n\nE-posta: ensayy63@gmail.com\n\nHesaply Mobil Uygulaması • Resmi Yasal Belge",
+              "Kişisel verilerinizle ilgili her türlü soru, bilgi talebi veya silme başvurusu için uygulama içi 'Geri Bildirim & İletişim' bölümünden veya aşağıdaki e-posta adresinden veri sorumlusuna ulaşabilirsiniz.\n\nE-posta: ensayy63@gmail.com\n\nHesaply Mobil Uygulaması • Resmi Gizlilik Politikası",
           isDark: isDark,
         ),
       ],

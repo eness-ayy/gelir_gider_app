@@ -29,11 +29,15 @@ class PdfExportService {
     final dateTimeFormat = DateFormat('dd.MM.yyyy HH:mm');
     final currencyFormat = NumberFormat.currency(locale: 'tr_TR', symbol: 'TL', decimalDigits: 2);
 
-    // 3. Hesaplamalar
+    // 3. Hesaplamalar (Hesaplar arası transferler toplam gelir/gideri şişirmemeli)
     double totalIncome = 0.0;
     double totalExpense = 0.0;
 
     for (final t in transactions) {
+      final rawDesc = (t.description ?? t.title).trim();
+      if (rawDesc.startsWith('[TRANSFER:')) {
+        continue;
+      }
       final isIncome = t.type.toLowerCase() == 'gelir' || t.type.toLowerCase() == 'income';
       if (isIncome) {
         totalIncome += t.amount;
@@ -330,21 +334,44 @@ class PdfExportService {
                 5: pw.Alignment.centerLeft,
               },
               data: transactions.map((item) {
+                final rawText = (item.description != null && item.description!.isNotEmpty)
+                    ? item.description!.trim()
+                    : (item.title.isNotEmpty ? item.title.trim() : '-');
+                final transferMatch =
+                    RegExp(r'^\[TRANSFER:(.*?):(.*?)\]\s*(.*)$').firstMatch(rawText);
+                final isTransfer = transferMatch != null;
+
+                String cleanDesc = rawText
+                    .replaceAll(RegExp(r'\s*\[(GRP_STL|SHR_STL):.*?\]'), '')
+                    .trim();
+                if (isTransfer) {
+                  final tDesc = transferMatch.group(3)?.trim() ?? '';
+                  cleanDesc = tDesc.isNotEmpty ? tDesc : 'Hesaplar Arası Transfer';
+                } else {
+                  final grpMatch = RegExp(r'^\[(.*?)\]\s*(.*)$').firstMatch(cleanDesc);
+                  if (grpMatch != null) {
+                    final headerParts = (grpMatch.group(1) ?? '').split('|');
+                    final grpName = headerParts.first.trim();
+                    final expTitle = grpMatch.group(2)?.trim() ?? '';
+                    cleanDesc = grpName.isNotEmpty
+                        ? '[$grpName] $expTitle'
+                        : expTitle;
+                  }
+                }
+
                 final isIncome = item.type.toLowerCase() == 'gelir' || item.type.toLowerCase() == 'income';
-                final sign = isIncome ? '+ ' : '- ';
+                final sign = isTransfer ? '' : (isIncome ? '+ ' : '- ');
                 final formattedAmount = '$sign${currencyFormat.format(item.amount)}';
 
                 return <String>[
                   dateFormat.format(item.date),
-                  isIncome ? 'Gelir' : 'Gider',
-                  item.category.isNotEmpty ? item.category : 'Diğer',
+                  isTransfer ? 'Transfer' : (isIncome ? 'Gelir' : 'Gider'),
+                  isTransfer ? 'Transfer' : (item.category.isNotEmpty ? item.category : 'Diğer'),
                   (item.paymentMethod != null && item.paymentMethod!.isNotEmpty)
                       ? item.paymentMethod!
                       : 'Nakit',
                   formattedAmount,
-                  (item.description != null && item.description!.isNotEmpty)
-                      ? item.description!
-                      : (item.title.isNotEmpty ? item.title : '-'),
+                  cleanDesc.isNotEmpty ? cleanDesc : '-',
                 ];
               }).toList(),
             ),

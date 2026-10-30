@@ -7,6 +7,8 @@ class DebtItem {
   final String? notes;
   final bool isPaid;
   final DateTime? paidDate;
+  final String paymentMethod;
+  final String? linkedTransactionId;
 
   DebtItem({
     required this.id,
@@ -17,6 +19,8 @@ class DebtItem {
     this.notes,
     this.isPaid = false,
     this.paidDate,
+    this.paymentMethod = 'cash',
+    this.linkedTransactionId,
   });
 
   bool get isReceivable => type == 'receivable' || type == 'alacak';
@@ -30,6 +34,8 @@ class DebtItem {
     String? notes,
     bool? isPaid,
     DateTime? paidDate,
+    String? paymentMethod,
+    String? linkedTransactionId,
   }) {
     return DebtItem(
       id: id ?? this.id,
@@ -40,6 +46,8 @@ class DebtItem {
       notes: notes ?? this.notes,
       isPaid: isPaid ?? this.isPaid,
       paidDate: paidDate ?? this.paidDate,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      linkedTransactionId: linkedTransactionId ?? this.linkedTransactionId,
     );
   }
 
@@ -53,6 +61,8 @@ class DebtItem {
       'notes': notes,
       'isPaid': isPaid,
       'paidDate': paidDate?.toIso8601String(),
+      'paymentMethod': paymentMethod,
+      'linkedTransactionId': linkedTransactionId,
     };
   }
 
@@ -70,6 +80,8 @@ class DebtItem {
       paidDate: json['paidDate'] != null
           ? DateTime.tryParse(json['paidDate'] as String)
           : null,
+      paymentMethod: json['paymentMethod'] as String? ?? 'cash',
+      linkedTransactionId: json['linkedTransactionId'] as String?,
     );
   }
 }

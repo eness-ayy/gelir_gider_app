@@ -154,7 +154,11 @@ class AccountService extends GetxService {
           }
           break;
         case PaymentMethod.creditCard:
-          if (isIncome) {
+          final trimmedDesc = tr.description.trim();
+          if (trimmedDesc.startsWith('Taksit Ödemesi (') ||
+              trimmedDesc.startsWith('Taksit Erken Kapama (')) {
+            bankExpense += amount;
+          } else if (isIncome) {
             creditCardIncome += amount;
           } else {
             creditCardExpense += amount;

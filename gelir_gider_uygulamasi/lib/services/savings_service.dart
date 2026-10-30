@@ -7,6 +7,7 @@ import 'package:gelir_gider_uygulamasi/models/savings_goal.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
+import 'package:gelir_gider_uygulamasi/services/account_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
 
@@ -155,7 +156,7 @@ class SavingsService extends GetxService {
     try {
       if (Get.isRegistered<TransactionRepostory>()) {
         final repo = Get.find<TransactionRepostory>();
-        await repo.createTransaction(
+        final created = await repo.createTransaction(
           Transaction(
             id: '',
             amount: amount,
@@ -169,6 +170,12 @@ class SavingsService extends GetxService {
             paymentMethod: paymentMethod,
           ),
         );
+        if (created.id.isNotEmpty && Get.isRegistered<AccountService>()) {
+          await Get.find<AccountService>().setPaymentMethod(
+            created.id,
+            paymentMethod,
+          );
+        }
         if (Get.isRegistered<DashboardController>()) {
           await Get.find<DashboardController>().refreshDashboard();
         }

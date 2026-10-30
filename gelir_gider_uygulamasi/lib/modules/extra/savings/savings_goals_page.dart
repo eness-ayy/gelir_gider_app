@@ -214,6 +214,7 @@ class SavingsGoalsPage extends StatelessWidget {
     NumberFormat currencyFormatter,
   ) {
     final progress = goal.progress;
+    final goalColor = Color(goal.colorValue ?? 0xFF3B82F6);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
@@ -243,12 +244,12 @@ class SavingsGoalsPage extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                  color: goalColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.savings_outlined,
-                  color: Color(0xFF3B82F6),
+                  color: goalColor,
                   size: 22,
                 ),
               ),
@@ -327,10 +328,10 @@ class SavingsGoalsPage extends StatelessWidget {
               ),
               Text(
                 "%${(progress * 100).toStringAsFixed(0)}",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF3B82F6),
+                  color: goalColor,
                 ),
               ),
             ],
@@ -345,7 +346,7 @@ class SavingsGoalsPage extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(
                 progress >= 1.0
                     ? const Color(0xFF10B981)
-                    : const Color(0xFF3B82F6),
+                    : goalColor,
               ),
             ),
           ),
@@ -368,14 +369,40 @@ class SavingsGoalsPage extends StatelessWidget {
                       ),
                     ],
                   ),
+                )
+              else
+                const Spacer(),
+              if (goal.savedAmount > 0) ...[
+                OutlinedButton.icon(
+                  onPressed: () => _showMoneyActionDialog(
+                    context,
+                    goal,
+                    isDeposit: false,
+                  ),
+                  icon: const Icon(Icons.remove_rounded, size: 16),
+                  label: const Text("Para Çek"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange.shade700,
+                    side: BorderSide(color: Colors.orange.shade700),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 8),
+              ],
               OutlinedButton.icon(
-                onPressed: () => _showDepositDialog(context, goal),
+                onPressed: () => _showMoneyActionDialog(
+                  context,
+                  goal,
+                  isDeposit: true,
+                ),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text("Para Ekle"),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF3B82F6),
-                  side: const BorderSide(color: Color(0xFF3B82F6)),
+                  foregroundColor: goalColor,
+                  side: BorderSide(color: goalColor),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -389,42 +416,119 @@ class SavingsGoalsPage extends StatelessWidget {
     );
   }
 
-  void _showDepositDialog(BuildContext context, SavingsGoal goal) {
+  void _showMoneyActionDialog(
+    BuildContext context,
+    SavingsGoal goal, {
+    required bool isDeposit,
+  }) {
     final controller = TextEditingController();
+    String selectedPaymentMethod = 'cash';
+    final goalColor = Color(goal.colorValue ?? 0xFF3B82F6);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text("${goal.title} Kumbarasına Para Ekle"),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: "Eklenecek Tutar (₺)",
-            hintText: "Örn: 500",
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Vazgeç"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final val = double.tryParse(controller.text.trim());
-              if (val != null && val > 0) {
-                service.depositMoney(goal.id, val);
-                Navigator.pop(ctx);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
-              foregroundColor: Colors.white,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
             ),
-            child: const Text("Ekle"),
-          ),
-        ],
+            title: Text(
+              isDeposit
+                  ? "${goal.title} Kumbarasına Para Ekle"
+                  : "${goal.title} Kumbarasından Para Çek",
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: isDeposit
+                        ? "Eklenecek Tutar (₺)"
+                        : "Çekilecek Tutar (₺)",
+                    hintText: "Örn: 500",
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  isDeposit
+                      ? "Hangi hesaptan aktarılsın?"
+                      : "Hangi hesaba aktarılsın?",
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text("Nakit"),
+                        selected: selectedPaymentMethod == 'cash',
+                        onSelected: (_) {
+                          setState(() => selectedPaymentMethod = 'cash');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text("Banka Kartı"),
+                        selected: selectedPaymentMethod == 'bank_card',
+                        onSelected: (_) {
+                          setState(() => selectedPaymentMethod = 'bank_card');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Vazgeç"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final val = double.tryParse(
+                    controller.text.replaceAll(',', '.').trim(),
+                  );
+                  if (val != null && val > 0) {
+                    if (isDeposit) {
+                      service.depositMoney(
+                        goal.id,
+                        val,
+                        paymentMethod: selectedPaymentMethod,
+                      );
+                    } else {
+                      service.withdrawMoney(
+                        goal.id,
+                        val,
+                        paymentMethod: selectedPaymentMethod,
+                      );
+                    }
+                    Navigator.pop(ctx);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDeposit
+                      ? goalColor
+                      : Colors.orange.shade700,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(isDeposit ? "Ekle" : "Çek"),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

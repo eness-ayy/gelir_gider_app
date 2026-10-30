@@ -163,19 +163,52 @@ class CreditCardService extends GetxService {
     await _saveInstallments();
   }
 
-  Future<void> closeInstallmentEarly(String id) async {
+  Future<void> closeInstallmentEarly(
+    String id, {
+    String paymentMethod = 'bank_card',
+  }) async {
     final index = installments.indexWhere((i) => i.id == id);
     if (index != -1) {
       final current = installments[index];
+      final remainingToPay = current.remainingAmount;
       installments[index] = current.copyWith(
         paidInstallments: current.totalInstallments,
         isCompleted: true,
       );
       await _saveInstallments();
+
+      try {
+        if (Get.isRegistered<TransactionRepostory>() && remainingToPay > 0) {
+          final repo = Get.find<TransactionRepostory>();
+          await repo.createTransaction(
+            Transaction(
+              id: '',
+              amount: remainingToPay,
+              description:
+                  "Taksit Erken Kapama (${current.title} - Kalan ${current.remainingInstallments} Taksit)",
+              type: 'expense',
+              date: DateTime.now().toIso8601String(),
+              categoryId: 'Kredi Kartı & Taksit',
+              categoryName: 'Kredi Kartı & Taksit',
+              categoryIcon: 'credit_card',
+              userId: '',
+              paymentMethod: paymentMethod,
+            ),
+          );
+          if (Get.isRegistered<DashboardController>()) {
+            await Get.find<DashboardController>().refreshDashboard();
+          }
+        }
+      } catch (e) {
+        debugPrint("Taksit erken kapama cüzdana işlenirken hata: $e");
+      }
     }
   }
 
-  Future<void> payNextInstallment(String id) async {
+  Future<void> payNextInstallment(
+    String id, {
+    String paymentMethod = 'bank_card',
+  }) async {
     final index = installments.indexWhere((i) => i.id == id);
     if (index != -1) {
       final current = installments[index];
@@ -203,7 +236,7 @@ class CreditCardService extends GetxService {
               categoryName: 'Kredi Kartı & Taksit',
               categoryIcon: 'credit_card',
               userId: '',
-              paymentMethod: PaymentMethod.buildCreditCardKey(current.cardId),
+              paymentMethod: paymentMethod,
             ),
           );
           if (Get.isRegistered<DashboardController>()) {

@@ -12,6 +12,8 @@ class BudgetService extends GetxService {
   late StorgeService _storageService;
   final budgets = <String, double>{}.obs;
 
+  String get _scopedBudgetsKey => _storageService.scopedKey(_budgetsStorageKey);
+
   @override
   void onInit() {
     super.onInit();
@@ -21,7 +23,15 @@ class BudgetService extends GetxService {
 
   void loadBudgets() {
     try {
-      final jsonString = _storageService.getValue<String>(_budgetsStorageKey);
+      String? jsonString = _storageService.getValue<String>(_scopedBudgetsKey);
+      if ((jsonString == null || jsonString.isEmpty) &&
+          _storageService.hasKey(_budgetsStorageKey)) {
+        jsonString = _storageService.getValue<String>(_budgetsStorageKey);
+        if (jsonString != null && jsonString.isNotEmpty) {
+          _storageService.setValue<String>(_scopedBudgetsKey, jsonString);
+          _storageService.remove(_budgetsStorageKey);
+        }
+      }
       if (jsonString != null && jsonString.isNotEmpty) {
         final Map<String, dynamic> decoded = jsonDecode(jsonString);
         final map = <String, double>{};
@@ -32,16 +42,19 @@ class BudgetService extends GetxService {
           }
         });
         budgets.assignAll(map);
+      } else {
+        budgets.clear();
       }
     } catch (e) {
       debugPrint("Bütçe limitleri yüklenirken hata: $e");
+      budgets.clear();
     }
   }
 
   Future<void> _persistBudgets() async {
     try {
       final jsonString = jsonEncode(Map<String, double>.from(budgets));
-      await _storageService.setValue<String>(_budgetsStorageKey, jsonString);
+      await _storageService.setValue<String>(_scopedBudgetsKey, jsonString);
     } catch (e) {
       debugPrint("Bütçe limitleri kaydedilirken hata: $e");
     }

@@ -206,7 +206,9 @@ class TransactionList extends GetView<DashboardController> {
                 String categoryIcon = category?.icon ?? 'category';
 
                 final currentCatName = category?.name.trim() ?? '';
-                final desc = oankiTransaction.description.trim();
+                final desc = oankiTransaction.description
+                    .replaceAll(RegExp(r'\s*\[(GRP_STL|SHR_STL):.*?\]'), '')
+                    .trim();
                 final isMistakenDesc = desc.isNotEmpty &&
                     currentCatName == desc &&
                     desc != 'Gelir İşlemi' &&

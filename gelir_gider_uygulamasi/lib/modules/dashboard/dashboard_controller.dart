@@ -429,14 +429,26 @@ class DashboardController extends BaseController {
 
       // 2.5 Hesap / Ödeme Türü Filtresi (Nakit, Banka Kartı, Kredi Kartı)
       if (selectedAccountFilter.value != 'all') {
-        PaymentMethod method;
-        if (tr.paymentMethod != null && tr.paymentMethod!.isNotEmpty) {
-          method = PaymentMethod.fromKey(tr.paymentMethod);
+        final transferMatch = RegExp(
+          r'^\[TRANSFER:(.*?):(.*?)\]',
+        ).firstMatch(tr.description.trim());
+        if (transferMatch != null) {
+          final fromMethod = PaymentMethod.fromKey(transferMatch.group(1));
+          final toMethod = PaymentMethod.fromKey(transferMatch.group(2));
+          if (fromMethod.key != selectedAccountFilter.value &&
+              toMethod.key != selectedAccountFilter.value) {
+            return false;
+          }
         } else {
-          method = accountService.getPaymentMethod(tr.id);
-        }
-        if (method.key != selectedAccountFilter.value) {
-          return false;
+          PaymentMethod method;
+          if (tr.paymentMethod != null && tr.paymentMethod!.isNotEmpty) {
+            method = PaymentMethod.fromKey(tr.paymentMethod);
+          } else {
+            method = accountService.getPaymentMethod(tr.id);
+          }
+          if (method.key != selectedAccountFilter.value) {
+            return false;
+          }
         }
       }
 

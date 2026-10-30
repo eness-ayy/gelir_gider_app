@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/widgets/account_balances_card.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_credit_card_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_installment_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/credit_card_item.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/credit_card_transaction_item.dart';
@@ -35,13 +37,28 @@ class CreditCardDetailView extends StatelessWidget {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF9FAFB),
       appBar: AppBar(
-        title: Text(
-          initialCard.cardName,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+        title: Obx(() {
+          final liveCard = controller.cards
+                  .firstWhereOrNull((c) => c.id == initialCard.id) ??
+              initialCard;
+          return Text(
+            liveCard.cardName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          );
+        }),
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
+          IconButton(
+            onPressed: () {
+              final liveCard = controller.cards
+                      .firstWhereOrNull((c) => c.id == initialCard.id) ??
+                  initialCard;
+              AddCreditCardSheet.show(context, cardToEdit: liveCard);
+            },
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: "Kartı Düzenle",
+          ),
           IconButton(
             onPressed: () => _confirmDeleteCard(context, controller, initialCard),
             icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
@@ -294,6 +311,31 @@ class CreditCardDetailView extends StatelessWidget {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => AccountBalancesCard.showTransferSheet(
+                          context,
+                          initialCreditCardId: currentCard.id,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF6366F1),
+                          side: BorderSide(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        icon: const Icon(Icons.credit_score_rounded, size: 18),
+                        label: const Text(
+                          "Bu Kartın Borcunu Öde",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
                     ),
                   ],
                 ),

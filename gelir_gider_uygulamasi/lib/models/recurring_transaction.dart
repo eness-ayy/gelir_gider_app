@@ -9,6 +9,7 @@ class RecurringTransaction {
   final bool isActive;
   final String? notes;
   final String? lastProcessedPeriod;
+  final String paymentMethod;
 
   RecurringTransaction({
     required this.id,
@@ -21,6 +22,7 @@ class RecurringTransaction {
     this.isActive = true,
     this.notes,
     this.lastProcessedPeriod,
+    this.paymentMethod = 'bank_card',
   });
 
   /// Mevcut dönem anahtarı (Örn: "2026-10")
@@ -65,6 +67,7 @@ class RecurringTransaction {
     bool? isActive,
     String? notes,
     String? lastProcessedPeriod,
+    String? paymentMethod,
   }) {
     return RecurringTransaction(
       id: id ?? this.id,
@@ -77,6 +80,7 @@ class RecurringTransaction {
       isActive: isActive ?? this.isActive,
       notes: notes ?? this.notes,
       lastProcessedPeriod: lastProcessedPeriod ?? this.lastProcessedPeriod,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 
@@ -92,6 +96,7 @@ class RecurringTransaction {
       'isActive': isActive,
       'notes': notes,
       'lastProcessedPeriod': lastProcessedPeriod,
+      'paymentMethod': paymentMethod,
     };
   }
 
@@ -109,6 +114,7 @@ class RecurringTransaction {
       isActive: json['isActive'] as bool? ?? true,
       notes: json['notes'] as String?,
       lastProcessedPeriod: json['lastProcessedPeriod'] as String?,
+      paymentMethod: json['paymentMethod'] as String? ?? 'bank_card',
     );
   }
 }

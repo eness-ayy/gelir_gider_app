@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/models/recurring_transaction.dart';
+import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/payment_account_selector.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
@@ -36,6 +39,23 @@ class _AddRecurringTransactionSheetState
 
   late String _selectedPeriod;
   late String _selectedCategory;
+  PaymentMethod _selectedPaymentMethod = PaymentMethod.bankCard;
+  String? _selectedCreditCardId;
+
+  String get _effectivePaymentMethodKey {
+    if (_selectedPaymentMethod == PaymentMethod.creditCard) {
+      String? cardId = _selectedCreditCardId;
+      if ((cardId == null || cardId.isEmpty) &&
+          Get.isRegistered<CreditCardService>()) {
+        final cards = Get.find<CreditCardService>().cards;
+        if (cards.isNotEmpty) {
+          cardId = cards.first.id;
+        }
+      }
+      return PaymentMethod.buildCreditCardKey(cardId);
+    }
+    return _selectedPaymentMethod.key;
+  }
 
   final _formKey = GlobalKey<FormState>();
 
@@ -127,6 +147,15 @@ class _AddRecurringTransactionSheetState
     );
     _selectedPeriod = item?.period ?? 'monthly';
     _selectedCategory = item?.category ?? 'Dijital Medya';
+    _selectedPaymentMethod = item != null
+        ? PaymentMethod.fromKey(
+            item.paymentMethod,
+            defaultMethod: PaymentMethod.bankCard,
+          )
+        : PaymentMethod.bankCard;
+    _selectedCreditCardId = item != null
+        ? PaymentMethod.extractCreditCardId(item.paymentMethod)
+        : null;
   }
 
   @override
@@ -164,6 +193,7 @@ class _AddRecurringTransactionSheetState
           paymentDay: day.clamp(1, 31),
           period: _selectedPeriod,
           category: _selectedCategory,
+          paymentMethod: _effectivePaymentMethodKey,
         ),
       );
     } else {
@@ -176,6 +206,7 @@ class _AddRecurringTransactionSheetState
           period: _selectedPeriod,
           category: _selectedCategory,
           isActive: true,
+          paymentMethod: _effectivePaymentMethodKey,
         ),
       );
     }
@@ -669,6 +700,80 @@ class _AddRecurringTransactionSheetState
                           },
                         ),
                       ),
+
+                      const SizedBox(height: 18),
+
+                      // 7.5 Ödeme Yöntemi Seçimi (Nakit, Banka Kartı, Kredi Kartı)
+                      _buildSectionLabel("ÖDEME HESABI / KARTI", isDark),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: PaymentMethod.expenseMethods.map((method) {
+                            final isSelected = _selectedPaymentMethod == method;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                avatar: Icon(
+                                  method.icon,
+                                  size: 16,
+                                  color:
+                                      isSelected ? Colors.white : method.color,
+                                ),
+                                label: Text(method.title),
+                                selected: isSelected,
+                                selectedColor: method.color,
+                                labelStyle: TextStyle(
+                                  color: isSelected ? Colors.white : null,
+                                  fontSize: 12,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _selectedPaymentMethod = method;
+                                      if (method == PaymentMethod.creditCard &&
+                                          Get.isRegistered<
+                                              CreditCardService>()) {
+                                        final cards =
+                                            Get.find<CreditCardService>().cards;
+                                        if (cards.isNotEmpty &&
+                                            _selectedCreditCardId == null) {
+                                          _selectedCreditCardId =
+                                              cards.first.id;
+                                        }
+                                      }
+                                    });
+                                    if (method == PaymentMethod.creditCard &&
+                                        Get.isRegistered<CreditCardService>() &&
+                                        Get.find<CreditCardService>()
+                                            .cards
+                                            .isEmpty) {
+                                      PaymentAccountSelector
+                                          .showNoCreditCardInfoDialog(context);
+                                    }
+                                  }
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      if (_selectedPaymentMethod == PaymentMethod.creditCard)
+                        Obx(() {
+                          final _ = Get.isRegistered<CreditCardService>()
+                              ? Get.find<CreditCardService>().cards.length
+                              : 0;
+                          return PaymentAccountSelector.buildCardPickerSection(
+                            context: context,
+                            isDark: isDark,
+                            selectedCardId: _selectedCreditCardId,
+                            onSelectCard: (cardId) =>
+                                setState(() => _selectedCreditCardId = cardId),
+                          );
+                        }),
 
                       const SizedBox(height: 24),
 

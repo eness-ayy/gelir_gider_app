@@ -706,6 +706,7 @@ class _DebtsPageState extends State<DebtsPage> {
     final notesController =
         TextEditingController(text: debtToEdit?.notes ?? '');
     String selectedType = debtToEdit?.type ?? 'receivable';
+    String selectedPaymentMethod = debtToEdit?.paymentMethod ?? 'cash';
     DateTime selectedDate =
         debtToEdit?.dueDate ?? DateTime.now().add(const Duration(days: 15));
 
@@ -797,6 +798,40 @@ class _DebtsPageState extends State<DebtsPage> {
                       }
                     },
                   ),
+                  const SizedBox(height: 8),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Ödeme / Tahsilat Hesabı",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Center(child: Text("Nakit")),
+                          selected: selectedPaymentMethod == 'cash',
+                          onSelected: (val) {
+                            if (val) setState(() => selectedPaymentMethod = 'cash');
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Center(child: Text("Banka Hesabı")),
+                          selected: selectedPaymentMethod == 'bank_card',
+                          onSelected: (val) {
+                            if (val) {
+                              setState(() => selectedPaymentMethod = 'bank_card');
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -819,6 +854,7 @@ class _DebtsPageState extends State<DebtsPage> {
                         type: selectedType,
                         notes: notesController.text.trim(),
                         dueDate: selectedDate,
+                        paymentMethod: selectedPaymentMethod,
                       ));
                     } else {
                       service.addDebt(DebtItem(
@@ -828,6 +864,7 @@ class _DebtsPageState extends State<DebtsPage> {
                         type: selectedType,
                         notes: notesController.text.trim(),
                         dueDate: selectedDate,
+                        paymentMethod: selectedPaymentMethod,
                       ));
                     }
                     Navigator.pop(ctx);
