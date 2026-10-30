@@ -11,6 +11,7 @@ class ExpenseGroup {
   final DateTime createdAt;
   final String? icon;
   final List<String> paidSettlementKeys;
+  final String inviteCode;
 
   const ExpenseGroup({
     required this.id,
@@ -20,7 +21,18 @@ class ExpenseGroup {
     required this.createdAt,
     this.icon,
     this.paidSettlementKeys = const [],
+    this.inviteCode = '',
   });
+
+  /// Görüntülenecek 6 haneli grup davet kodu
+  String get effectiveInviteCode {
+    if (inviteCode.trim().isNotEmpty) return inviteCode.trim().toUpperCase();
+    final clean = id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    if (clean.length >= 6) {
+      return clean.substring(clean.length - 6);
+    }
+    return clean.padRight(6, '0');
+  }
 
   /// Gruptaki mevcut kullanıcı
   Participant? get currentUser {
@@ -163,6 +175,7 @@ class ExpenseGroup {
     DateTime? createdAt,
     String? icon,
     List<String>? paidSettlementKeys,
+    String? inviteCode,
   }) {
     return ExpenseGroup(
       id: id ?? this.id,
@@ -172,6 +185,7 @@ class ExpenseGroup {
       createdAt: createdAt ?? this.createdAt,
       icon: icon ?? this.icon,
       paidSettlementKeys: paidSettlementKeys ?? this.paidSettlementKeys,
+      inviteCode: inviteCode ?? this.inviteCode,
     );
   }
 
@@ -195,6 +209,7 @@ class ExpenseGroup {
               ?.map((k) => k.toString())
               .toList() ??
           const [],
+      inviteCode: json['inviteCode']?.toString() ?? '',
     );
   }
 
@@ -206,6 +221,7 @@ class ExpenseGroup {
         'createdAt': createdAt.toIso8601String(),
         if (icon != null) 'icon': icon,
         'paidSettlementKeys': paidSettlementKeys,
+        'inviteCode': effectiveInviteCode,
       };
 }
 

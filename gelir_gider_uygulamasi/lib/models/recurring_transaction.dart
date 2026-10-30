@@ -8,6 +8,7 @@ class RecurringTransaction {
   final DateTime? startDate;
   final bool isActive;
   final String? notes;
+  final String? lastProcessedPeriod;
 
   RecurringTransaction({
     required this.id,
@@ -19,7 +20,17 @@ class RecurringTransaction {
     this.startDate,
     this.isActive = true,
     this.notes,
+    this.lastProcessedPeriod,
   });
+
+  /// Mevcut dönem anahtarı (Örn: "2026-10")
+  String get currentPeriodKey {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}';
+  }
+
+  /// Bu ay için cüzdana işlenip işlenmediği
+  bool get isPaidThisMonth => lastProcessedPeriod == currentPeriodKey;
 
   /// Bir sonraki ödeme tarihini hesaplar
   DateTime get nextPaymentDate {
@@ -53,6 +64,7 @@ class RecurringTransaction {
     DateTime? startDate,
     bool? isActive,
     String? notes,
+    String? lastProcessedPeriod,
   }) {
     return RecurringTransaction(
       id: id ?? this.id,
@@ -64,6 +76,7 @@ class RecurringTransaction {
       startDate: startDate ?? this.startDate,
       isActive: isActive ?? this.isActive,
       notes: notes ?? this.notes,
+      lastProcessedPeriod: lastProcessedPeriod ?? this.lastProcessedPeriod,
     );
   }
 
@@ -78,6 +91,7 @@ class RecurringTransaction {
       'startDate': startDate?.toIso8601String(),
       'isActive': isActive,
       'notes': notes,
+      'lastProcessedPeriod': lastProcessedPeriod,
     };
   }
 
@@ -94,6 +108,7 @@ class RecurringTransaction {
           : null,
       isActive: json['isActive'] as bool? ?? true,
       notes: json['notes'] as String?,
+      lastProcessedPeriod: json['lastProcessedPeriod'] as String?,
     );
   }
 }

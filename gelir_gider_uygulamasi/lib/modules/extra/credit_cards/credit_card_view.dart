@@ -3,6 +3,7 @@ import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_co
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_credit_card_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_installment_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/credit_card_item.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/credit_card_transaction_item.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/installment_card.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/installment_load_chart.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
@@ -54,15 +55,25 @@ class _CreditCardViewState extends State<CreditCardView> {
         final cards = controller.cards;
         final activeInsts = controller.activeInstallments;
         final monthlyLoads = controller.getNext6MonthsLoad();
+        final currentCard = controller.currentSelectedCard;
+        final filterBySelectedCard =
+            controller.showOnlySelectedCardTransactions.value &&
+                cards.length > 1 &&
+                currentCard != null;
+        final creditCardTxs = filterBySelectedCard
+            ? controller.getTransactionsForCard(currentCard.id)
+            : controller.allCreditCardTransactions;
 
         final totalDebt = controller.usedLimit.value;
+        final singleShotTotal = controller.singleShotSpendTotal;
+        final installmentTotal = controller.installmentRemainingTotal;
         final availableLimit = controller.availableLimit.value;
         final totalLimit = controller.totalLimit.value;
         final utilization = controller.overallUtilizationPercentage;
 
         return RefreshIndicator(
           onRefresh: () async {
-            // Recompute
+            await controller.refreshData();
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(
@@ -182,6 +193,44 @@ class _CreditCardViewState extends State<CreditCardView> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.04)
+                              : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Tek Çekim: ${currencyFmt.format(singleShotTotal)}",
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white70
+                                    : Colors.grey.shade700,
+                              ),
+                            ),
+                            Text(
+                              "Taksit Yükü: ${currencyFmt.format(installmentTotal)}",
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white70
+                                    : Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -287,11 +336,102 @@ class _CreditCardViewState extends State<CreditCardView> {
                   ),
                 const SizedBox(height: 22),
 
-                // 3. GELECEK 6 AYIN TAKSİT YÜKÜ (Mini Bar Chart)
+                // 3. KREDİ KARTI HARCAMALARI (TEK ÇEKİM / GÜNLÜK HARCAMALAR)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Kredi Kartı Harcamaları (${creditCardTxs.length})",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                    if (cards.length > 1 && currentCard != null)
+                      InkWell(
+                        onTap: () {
+                          controller.showOnlySelectedCardTransactions.value =
+                              !controller.showOnlySelectedCardTransactions.value;
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: filterBySelectedCard
+                                ? const Color(0xFF6366F1).withValues(alpha: 0.18)
+                                : (isDark
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.grey.shade200),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            filterBySelectedCard
+                                ? "Sadece: ${currentCard.cardName}"
+                                : "Tüm Kartlar",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: filterBySelectedCard
+                                  ? const Color(0xFF818CF8)
+                                  : (isDark ? Colors.white70 : Colors.black87),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                if (creditCardTxs.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.receipt_long_rounded,
+                          size: 38,
+                          color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          filterBySelectedCard
+                              ? "${currentCard.cardName} kartına ait tek çekim harcama bulunmuyor."
+                              : "Henüz kredi kartıyla yapılmış tek çekim harcama bulunmuyor.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.white54 : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...creditCardTxs.map((tx) {
+                    final matchedCard = controller.getCardForTransaction(tx);
+                    return CreditCardTransactionItem(
+                      transaction: tx,
+                      card: matchedCard,
+                      showCardBadge: true,
+                      onDelete: controller.deleteCreditCardTransaction,
+                    );
+                  }),
+                const SizedBox(height: 22),
+
+                // 4. GELECEK 6 AYIN TAKSİT YÜKÜ (Mini Bar Chart)
                 InstallmentLoadChart(monthlyLoads: monthlyLoads),
                 const SizedBox(height: 24),
 
-                // 4. AKTİF TAKSİTLİ HARCAMALAR
+                // 5. AKTİF TAKSİTLİ HARCAMALAR
                 Text(
                   "Aktif Taksitli Harcamalar (${activeInsts.length})",
                   style: TextStyle(

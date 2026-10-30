@@ -30,7 +30,13 @@ class TransactionController extends BaseController {
   final selectedCategoryId = "".obs;
   final transactionType = "expense".obs;
   final selectedPaymentMethod = PaymentMethod.cash.obs;
+  final selectedCreditCardId = RxnString();
   final formKey = GlobalKey<FormState>();
+
+  String get effectivePaymentMethodKey =>
+      selectedPaymentMethod.value == PaymentMethod.creditCard
+          ? PaymentMethod.buildCreditCardKey(selectedCreditCardId.value)
+          : selectedPaymentMethod.value.key;
   final date = DateTime.now().obs;
 
   late final TextEditingController amountController;
@@ -58,6 +64,7 @@ class TransactionController extends BaseController {
 
   final isEditing = false.obs;
   String? editingTransactionId;
+  String? _editingCategoryHint;
 
   /// Kullanıcı kuru elle mi değiştirdi yoksa canlı piyasa kuru mu?
   final isManualRate = false.obs;
@@ -104,13 +111,23 @@ class TransactionController extends BaseController {
         exchangeRate.value = tr.exchangeRate;
         rateController.text = _formatInput(tr.exchangeRate);
       }
-      descriptionController.text = tr.description;
+      final rawDesc = tr.description.trim();
+      descriptionController.text =
+          (rawDesc == 'Gelir İşlemi' || rawDesc == 'Gider İşlemi')
+              ? ''
+              : rawDesc;
       transactionType.value = tr.type.isNotEmpty ? tr.type : "expense";
       selectedCategoryId.value = tr.categoryId;
+      _editingCategoryHint = tr.category?.name ?? tr.categoryId;
       if (tr.paymentMethod != null && tr.paymentMethod!.isNotEmpty) {
         selectedPaymentMethod.value = PaymentMethod.fromKey(tr.paymentMethod);
+        selectedCreditCardId.value =
+            PaymentMethod.extractCreditCardId(tr.paymentMethod);
       } else {
+        final savedMethodKey = _accountService.transactionPaymentMethods[tr.id];
         selectedPaymentMethod.value = _accountService.getPaymentMethod(tr.id);
+        selectedCreditCardId.value =
+            PaymentMethod.extractCreditCardId(savedMethodKey);
       }
       final parsedDate = DateTime.tryParse(tr.date);
       if (parsedDate != null) {
@@ -220,10 +237,30 @@ class TransactionController extends BaseController {
       final result = await _categoryRepository.getCategories();
       categories.value = result;
 
-      // Kategori seçili değilse veya geçersizleştiyse türe ait ilk kategoriyi seç
-      final isValidSelection = categories.any(
-        (c) => c.id == selectedCategoryId.value && isTypeMatch(c.type, transactionType.value),
+      // Kategori seçili değilse veya isimle kaydedilmişse önce isimle eşleştirmeyi dene
+      bool isValidSelection = categories.any(
+        (c) =>
+            c.id == selectedCategoryId.value &&
+            isTypeMatch(c.type, transactionType.value),
       );
+      if (!isValidSelection &&
+          (_editingCategoryHint != null ||
+              selectedCategoryId.value.isNotEmpty)) {
+        final targetName =
+            (_editingCategoryHint ?? selectedCategoryId.value)
+                .trim()
+                .toLowerCase();
+        final matchedByName = categories.firstWhereOrNull(
+          (c) =>
+              isTypeMatch(c.type, transactionType.value) &&
+              (c.name?.trim().toLowerCase() == targetName ||
+                  c.id?.trim().toLowerCase() == targetName),
+        );
+        if (matchedByName?.id != null) {
+          selectedCategoryId.value = matchedByName!.id!;
+          isValidSelection = true;
+        }
+      }
       if (!isValidSelection) {
         final list = categories
             .where((c) => isTypeMatch(c.type, transactionType.value))
@@ -309,6 +346,8 @@ class TransactionController extends BaseController {
           ? selectedCat.icon!.trim()
           : 'category';
 
+      final paymentKey = effectivePaymentMethodKey;
+
       final transaction = Transaction(
         id: editingTransactionId ?? '',
         amount: baseAmount,
@@ -321,7 +360,7 @@ class TransactionController extends BaseController {
         categoryName: finalCatName,
         categoryIcon: finalCatIcon,
         userId: '',
-        paymentMethod: selectedPaymentMethod.value.key,
+        paymentMethod: paymentKey,
         currency: currency.code,
         exchangeRate: rate,
         originalAmount: amountValue,
@@ -341,7 +380,7 @@ class TransactionController extends BaseController {
         );
         await _accountService.setPaymentMethod(
           editingTransactionId!,
-          selectedPaymentMethod.value.key,
+          paymentKey,
         );
       } else {
         final created = await _transactionRepostory.createTransaction(transaction);
@@ -349,7 +388,7 @@ class TransactionController extends BaseController {
         if (targetId.isNotEmpty) {
           await _accountService.setPaymentMethod(
             targetId,
-            selectedPaymentMethod.value.key,
+            paymentKey,
           );
         }
       }
@@ -431,6 +470,7 @@ class TransactionController extends BaseController {
     date.value = DateTime.now();
     transactionType.value = "expense";
     selectedPaymentMethod.value = PaymentMethod.cash;
+    selectedCreditCardId.value = null;
     selectedCategoryId.value = "";
     enteredAmount.value = 0.0;
     selectedCurrency.value = AppCurrency.tryCurrency;

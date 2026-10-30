@@ -49,7 +49,19 @@ class ExtraController extends BaseController {
   // 4. Kredi Kartları & Taksitler Dinamik Verileri
   int get activeInstallmentCount =>
       _creditCardService?.activeInstallmentCount ?? 0;
-  String get creditCardBadgeText => "$activeInstallmentCount Taksit";
+  int get creditCardExpenseCount =>
+      _creditCardService?.allCreditCardTransactions.length ?? 0;
+  String get creditCardBadgeText {
+    final instCount = activeInstallmentCount;
+    final txCount = creditCardExpenseCount;
+    if (instCount > 0 && txCount > 0) {
+      return "$txCount Harcama • $instCount Taksit";
+    }
+    if (txCount > 0) {
+      return "$txCount Harcama";
+    }
+    return "$instCount Taksit";
+  }
 
   // Formatlı Görsel Metin Getter'ları
   String get savingsBadgeText => "$activeSavingsCount Aktif";

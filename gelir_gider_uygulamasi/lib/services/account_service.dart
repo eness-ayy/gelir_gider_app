@@ -122,7 +122,7 @@ class AccountService extends GetxService {
           cashIncome += amount;
         } else if (toKey == PaymentMethod.bankCard.key) {
           bankIncome += amount;
-        } else if (toKey == PaymentMethod.creditCard.key) {
+        } else if (toKey.startsWith(PaymentMethod.creditCard.key)) {
           creditCardIncome += amount;
         }
         continue;

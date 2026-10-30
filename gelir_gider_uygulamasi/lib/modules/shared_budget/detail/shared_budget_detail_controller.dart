@@ -115,10 +115,13 @@ class SharedBudgetDetailController extends BaseController {
   Future<void> toggleSettlementPaid(String memberKey) async {
     final normalized = memberKey.trim().toLowerCase();
     if (normalized.isEmpty) return;
+    final bool isNowPaid;
     if (paidSettlementKeysContains(normalized)) {
       paidSettlementMembers.remove(normalized);
+      isNowPaid = false;
     } else {
       paidSettlementMembers.add(normalized);
+      isNowPaid = true;
     }
     try {
       await _storageService.setValue<String>(
@@ -126,6 +129,40 @@ class SharedBudgetDetailController extends BaseController {
         jsonEncode(paidSettlementMembers.toList()),
       );
     } catch (_) {}
+
+    // Eğer işaretlenen üye aktif kullanıcıysa ve ortak hesaba borçluysa cüzdana gider yansıt / geri al
+    final myNameKey = currentUserName.trim().toLowerCase();
+    if (normalized == myNameKey && userNetBalance < -0.01) {
+      final debtAmount = double.parse(userNetBalance.abs().toStringAsFixed(2));
+      final stlTag = "[SHR_STL:$groupId:$normalized]";
+      final groupTitle = group.value?.name ?? 'Ortak Hesap';
+      try {
+        if (isNowPaid) {
+          await _createWalletTransactionForExpense(
+            groupTitle: groupTitle,
+            expenseTitle: "Ortak Hesap Borç Ödemesi $stlTag",
+            userShareAmount: debtAmount,
+            totalAmount: debtAmount,
+            paymentMethod: 'bank_card',
+            date: DateTime.now(),
+          );
+        } else {
+          final cached = _transactionRepository.getCachedTransactions();
+          final linked = cached.firstWhereOrNull(
+            (t) => t.description.contains(stlTag),
+          );
+          if (linked != null) {
+            await _transactionRepository.deleteTransaction(linked.id);
+            await _accountService.removePaymentMethod(linked.id);
+            if (Get.isRegistered<DashboardController>()) {
+              await Get.find<DashboardController>().refreshDashboard();
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Ortak hesap ödemesi cüzdana işlenirken hata: $e");
+      }
+    }
   }
 
   bool paidSettlementKeysContains(String memberKey) =>

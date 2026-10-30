@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_expense.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/payment_account_selector.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -355,6 +357,20 @@ class AddGroupExpenseSheet extends StatelessWidget {
                             onSelected: (selected) {
                               if (selected) {
                                 controller.selectedPaymentMethod.value = method;
+                                if (method == PaymentMethod.creditCard &&
+                                    Get.isRegistered<CreditCardService>()) {
+                                  final cards =
+                                      Get.find<CreditCardService>().cards;
+                                  if (cards.isEmpty) {
+                                    PaymentAccountSelector
+                                        .showNoCreditCardInfoDialog(context);
+                                  } else if (controller
+                                          .selectedCreditCardId.value ==
+                                      null) {
+                                    controller.selectedCreditCardId.value =
+                                        cards.first.id;
+                                  }
+                                }
                               }
                             },
                           ),
@@ -362,6 +378,15 @@ class AddGroupExpenseSheet extends StatelessWidget {
                       }).toList(),
                     ),
                   ),
+                  if (controller.selectedPaymentMethod.value ==
+                      PaymentMethod.creditCard)
+                    PaymentAccountSelector.buildCardPickerSection(
+                      context: context,
+                      isDark: isDark,
+                      selectedCardId: controller.selectedCreditCardId.value,
+                      onSelectCard: (cardId) =>
+                          controller.selectedCreditCardId.value = cardId,
+                    ),
                   const SizedBox(height: 14),
                 ],
               );

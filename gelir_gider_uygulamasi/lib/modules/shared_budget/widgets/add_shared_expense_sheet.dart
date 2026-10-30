@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/group/expense_model.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/shared_budget/detail/shared_budget_detail_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/payment_account_selector.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:get/get.dart';
 
 /// Ortak Hesap için harcama ekleme / düzenleme modalı
@@ -34,8 +36,24 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
 
   String? _selectedPayer;
   PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
+  String? _selectedCreditCardId;
   final Set<String> _selectedSplitMembers = {};
   bool _isSaving = false;
+
+  String get _effectivePaymentMethodKey {
+    if (_selectedPaymentMethod == PaymentMethod.creditCard) {
+      String? cardId = _selectedCreditCardId;
+      if ((cardId == null || cardId.isEmpty) &&
+          Get.isRegistered<CreditCardService>()) {
+        final cards = Get.find<CreditCardService>().cards;
+        if (cards.isNotEmpty) {
+          cardId = cards.first.id;
+        }
+      }
+      return PaymentMethod.buildCreditCardKey(cardId);
+    }
+    return _selectedPaymentMethod.key;
+  }
 
   @override
   void initState() {
@@ -57,6 +75,8 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
               (m) => m.toLowerCase() == editing.paidBy.toLowerCase())
           : (members.isNotEmpty ? members.first : editing.paidBy);
       _selectedPaymentMethod = PaymentMethod.fromKey(editing.paymentMethod);
+      _selectedCreditCardId =
+          PaymentMethod.extractCreditCardId(editing.paymentMethod);
       _selectedSplitMembers.addAll(editing.splitMembers);
       if (_selectedSplitMembers.isEmpty) {
         _selectedSplitMembers.addAll(members);
@@ -153,7 +173,7 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
           amount: amount,
           paidBy: _selectedPayer!,
           splitMembers: _selectedSplitMembers.toList(),
-          paymentMethod: _selectedPaymentMethod.key,
+          paymentMethod: _effectivePaymentMethodKey,
         );
       } else {
         success = await _controller.addExpense(
@@ -161,7 +181,7 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
           amount: amount,
           paidBy: _selectedPayer!,
           splitMembers: _selectedSplitMembers.toList(),
-          paymentMethod: _selectedPaymentMethod.key,
+          paymentMethod: _effectivePaymentMethodKey,
         );
       }
 
@@ -426,7 +446,24 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
                           ),
                           onSelected: (selected) {
                             if (selected) {
-                              setState(() => _selectedPaymentMethod = method);
+                              setState(() {
+                                _selectedPaymentMethod = method;
+                                if (method == PaymentMethod.creditCard &&
+                                    Get.isRegistered<CreditCardService>()) {
+                                  final cards =
+                                      Get.find<CreditCardService>().cards;
+                                  if (cards.isNotEmpty &&
+                                      _selectedCreditCardId == null) {
+                                    _selectedCreditCardId = cards.first.id;
+                                  }
+                                }
+                              });
+                              if (method == PaymentMethod.creditCard &&
+                                  Get.isRegistered<CreditCardService>() &&
+                                  Get.find<CreditCardService>().cards.isEmpty) {
+                                PaymentAccountSelector
+                                    .showNoCreditCardInfoDialog(context);
+                              }
                             }
                           },
                         ),
@@ -434,6 +471,20 @@ class _AddSharedExpenseSheetState extends State<AddSharedExpenseSheet> {
                     }).toList(),
                   ),
                 ),
+                if (_selectedPaymentMethod == PaymentMethod.creditCard)
+                  Obx(() {
+                    // Obx ile yeni kart eklendiğinde de anında güncellenir
+                    final _ = Get.isRegistered<CreditCardService>()
+                        ? Get.find<CreditCardService>().cards.length
+                        : 0;
+                    return PaymentAccountSelector.buildCardPickerSection(
+                      context: context,
+                      isDark: isDark,
+                      selectedCardId: _selectedCreditCardId,
+                      onSelectCard: (cardId) =>
+                          setState(() => _selectedCreditCardId = cardId),
+                    );
+                  }),
                 const SizedBox(height: 20),
               ],
 

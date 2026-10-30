@@ -3,6 +3,7 @@ import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_installment_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/credit_card_item.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/credit_card_transaction_item.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/installment_card.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:get/get.dart';
@@ -49,11 +50,14 @@ class CreditCardDetailView extends StatelessWidget {
         ],
       ),
       body: Obx(() {
-        // Kartın güncel taksitlerini al
+        // Kartın güncel taksitlerini ve tek çekim harcamalarını al
         final currentCard = controller.cards.firstWhereOrNull((c) => c.id == initialCard.id) ?? initialCard;
         final cardInstallments = controller.getActiveInstallmentsForCard(currentCard.id);
+        final cardTransactions = controller.getTransactionsForCard(currentCard.id);
 
         final used = controller.getUsedLimitForCard(currentCard.id);
+        final singleShotUsed = controller.getSingleShotSpendForCard(currentCard.id);
+        final installmentUsed = controller.getInstallmentRemainingForCard(currentCard.id);
         final available = controller.getAvailableLimitForCard(currentCard);
         final percent = controller.getUtilizationPercentageForCard(currentCard);
         final daysCutoff = controller.getDaysUntilCutoff(currentCard);
@@ -163,6 +167,40 @@ class CreditCardDetailView extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.04)
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Tek Çekim: ${currencyFmt.format(singleShotUsed)}",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : Colors.grey.shade700,
+                            ),
+                          ),
+                          Text(
+                            "Taksit Yükü: ${currencyFmt.format(installmentUsed)}",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const Divider(height: 24),
 
                     // Tarih Sayaçları
@@ -262,7 +300,55 @@ class CreditCardDetailView extends StatelessWidget {
               ),
               const SizedBox(height: 22),
 
-              // 3. Bu Karta Ait Taksitler Başlığı
+              // 3. Bu Kartın Tek Çekim Harcamaları
+              Text(
+                "Bu Kartın Harcamaları (${cardTransactions.length})",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              if (cardTransactions.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.receipt_long_rounded,
+                        size: 36,
+                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Bu kartla yapılmış tek çekim harcama bulunmuyor.",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...cardTransactions.map((tx) {
+                  return CreditCardTransactionItem(
+                    transaction: tx,
+                    card: currentCard,
+                    showCardBadge: false,
+                    onDelete: controller.deleteCreditCardTransaction,
+                  );
+                }),
+              const SizedBox(height: 22),
+
+              // 4. Bu Karta Ait Taksitler Başlığı
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

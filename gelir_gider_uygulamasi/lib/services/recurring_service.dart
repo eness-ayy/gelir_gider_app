@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/recurring_transaction.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
@@ -13,6 +16,8 @@ class RecurringService extends GetxService {
   late final StorgeService _storage;
 
   String get _scopedStorageKey => _storage.scopedKey(_storageKey);
+  bool get _canUseCloud =>
+      Firebase.apps.isNotEmpty && _storage.activeUserKey != 'guest_user';
 
   final items = <RecurringTransaction>[].obs;
 
@@ -34,11 +39,33 @@ class RecurringService extends GetxService {
             .toList();
       } else {
         items.clear();
+        unawaited(_restoreFromCloudIfEmpty());
       }
     } catch (e) {
       debugPrint("Tekrarlayan işlemler yüklenirken hata: $e");
       items.clear();
     }
+  }
+
+  Future<void> _restoreFromCloudIfEmpty() async {
+    if (!_canUseCloud) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_storage.activeUserKey)
+          .collection('extra_modules')
+          .doc('recurring')
+          .get();
+      final list = doc.data()?['items'] as List?;
+      if (list != null && list.isNotEmpty && items.isEmpty) {
+        items.value = list
+            .map((e) =>
+                RecurringTransaction.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        final jsonList = items.map((i) => i.toJson()).toList();
+        await _storage.setValue<String>(_scopedStorageKey, jsonEncode(jsonList));
+      }
+    } catch (_) {}
   }
 
   Future<void> _saveToStorage() async {
@@ -47,6 +74,20 @@ class RecurringService extends GetxService {
       await _storage.setValue<String>(_scopedStorageKey, jsonEncode(jsonList));
       if (Get.isRegistered<NotificationService>()) {
         Get.find<NotificationService>().scheduleRecurringReminders();
+      }
+      if (_canUseCloud) {
+        unawaited(
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(_storage.activeUserKey)
+              .collection('extra_modules')
+              .doc('recurring')
+              .set({
+                'items': jsonList,
+                'updatedAt': FieldValue.serverTimestamp(),
+              })
+              .catchError((_) {}),
+        );
       }
     } catch (e) {
       debugPrint("Tekrarlayan işlemler kaydedilirken hata: $e");
@@ -57,7 +98,7 @@ class RecurringService extends GetxService {
     RecurringTransaction item, {
     String paymentMethod = 'bank_card',
   }) async {
-    if (item.amount <= 0) return false;
+    if (item.amount <= 0 || item.isPaidThisMonth) return false;
     try {
       if (Get.isRegistered<TransactionRepostory>()) {
         final repo = Get.find<TransactionRepostory>();
@@ -75,6 +116,13 @@ class RecurringService extends GetxService {
             paymentMethod: paymentMethod,
           ),
         );
+        final idx = items.indexWhere((i) => i.id == item.id);
+        if (idx != -1) {
+          items[idx] = items[idx].copyWith(
+            lastProcessedPeriod: item.currentPeriodKey,
+          );
+          await _saveToStorage();
+        }
         if (Get.isRegistered<DashboardController>()) {
           await Get.find<DashboardController>().refreshDashboard();
         }

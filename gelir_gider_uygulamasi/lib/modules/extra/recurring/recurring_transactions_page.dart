@@ -290,19 +290,26 @@ class RecurringTransactionsPage extends StatelessWidget {
                               vertical: 1.5,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.amber.withValues(alpha: 0.12),
+                              color: item.isPaidThisMonth
+                                  ? const Color(0xFF10B981)
+                                      .withValues(alpha: 0.14)
+                                  : Colors.amber.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              daysRemaining == 0
-                                  ? "Bugün!"
-                                  : "$daysRemaining gün kaldı",
+                              item.isPaidThisMonth
+                                  ? "✓ Bu Ay Ödendi"
+                                  : (daysRemaining == 0
+                                      ? "Bugün!"
+                                      : "$daysRemaining gün kaldı"),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: daysRemaining <= 3
-                                    ? Colors.redAccent
-                                    : Colors.amber.shade700,
+                                color: item.isPaidThisMonth
+                                    ? const Color(0xFF10B981)
+                                    : (daysRemaining <= 3
+                                        ? Colors.redAccent
+                                        : Colors.amber.shade700),
                               ),
                             ),
                           ),
@@ -336,13 +343,30 @@ class RecurringTransactionsPage extends StatelessWidget {
 
                 // Cüzdana İşle ve Silme Butonu
                 IconButton(
-                  tooltip: "Bu Ödemeyi Cüzdandan Düş",
-                  icon: const Icon(
-                    Icons.check_circle_outline_rounded,
+                  tooltip: item.isPaidThisMonth
+                      ? "Bu ay zaten cüzdana işlendi"
+                      : "Bu Ödemeyi Cüzdandan Düş",
+                  icon: Icon(
+                    item.isPaidThisMonth
+                        ? Icons.check_circle_rounded
+                        : Icons.check_circle_outline_rounded,
                     size: 21,
-                    color: Color(0xFF10B981),
+                    color: item.isPaidThisMonth
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFF10B981).withValues(alpha: 0.85),
                   ),
                   onPressed: () async {
+                    if (item.isPaidThisMonth) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "${item.title} bu ay için zaten cüzdana işlendi.",
+                          ),
+                          backgroundColor: Colors.orange.shade700,
+                        ),
+                      );
+                      return;
+                    }
                     final ok = await service.recordPaymentToWallet(item);
                     if (ok && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

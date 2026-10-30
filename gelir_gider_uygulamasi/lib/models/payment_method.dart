@@ -43,6 +43,9 @@ enum PaymentMethod {
   }) {
     if (rawKey == null || rawKey.trim().isEmpty) return defaultMethod;
     final normalized = rawKey.toLowerCase().trim();
+    if (normalized.startsWith('credit_card:')) {
+      return PaymentMethod.creditCard;
+    }
 
     switch (normalized) {
       case 'bank_card':
@@ -79,4 +82,23 @@ enum PaymentMethod {
     PaymentMethod.cash,
     PaymentMethod.bankCard,
   ];
+
+  /// 'credit_card:card_123' formatındaki anahtardan kart ID'sini ayıklar
+  static String? extractCreditCardId(String? rawKey) {
+    if (rawKey == null) return null;
+    final trimmed = rawKey.trim();
+    if (trimmed.toLowerCase().startsWith('credit_card:')) {
+      final cardId = trimmed.substring('credit_card:'.length).trim();
+      return cardId.isNotEmpty ? cardId : null;
+    }
+    return null;
+  }
+
+  /// Seçili kredi kartı ID'si ile birleşik ödeme yöntemi anahtarı üretir
+  static String buildCreditCardKey(String? cardId) {
+    if (cardId == null || cardId.trim().isEmpty) {
+      return PaymentMethod.creditCard.key;
+    }
+    return '${PaymentMethod.creditCard.key}:${cardId.trim()}';
+  }
 }

@@ -55,4 +55,28 @@ class GroupsController extends BaseController {
   void openGroupDetail(ExpenseGroup group) {
     Get.toNamed(AppRoutes.groupDetail, arguments: group.id);
   }
+
+  Future<bool> joinByInviteCode(String code) async {
+    final clean = code.trim().toUpperCase();
+    if (clean.isEmpty) {
+      showErrorSnackbar(message: "Lütfen davet kodunu girin");
+      return false;
+    }
+    try {
+      setLoading(true);
+      final joined = await _groupService.joinGroupByInviteCode(clean);
+      if (joined != null) {
+        showSuccessSnackbar(message: "'${joined.title}' grubuna katıldınız!");
+        return true;
+      } else {
+        showErrorSnackbar(message: "Bu koda ait bir grup bulunamadı");
+        return false;
+      }
+    } catch (e) {
+      showErrorSnackbar(message: "Gruba katılırken hata oluştu");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
 }

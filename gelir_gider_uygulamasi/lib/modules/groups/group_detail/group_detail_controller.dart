@@ -5,6 +5,7 @@ import 'package:gelir_gider_uygulamasi/models/group/group_expense.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_settlement.dart';
 import 'package:gelir_gider_uygulamasi/models/group/participant.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/group_service.dart';
 import 'package:get/get.dart';
 
@@ -21,6 +22,22 @@ class GroupDetailController extends BaseController {
   final selectedSplitParticipantIds = <String>{}.obs;
   final expenseDate = DateTime.now().obs;
   final selectedPaymentMethod = PaymentMethod.cash.obs;
+  final selectedCreditCardId = RxnString();
+
+  String get effectivePaymentMethodKey {
+    if (selectedPaymentMethod.value == PaymentMethod.creditCard) {
+      String? cardId = selectedCreditCardId.value;
+      if ((cardId == null || cardId.isEmpty) &&
+          Get.isRegistered<CreditCardService>()) {
+        final cards = Get.find<CreditCardService>().cards;
+        if (cards.isNotEmpty) {
+          cardId = cards.first.id;
+        }
+      }
+      return PaymentMethod.buildCreditCardKey(cardId);
+    }
+    return selectedPaymentMethod.value.key;
+  }
 
   @override
   void onInit() {
@@ -70,6 +87,8 @@ class GroupDetailController extends BaseController {
       selectedSplitParticipantIds.assignAll(expenseToEdit.splitParticipantIds);
       selectedPaymentMethod.value =
           PaymentMethod.fromKey(expenseToEdit.paymentMethod);
+      selectedCreditCardId.value =
+          PaymentMethod.extractCreditCardId(expenseToEdit.paymentMethod);
       return;
     }
 
@@ -78,6 +97,7 @@ class GroupDetailController extends BaseController {
     expenseAmountController.clear();
     expenseDate.value = DateTime.now();
     selectedPaymentMethod.value = PaymentMethod.cash;
+    selectedCreditCardId.value = null;
 
     final currentGrp = group;
     if (currentGrp != null && currentGrp.participants.isNotEmpty) {
@@ -145,7 +165,7 @@ class GroupDetailController extends BaseController {
           paidById: selectedPayerId.value,
           splitParticipantIds: selectedSplitParticipantIds.toList(),
           date: expenseDate.value,
-          paymentMethod: selectedPaymentMethod.value.key,
+          paymentMethod: effectivePaymentMethodKey,
         );
         Get.back();
         initExpenseForm();
@@ -158,7 +178,7 @@ class GroupDetailController extends BaseController {
           paidById: selectedPayerId.value,
           splitParticipantIds: selectedSplitParticipantIds.toList(),
           date: expenseDate.value,
-          paymentMethod: selectedPaymentMethod.value.key,
+          paymentMethod: effectivePaymentMethodKey,
         );
 
         Get.back(); // modal / bottomSheet kapat

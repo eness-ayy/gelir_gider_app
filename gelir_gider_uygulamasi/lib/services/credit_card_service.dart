@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/models/installment_purchase_model.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/repositories/transaction_repostory.dart';
@@ -17,6 +22,8 @@ class CreditCardService extends GetxService {
 
   String get _scopedCardsKey => _storage.scopedKey(_cardsStorageKey);
   String get _scopedInstallmentsKey => _storage.scopedKey(_installmentsStorageKey);
+  bool get _canUseCloud =>
+      Firebase.apps.isNotEmpty && _storage.activeUserKey != 'guest_user';
 
   final cards = <CreditCardModel>[].obs;
   final installments = <InstallmentPurchaseModel>[].obs;
@@ -57,11 +64,55 @@ class CreditCardService extends GetxService {
       } else {
         installments.clear();
       }
+
+      if (cards.isEmpty && installments.isEmpty) {
+        unawaited(_restoreFromCloudIfEmpty());
+      }
     } catch (e) {
       debugPrint("Kredi kartı verileri yüklenirken hata: $e");
       cards.clear();
       installments.clear();
     }
+  }
+
+  Future<void> _restoreFromCloudIfEmpty() async {
+    if (!_canUseCloud) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_storage.activeUserKey)
+          .collection('extra_modules')
+          .doc('credit_cards')
+          .get();
+      final data = doc.data();
+      if (data == null) return;
+      final cloudCards = data['cards'] as List?;
+      final cloudInstallments = data['installments'] as List?;
+      if (cloudCards != null && cloudCards.isNotEmpty && cards.isEmpty) {
+        cards.value = cloudCards
+            .map((e) => CreditCardModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        await _storage.setValue<String>(
+          _scopedCardsKey,
+          jsonEncode(cards.map((c) => c.toJson()).toList()),
+        );
+      }
+      if (cloudInstallments != null &&
+          cloudInstallments.isNotEmpty &&
+          installments.isEmpty) {
+        installments.value = cloudInstallments
+            .map(
+              (e) => InstallmentPurchaseModel.fromJson(
+                Map<String, dynamic>.from(e),
+              ),
+            )
+            .toList();
+        await _storage.setValue<String>(
+          _scopedInstallmentsKey,
+          jsonEncode(installments.map((i) => i.toJson()).toList()),
+        );
+      }
+    } catch (_) {}
   }
 
   // --- Kart İşlemleri ---
@@ -152,7 +203,7 @@ class CreditCardService extends GetxService {
               categoryName: 'Kredi Kartı & Taksit',
               categoryIcon: 'credit_card',
               userId: '',
-              paymentMethod: 'credit_card',
+              paymentMethod: PaymentMethod.buildCreditCardKey(current.cardId),
             ),
           );
           if (Get.isRegistered<DashboardController>()) {
@@ -169,11 +220,154 @@ class CreditCardService extends GetxService {
   int get activeInstallmentCount =>
       installments.where((i) => !i.isCompleted).length;
 
+  /// Bir işlemin ham ödeme yöntemi anahtarını (örn. 'credit_card:card_123') çözer.
+  String resolveRawPaymentMethod(AppTransaction tr) {
+    final txKey = tr.paymentMethod?.trim() ?? '';
+    String localKey = '';
+    if (Get.isRegistered<DashboardController>()) {
+      localKey = Get.find<DashboardController>()
+              .accountService
+              .transactionPaymentMethods[tr.id]
+              ?.trim() ??
+          '';
+    }
+    // Yerel kayıtta kart ID'li spesifik bir anahtar varsa onu tercih et
+    if (localKey.startsWith('credit_card:')) return localKey;
+    if (txKey.startsWith('credit_card')) return txKey;
+    if (localKey.isNotEmpty && (txKey.isEmpty || txKey == 'cash')) {
+      return localKey;
+    }
+    return txKey.isNotEmpty ? txKey : localKey;
+  }
+
+  /// Bir kredi kartı harcamasının hangi karta ait olduğunu bulur.
+  CreditCardModel? resolveCardForTransaction(AppTransaction tr) {
+    if (cards.isEmpty) return null;
+    final rawMethod = resolveRawPaymentMethod(tr);
+    final txCardId = PaymentMethod.extractCreditCardId(rawMethod);
+    if (txCardId != null) {
+      final matched = cards.firstWhereOrNull((c) => c.id == txCardId);
+      if (matched != null) return matched;
+    }
+    return cards.first;
+  }
+
+  /// Tüm kredi kartı harcamalarını (taksit ödemeleri ve transferler hariç) döndürür.
+  List<AppTransaction> get allCreditCardTransactions {
+    if (!Get.isRegistered<DashboardController>()) return [];
+    try {
+      final dash = Get.find<DashboardController>();
+      final result = <AppTransaction>[];
+      for (final tr in dash.myTransaction) {
+        final desc = tr.description.trim();
+        if (desc.startsWith('Taksit Ödemesi (')) continue;
+        if (desc.startsWith('[TRANSFER:')) continue;
+
+        final rawMethod = resolveRawPaymentMethod(tr);
+        if (PaymentMethod.fromKey(rawMethod) == PaymentMethod.creditCard &&
+            tr.type.toLowerCase() == 'expense') {
+          result.add(tr);
+        }
+      }
+      return result;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Belirli bir kredi kartına ait harcamaları döndürür.
+  List<AppTransaction> getTransactionsForCard(String cardId) {
+    final isFirstCard = cards.isNotEmpty && cards.first.id == cardId;
+    return allCreditCardTransactions.where((tr) {
+      final rawMethod = resolveRawPaymentMethod(tr);
+      final txCardId = PaymentMethod.extractCreditCardId(rawMethod);
+      if (txCardId == cardId) return true;
+      // Kart seçilmeden önce yapılmış veya silinmiş karta ait harcamaları ilk karta bağla
+      if ((txCardId == null || !cards.any((c) => c.id == txCardId)) &&
+          isFirstCard) {
+        return true;
+      }
+      return false;
+    }).toList();
+  }
+
+  /// Belirli bir kredi kartına ait tek çekim cüzdan harcamaları (net)
+  double getSingleShotSpendForCard(String cardId) {
+    if (!Get.isRegistered<DashboardController>()) return 0.0;
+    try {
+      final dash = Get.find<DashboardController>();
+      final isFirstCard = cards.isNotEmpty && cards.first.id == cardId;
+      double spend = 0.0;
+      for (final tr in dash.myTransaction) {
+        final desc = tr.description.trim();
+        if (desc.startsWith('Taksit Ödemesi (')) continue;
+        final transferMatch =
+            RegExp(r'^\[TRANSFER:(.*?):(.*?)\]').firstMatch(desc);
+        if (transferMatch != null) {
+          final toKey = transferMatch.group(2)?.trim() ?? '';
+          if (toKey.startsWith('credit_card')) {
+            final targetCardId = PaymentMethod.extractCreditCardId(toKey);
+            final hasMatchingCard =
+                targetCardId != null && cards.any((c) => c.id == targetCardId);
+            if (targetCardId == cardId || (!hasMatchingCard && isFirstCard)) {
+              spend -= tr.baseAmount;
+            }
+          }
+          continue;
+        }
+        final rawMethod = resolveRawPaymentMethod(tr);
+        if (PaymentMethod.fromKey(rawMethod) == PaymentMethod.creditCard &&
+            tr.type.toLowerCase() == 'expense') {
+          final txCardId = PaymentMethod.extractCreditCardId(rawMethod);
+          final hasMatchingCard =
+              txCardId != null && cards.any((c) => c.id == txCardId);
+          if (txCardId == cardId || (!hasMatchingCard && isFirstCard)) {
+            spend += tr.baseAmount;
+          }
+        }
+      }
+      return spend > 0 ? spend : 0.0;
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
+  /// Ana cüzdandaki tek çekim kredi kartı harcamaları (Taksit ödemeleri hariç net kart borcu)
+  double get walletSingleShotCardSpend {
+    if (!Get.isRegistered<DashboardController>()) return 0.0;
+    try {
+      final dash = Get.find<DashboardController>();
+      double spend = 0.0;
+      for (final tr in dash.myTransaction) {
+        final desc = tr.description.trim();
+        if (desc.startsWith('Taksit Ödemesi (')) continue;
+        final transferMatch =
+            RegExp(r'^\[TRANSFER:(.*?):(.*?)\]').firstMatch(desc);
+        if (transferMatch != null) {
+          final toKey = transferMatch.group(2)?.trim() ?? '';
+          if (toKey.startsWith('credit_card')) {
+            spend -= tr.baseAmount;
+          }
+          continue;
+        }
+        final rawMethod = resolveRawPaymentMethod(tr);
+        if (PaymentMethod.fromKey(rawMethod) == PaymentMethod.creditCard &&
+            tr.type.toLowerCase() == 'expense') {
+          spend += tr.baseAmount;
+        }
+      }
+      return spend > 0 ? spend : 0.0;
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
   double get totalUsedLimit {
     double total = 0.0;
     for (final item in installments.where((i) => !i.isCompleted)) {
       total += item.remainingAmount;
     }
+    total += walletSingleShotCardSpend;
     return total;
   }
 
@@ -191,6 +385,7 @@ class CreditCardService extends GetxService {
       if (Get.isRegistered<NotificationService>()) {
         Get.find<NotificationService>().scheduleCreditCardReminders();
       }
+      _syncToCloud();
     } catch (e) {
       debugPrint("Kartlar kaydedilirken hata: $e");
     }
@@ -201,8 +396,26 @@ class CreditCardService extends GetxService {
       final jsonList = installments.map((i) => i.toJson()).toList();
       await _storage.setValue<String>(
           _scopedInstallmentsKey, jsonEncode(jsonList));
+      _syncToCloud();
     } catch (e) {
       debugPrint("Taksitler kaydedilirken hata: $e");
     }
+  }
+
+  void _syncToCloud() {
+    if (!_canUseCloud) return;
+    unawaited(
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(_storage.activeUserKey)
+          .collection('extra_modules')
+          .doc('credit_cards')
+          .set({
+            'cards': cards.map((c) => c.toJson()).toList(),
+            'installments': installments.map((i) => i.toJson()).toList(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          })
+          .catchError((_) {}),
+    );
   }
 }

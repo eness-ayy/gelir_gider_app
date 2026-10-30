@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
+import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/models/installment_purchase_model.dart';
+import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:get/get.dart';
 
@@ -24,6 +26,7 @@ class CreditCardController extends BaseController {
 
   // Seçili Kart İndeksi (Carousel / PageView için)
   final selectedCardIndex = 0.obs;
+  final showOnlySelectedCardTransactions = false.obs;
 
   // Reaktif Limit Alanları (İstenen RxDouble)
   final usedLimit = 0.0.obs;
@@ -39,9 +42,17 @@ class CreditCardController extends BaseController {
 
     _recomputeLimits();
 
-    // Kartlar veya taksitler değiştikçe limitleri otomatik yeniden hesapla
+    // Kartlar, taksitler veya cüzdan işlemleri değiştikçe limitleri otomatik yeniden hesapla
     ever(_service.cards, (_) => _recomputeLimits());
     ever(_service.installments, (_) => _recomputeLimits());
+    if (Get.isRegistered<DashboardController>()) {
+      final dash = Get.find<DashboardController>();
+      ever(dash.myTransaction, (_) => _recomputeLimits());
+      ever(
+        dash.accountService.transactionPaymentMethods,
+        (_) => _recomputeLimits(),
+      );
+    }
   }
 
   void _recomputeLimits() {
@@ -50,9 +61,58 @@ class CreditCardController extends BaseController {
     availableLimit.value = _service.totalAvailableLimit;
   }
 
+  Future<void> refreshData() async {
+    if (Get.isRegistered<DashboardController>()) {
+      await Get.find<DashboardController>().refreshDashboard();
+    }
+    _recomputeLimits();
+  }
+
   // --- Genel Getter'lar ---
   RxList<CreditCardModel> get cards => _service.cards;
   RxList<InstallmentPurchaseModel> get installments => _service.installments;
+
+  /// Tüm kredi kartı harcamaları (tek çekim)
+  List<AppTransaction> get allCreditCardTransactions =>
+      _service.allCreditCardTransactions;
+
+  /// Belirli bir karta ait kredi kartı harcamaları
+  List<AppTransaction> getTransactionsForCard(String cardId) =>
+      _service.getTransactionsForCard(cardId);
+
+  /// Bir harcamanın bağlı olduğu kredi kartı modeli
+  CreditCardModel? getCardForTransaction(AppTransaction tr) =>
+      _service.resolveCardForTransaction(tr);
+
+  /// Toplam tek çekim kredi kartı borcu
+  double get singleShotSpendTotal => _service.walletSingleShotCardSpend;
+
+  /// Toplam kalan taksit yükü
+  double get installmentRemainingTotal => activeInstallments.fold<double>(
+        0.0,
+        (sum, i) => sum + i.remainingAmount,
+      );
+
+  /// Belirli bir kartın tek çekim harcama toplamı
+  double getSingleShotSpendForCard(String cardId) =>
+      _service.getSingleShotSpendForCard(cardId);
+
+  /// Belirli bir kartın kalan taksit toplamı
+  double getInstallmentRemainingForCard(String cardId) =>
+      getActiveInstallmentsForCard(cardId).fold<double>(
+        0.0,
+        (sum, i) => sum + i.remainingAmount,
+      );
+
+  Future<bool> deleteCreditCardTransaction(String transactionId) async {
+    if (!Get.isRegistered<DashboardController>()) return false;
+    final deleted = await Get.find<DashboardController>()
+        .deleteTransactions(transactionId);
+    if (deleted) {
+      _recomputeLimits();
+    }
+    return deleted;
+  }
 
   /// Toplam doluluk yüzdesi (%0 - %100)
   double get overallUtilizationPercentage {
@@ -76,9 +136,10 @@ class CreditCardController extends BaseController {
 
   // --- Karta Özel Hesaplamalar ---
   double getUsedLimitForCard(String cardId) {
-    return _service.installments
+    final installmentTotal = _service.installments
         .where((i) => i.cardId == cardId && !i.isCompleted)
         .fold(0.0, (sum, i) => sum + i.remainingAmount);
+    return installmentTotal + _service.getSingleShotSpendForCard(cardId);
   }
 
   double getAvailableLimitForCard(CreditCardModel card) {

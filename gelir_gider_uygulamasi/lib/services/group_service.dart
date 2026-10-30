@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/group/expense_group.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_expense.dart';
@@ -14,8 +17,11 @@ import 'package:get/get.dart';
 
 class GroupService extends GetxService {
   static const String _storageKey = 'expense_groups_v1';
+  static const String _cloudCollection = 'expense_groups';
 
   String get _scopedStorageKey => _storageService.scopedKey(_storageKey);
+
+  bool get _canUseCloud => Firebase.apps.isNotEmpty;
 
   StorgeService get _storageService => Get.isRegistered<StorgeService>()
       ? Get.find<StorgeService>()
@@ -66,10 +72,68 @@ class GroupService extends GetxService {
       } else {
         groups.clear();
       }
+      unawaited(_syncGroupsFromCloud());
     } catch (e) {
       debugPrint("Grup verileri yüklenirken hata: $e");
       groups.clear();
     }
+  }
+
+  Future<void> _syncGroupsFromCloud() async {
+    if (!_canUseCloud) return;
+    final userKey = _storageService.activeUserKey;
+    if (userKey == 'guest_user') return;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection(_cloudCollection)
+          .where('memberUserKeys', arrayContains: userKey)
+          .get();
+      if (snap.docs.isEmpty) return;
+
+      final currentName = _getCurrentUserName().toLowerCase();
+      bool changed = false;
+      for (final doc in snap.docs) {
+        final remoteGroup = _mapRemoteGroupForCurrentUser(
+          doc.data(),
+          currentName,
+        );
+        if (remoteGroup.id.isEmpty) continue;
+        final existingIdx = groups.indexWhere((g) => g.id == remoteGroup.id);
+        if (existingIdx == -1) {
+          groups.insert(0, remoteGroup);
+          changed = true;
+        } else {
+          final local = groups[existingIdx];
+          if (remoteGroup.expenses.length >= local.expenses.length) {
+            groups[existingIdx] = remoteGroup;
+            changed = true;
+          }
+        }
+      }
+      if (changed) {
+        await _persistLocalOnly();
+      }
+    } catch (e) {
+      debugPrint("Buluttan gruplar senkronize edilirken uyarı: $e");
+    }
+  }
+
+  ExpenseGroup _mapRemoteGroupForCurrentUser(
+    Map<String, dynamic> raw,
+    String currentNameLower,
+  ) {
+    final grp = ExpenseGroup.fromJson(raw);
+    final updatedParticipants = grp.participants.map((p) {
+      final isMe = p.name.trim().toLowerCase() == currentNameLower;
+      return p.copyWith(isCurrentUser: isMe);
+    }).toList();
+    if (updatedParticipants.isNotEmpty &&
+        !updatedParticipants.any((p) => p.isCurrentUser)) {
+      updatedParticipants[0] = updatedParticipants[0].copyWith(
+        isCurrentUser: true,
+      );
+    }
+    return grp.copyWith(participants: updatedParticipants);
   }
 
   Future<void> restoreGroups(List<ExpenseGroup> newGroups) async {
@@ -77,7 +141,7 @@ class GroupService extends GetxService {
     await _persist();
   }
 
-  Future<void> _persist() async {
+  Future<void> _persistLocalOnly() async {
     try {
       final listMap = groups.map((g) => g.toJson()).toList();
       await _storageService.setValue<String>(
@@ -86,6 +150,96 @@ class GroupService extends GetxService {
       );
     } catch (e) {
       debugPrint("Grup verileri kaydedilirken hata: $e");
+    }
+  }
+
+  Future<void> _persist() async {
+    await _persistLocalOnly();
+    if (_canUseCloud) {
+      final userKey = _storageService.activeUserKey;
+      if (userKey != 'guest_user') {
+        for (final g in groups) {
+          unawaited(_syncGroupToCloud(g, userKey));
+        }
+      }
+    }
+  }
+
+  Future<void> _syncGroupToCloud(ExpenseGroup group, String userKey) async {
+    if (!_canUseCloud) return;
+    try {
+      final data = group.toJson();
+      data['inviteCode'] = group.effectiveInviteCode;
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      data['memberUserKeys'] = FieldValue.arrayUnion([userKey]);
+      await FirebaseFirestore.instance
+          .collection(_cloudCollection)
+          .doc(group.id)
+          .set(data, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("Grup buluta yedeklenirken uyarı: $e");
+    }
+  }
+
+  /// 6 haneli davet kodu ile başka bir cihazdaki gruba katılır
+  Future<ExpenseGroup?> joinGroupByInviteCode(String rawCode) async {
+    final code = rawCode.trim().toUpperCase();
+    if (code.isEmpty) return null;
+
+    // 1. Önce yerel listede kontrol et
+    final localMatch = groups.firstWhereOrNull(
+      (g) => g.effectiveInviteCode == code,
+    );
+    if (localMatch != null) return localMatch;
+
+    if (!_canUseCloud) return null;
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection(_cloudCollection)
+          .where('inviteCode', isEqualTo: code)
+          .limit(1)
+          .get();
+
+      if (snap.docs.isEmpty) return null;
+
+      final doc = snap.docs.first;
+      final currentUserName = _getCurrentUserName();
+      final currentNameLower = currentUserName.toLowerCase();
+
+      var remoteGroup = ExpenseGroup.fromJson(doc.data());
+      final updatedParticipants = <Participant>[];
+      bool foundMe = false;
+
+      for (final p in remoteGroup.participants) {
+        if (!foundMe && p.name.trim().toLowerCase() == currentNameLower) {
+          updatedParticipants.add(p.copyWith(isCurrentUser: true));
+          foundMe = true;
+        } else {
+          updatedParticipants.add(p.copyWith(isCurrentUser: false));
+        }
+      }
+
+      if (!foundMe) {
+        updatedParticipants.add(
+          Participant(
+            id: 'p_${DateTime.now().millisecondsSinceEpoch}',
+            name: currentUserName,
+            isCurrentUser: true,
+          ),
+        );
+      }
+
+      remoteGroup = remoteGroup.copyWith(participants: updatedParticipants);
+      groups.insert(0, remoteGroup);
+      await _persistLocalOnly();
+
+      final userKey = _storageService.activeUserKey;
+      await _syncGroupToCloud(remoteGroup, userKey);
+      return remoteGroup;
+    } catch (e) {
+      debugPrint("Davet kodu ile gruba katılırken hata: $e");
+      return null;
     }
   }
 
@@ -354,7 +508,7 @@ class GroupService extends GetxService {
     return true;
   }
 
-  /// Hesaplaşma transferinin "Ödendi" durumunu değiştirir (toggle) ve kaydeder
+  /// Hesaplaşma transferinin "Ödendi" durumunu değiştirir (toggle) ve borçlu kullanıcı ise cüzdana yansıtır
   Future<bool> toggleSettlementPaid(
     String groupId,
     String settlementKey,
@@ -363,6 +517,11 @@ class GroupService extends GetxService {
     if (index == -1) return false;
 
     final group = groups[index];
+    final settlements = group.calculateSettlements();
+    final matchingSettlement = settlements.firstWhereOrNull(
+      (s) => s.key == settlementKey,
+    );
+
     final updatedKeys = List<String>.from(group.paidSettlementKeys);
 
     final isNowPaid = !updatedKeys.contains(settlementKey);
@@ -374,6 +533,45 @@ class GroupService extends GetxService {
 
     groups[index] = group.copyWith(paidSettlementKeys: updatedKeys);
     await _persist();
+
+    // Eğer bu hesaplaşmada borçlu olan kişi aktif kullanıcı ise, kişisel cüzdanına gider yansıt / geri al
+    final currentUserId = group.currentUser?.id;
+    if (matchingSettlement != null &&
+        currentUserId != null &&
+        matchingSettlement.fromParticipantId == currentUserId &&
+        matchingSettlement.amount > 0) {
+      final stlTag = "[GRP_STL:${group.id}:$settlementKey]";
+      try {
+        if (isNowPaid) {
+          final creditorName = group.participantName(
+            matchingSettlement.toParticipantId,
+          );
+          await _createWalletTransactionForExpense(
+            groupTitle: group.title,
+            expenseTitle: "Grup Borç Ödemesi ($creditorName) $stlTag",
+            userShareAmount: matchingSettlement.amount,
+            totalAmount: matchingSettlement.amount,
+            paymentMethod: 'bank_card',
+            date: DateTime.now(),
+          );
+        } else {
+          final cached = _transactionRepository.getCachedTransactions();
+          final linked = cached.firstWhereOrNull(
+            (t) => t.description.contains(stlTag),
+          );
+          if (linked != null) {
+            await _transactionRepository.deleteTransaction(linked.id);
+            await _accountService.removePaymentMethod(linked.id);
+            if (Get.isRegistered<DashboardController>()) {
+              await Get.find<DashboardController>().refreshDashboard();
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Grup hesaplaşması cüzdana senkronize edilirken hata: $e");
+      }
+    }
+
     return isNowPaid;
   }
 

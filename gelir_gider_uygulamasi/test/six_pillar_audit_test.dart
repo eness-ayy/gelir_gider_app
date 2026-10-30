@@ -8,6 +8,7 @@ import 'package:gelir_gider_uygulamasi/models/group/expense_model.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_expense.dart';
 import 'package:gelir_gider_uygulamasi/models/group/participant.dart';
 import 'package:gelir_gider_uygulamasi/models/installment_purchase_model.dart';
+import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/models/savings_goal.dart';
 import 'package:gelir_gider_uygulamasi/modules/auth/widgets/forgot_password_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/auth/auth_controller.dart';
@@ -259,6 +260,46 @@ void main() {
       expect(balances.bankExpense, equals(300.0));
       expect(balances.bankBalance, equals(700.0));
       expect(balances.cashExpense, equals(0.0));
+    });
+
+    test('Çoklu kredi kartı anahtarları (credit_card:<cardId>) doğru ayrıştırılır ve bakiyelere doğru yansır', () {
+      final key = PaymentMethod.buildCreditCardKey('card_bonus_1');
+      expect(key, equals('credit_card:card_bonus_1'));
+      expect(PaymentMethod.fromKey(key), equals(PaymentMethod.creditCard));
+      expect(PaymentMethod.extractCreditCardId(key), equals('card_bonus_1'));
+      expect(PaymentMethod.extractCreditCardId('credit_card'), isNull);
+
+      final accountService = AccountService();
+      final transactions = [
+        AppTransaction(
+          id: 'cc1',
+          amount: '450.0',
+          type: 'expense',
+          categoryId: 'c1',
+          userId: 'u1',
+          createdAt: '',
+          updatedAt: '',
+          date: '2026-10-30',
+          description: 'Bonus Harcaması',
+          paymentMethod: 'credit_card:card_bonus_1',
+        ),
+        AppTransaction(
+          id: 'cc2',
+          amount: '250.0',
+          type: 'expense',
+          categoryId: 'c1',
+          userId: 'u1',
+          createdAt: '',
+          updatedAt: '',
+          date: '2026-10-30',
+          description: 'World Harcaması',
+          paymentMethod: 'credit_card:card_world_2',
+        ),
+      ];
+
+      final balances = accountService.calculateBalances(transactions);
+      expect(balances.creditCardExpense, equals(700.0));
+      expect(balances.creditCardIncome, equals(0.0));
     });
   });
 

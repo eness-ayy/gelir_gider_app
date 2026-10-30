@@ -57,7 +57,7 @@ class AccountBalancesCard extends GetView<DashboardController> {
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
-                      "Cüzdan & Hesap Bakiyeleri",
+                      "Hesap Bakiyeleri",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

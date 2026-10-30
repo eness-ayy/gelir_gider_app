@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gelir_gider_uygulamasi/models/group/expense_group.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_expense.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_settlement.dart';
@@ -21,6 +22,29 @@ class GroupDetailPage extends GetView<GroupDetailController> {
         appBar: AppBar(
           title: Obx(() => Text(controller.group?.title ?? "Grup Detayı")),
           actions: [
+            Obx(() {
+              final code = controller.group?.effectiveInviteCode ?? '';
+              if (code.isEmpty) return const SizedBox.shrink();
+              return TextButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: code));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Grup davet kodu ($code) kopyalandı!"),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.qr_code_2_rounded, size: 18),
+                label: Text(
+                  code,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              );
+            }),
             IconButton(
               icon: const Icon(Icons.person_add_alt_1_rounded),
               tooltip: "Katılımcı Ekle",

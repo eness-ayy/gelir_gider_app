@@ -194,6 +194,51 @@ class SearchFilterBar extends GetView<DashboardController> {
                 ),
                 const SizedBox(width: 10),
 
+                // Quick Payment Method Filter Chips
+                _buildQuickChip(
+                  label: "Nakit",
+                  icon: PaymentMethod.cash.icon,
+                  activeColor: PaymentMethod.cash.color,
+                  isSelected:
+                      controller.selectedAccountFilter.value ==
+                      PaymentMethod.cash.key,
+                  onTap: () =>
+                      controller.setAccountFilter(PaymentMethod.cash.key),
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 6),
+                _buildQuickChip(
+                  label: "Banka",
+                  icon: PaymentMethod.bankCard.icon,
+                  activeColor: PaymentMethod.bankCard.color,
+                  isSelected:
+                      controller.selectedAccountFilter.value ==
+                      PaymentMethod.bankCard.key,
+                  onTap: () =>
+                      controller.setAccountFilter(PaymentMethod.bankCard.key),
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 6),
+                _buildQuickChip(
+                  label: "Kredi Kartı",
+                  icon: PaymentMethod.creditCard.icon,
+                  activeColor: PaymentMethod.creditCard.color,
+                  isSelected:
+                      controller.selectedAccountFilter.value ==
+                      PaymentMethod.creditCard.key,
+                  onTap: () =>
+                      controller.setAccountFilter(PaymentMethod.creditCard.key),
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 10),
+                VerticalDivider(
+                  color: isDark ? Colors.white12 : Colors.grey.shade300,
+                  width: 1,
+                  indent: 6,
+                  endIndent: 6,
+                ),
+                const SizedBox(width: 10),
+
                 // Date Filter Chips
                 _buildQuickChip(
                   label: "Bu Ay",

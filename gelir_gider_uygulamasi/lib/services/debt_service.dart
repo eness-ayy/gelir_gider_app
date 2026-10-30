@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/models/debt_item.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
@@ -12,6 +15,8 @@ class DebtService extends GetxService {
   late final StorgeService _storage;
 
   String get _scopedStorageKey => _storage.scopedKey(_storageKey);
+  bool get _canUseCloud =>
+      Firebase.apps.isNotEmpty && _storage.activeUserKey != 'guest_user';
 
   final debts = <DebtItem>[].obs;
 
@@ -32,6 +37,7 @@ class DebtService extends GetxService {
             .toList();
       } else {
         debts.clear();
+        unawaited(_restoreFromCloudIfEmpty());
       }
     } catch (e) {
       debugPrint("Borç/Alacak verileri yüklenirken hata: $e");
@@ -39,10 +45,44 @@ class DebtService extends GetxService {
     }
   }
 
+  Future<void> _restoreFromCloudIfEmpty() async {
+    if (!_canUseCloud) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_storage.activeUserKey)
+          .collection('extra_modules')
+          .doc('debts')
+          .get();
+      final list = doc.data()?['items'] as List?;
+      if (list != null && list.isNotEmpty && debts.isEmpty) {
+        debts.value = list
+            .map((e) => DebtItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        final jsonList = debts.map((d) => d.toJson()).toList();
+        await _storage.setValue<String>(_scopedStorageKey, jsonEncode(jsonList));
+      }
+    } catch (_) {}
+  }
+
   Future<void> _saveToStorage() async {
     try {
       final jsonList = debts.map((d) => d.toJson()).toList();
       await _storage.setValue<String>(_scopedStorageKey, jsonEncode(jsonList));
+      if (_canUseCloud) {
+        unawaited(
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(_storage.activeUserKey)
+              .collection('extra_modules')
+              .doc('debts')
+              .set({
+                'items': jsonList,
+                'updatedAt': FieldValue.serverTimestamp(),
+              })
+              .catchError((_) {}),
+        );
+      }
     } catch (e) {
       debugPrint("Borç/Alacak verileri kaydedilirken hata: $e");
     }

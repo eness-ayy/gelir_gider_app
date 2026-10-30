@@ -5,6 +5,7 @@ import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.da
 import 'package:gelir_gider_uygulamasi/repositories/category_repository.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:gelir_gider_uygulamasi/services/category_service.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
 import 'package:gelir_gider_uygulamasi/utils/icon_helper.dart';
 import 'package:get/get.dart';
@@ -195,7 +196,10 @@ class TransactionList extends GetView<DashboardController> {
                 final double? totalGroupAmount = headerParts.length > 1
                     ? double.tryParse(headerParts[1].trim())
                     : null;
-                final expenseDesc = groupMatch?.group(2)?.trim() ?? '';
+                final rawExpenseDesc = groupMatch?.group(2)?.trim() ?? '';
+                final expenseDesc = rawExpenseDesc
+                    .replaceAll(RegExp(r'\s*\[(GRP_STL|SHR_STL):.*?\]'), '')
+                    .trim();
 
                 // Kategori adını ve ikonunu akıllıca tespit et (Asla "İsimsiz Kategori" veya kullanıcının açıklaması olmasın):
                 String categoryTitle = '';
@@ -338,6 +342,17 @@ class TransactionList extends GetView<DashboardController> {
                   ),
                   child: ListTile(
                     onTap: () {
+                      if (isTransferTransaction) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Transfer işlemini iptal etmek için sola kaydırarak silebilirsiniz.",
+                            ),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                        return;
+                      }
                       Get.toNamed(
                         AppRoutes.transaction,
                         arguments: oankiTransaction,
@@ -376,15 +391,32 @@ class TransactionList extends GetView<DashboardController> {
                     ),
                     subtitle: Builder(
                       builder: (context) {
+                        final rawMethodKey = oankiTransaction.paymentMethod;
                         final method =
-                            oankiTransaction.paymentMethod != null &&
-                                oankiTransaction.paymentMethod!.isNotEmpty
-                            ? PaymentMethod.fromKey(
-                                oankiTransaction.paymentMethod,
-                              )
+                            rawMethodKey != null && rawMethodKey.isNotEmpty
+                            ? PaymentMethod.fromKey(rawMethodKey)
                             : controller.accountService.getPaymentMethod(
                                 oankiTransaction.id,
                               );
+
+                        String methodLabel = method.title;
+                        if (method == PaymentMethod.creditCard &&
+                            Get.isRegistered<CreditCardService>()) {
+                          final cardService = Get.find<CreditCardService>();
+                          final cardId =
+                              PaymentMethod.extractCreditCardId(rawMethodKey);
+                          if (cardId != null) {
+                            final matchedCard = cardService.cards
+                                .firstWhereOrNull((c) => c.id == cardId);
+                            if (matchedCard != null) {
+                              methodLabel =
+                                  "${method.title} (${matchedCard.cardName})";
+                            }
+                          } else if (cardService.cards.length == 1) {
+                            methodLabel =
+                                "${method.title} (${cardService.cards.first.cardName})";
+                          }
+                        }
 
                         final hasUserDescription = !isGroupTransaction &&
                             !isTransferTransaction &&
@@ -403,7 +435,7 @@ class TransactionList extends GetView<DashboardController> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              method.title,
+                              methodLabel,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -511,16 +543,31 @@ class TransactionList extends GetView<DashboardController> {
                           ),
                         ],
                         const SizedBox(height: 2),
-                        Text(
-                          DateFormat('dd.MM.yyyy').format(parsedDate),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                fontSize: 11,
-                                height: 1.1,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              DateFormat('dd.MM.yyyy').format(parsedDate),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    fontSize: 11,
+                                    height: 1.1,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.lightTextSecondary,
+                                  ),
+                            ),
+                            if (!isTransferTransaction) ...[
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.edit_outlined,
+                                size: 11,
                                 color: isDark
                                     ? AppColors.darkTextSecondary
                                     : AppColors.lightTextSecondary,
                               ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
