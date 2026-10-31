@@ -126,7 +126,8 @@ class NotificationService extends GetxService {
       if (androidPlatform != null) {
         final notifGranted =
             await androidPlatform.requestNotificationsPermission();
-        await androidPlatform.requestExactAlarmsPermission();
+        // Tüm hatırlatmalar inexactAllowWhileIdle ile planlandığı için
+        // SCHEDULE_EXACT_ALARM izni gerekmez (Google Play kısıtlı izin politikası).
         granted = notifGranted ?? true;
       }
 

@@ -9,11 +9,16 @@ import 'package:get/get.dart';
 
 /// Firebase Firestore tabanlı ortak harcama ve grup yönetim servisi.
 class FirestoreGroupService extends GetxService {
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _injectedFirestore;
+
+  /// Firestore örneği yalnızca ilk kullanıldığında alınır (lazy); böylece
+  /// servis oluşturulurken Firebase henüz başlatılmamışsa çökme yaşanmaz.
+  FirebaseFirestore get _firestore =>
+      _injectedFirestore ?? FirebaseFirestore.instance;
   FirebaseAuth get _auth => FirebaseAuth.instance;
 
   FirestoreGroupService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _injectedFirestore = firestore;
 
   /// Firestore 'groups' koleksiyon referansı
   CollectionReference<Map<String, dynamic>> get _groupsCollection =>

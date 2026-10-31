@@ -232,7 +232,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(LegalDocumentSheet), findsOneWidget);
-    expect(find.text("Toplanan Bilgiler ve Veri Türleri"), findsOneWidget);
+    expect(find.text("Toplanan Veriler ve Kapsamı"), findsOneWidget);
 
     // Close sheet
     await tester.tap(find.text("Anladım"));
@@ -246,7 +246,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(LegalDocumentSheet), findsOneWidget);
-    expect(find.text("Hizmetin Niteliği ve Kapsamı"), findsOneWidget);
+    expect(find.text("Hizmetin Kapsamı ve Özellikleri"), findsOneWidget);
 
     // Close sheet
     await tester.tap(find.text("Anladım"));

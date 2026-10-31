@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:gelir_gider_uygulamasi/controllers/user_session_controller.dart';
@@ -94,9 +93,11 @@ class InviteLinkService extends GetxService {
     );
 
     try {
-      await Share.share(
-        message,
-        subject: 'Hesaply Odasına Davet: ${group.name}',
+      await SharePlus.instance.share(
+        ShareParams(
+          text: message,
+          subject: 'Hesaply Odasına Davet: ${group.name}',
+        ),
       );
     } catch (e) {
       debugPrint("Paylaşım hatası: $e");

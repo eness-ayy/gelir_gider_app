@@ -383,7 +383,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Cüzdan & Hesap Bakiyeleri'), findsOneWidget);
+      expect(find.text('Hesap Bakiyeleri'), findsOneWidget);
       expect(find.text('Nakit'), findsOneWidget);
       expect(find.text('Banka'), findsOneWidget);
       expect(find.text('Kredi Kartı'), findsOneWidget);
@@ -474,7 +474,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // İlk başta Cüzdan & Hesap Bakiyeleri kartı görünmeli
-      expect(find.text('Cüzdan & Hesap Bakiyeleri'), findsOneWidget);
+      expect(find.text('Hesap Bakiyeleri'), findsOneWidget);
       expect(find.text('Nakit'), findsOneWidget);
 
       // Sola kaydırma (drag left) işlemi yapılarak Aylık Bütçe Takibi sayfasına geçilir
@@ -488,7 +488,7 @@ void main() {
       await tester.fling(find.byType(PageView), const Offset(300, 0), 1000);
       await tester.pumpAndSettle();
 
-      expect(find.text('Cüzdan & Hesap Bakiyeleri'), findsOneWidget);
+      expect(find.text('Hesap Bakiyeleri'), findsOneWidget);
     });
 
     testWidgets('DashboardOverviewCarousel shows ALL budget categories when expanded', (tester) async {

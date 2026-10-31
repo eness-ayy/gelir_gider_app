@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gelir_gider_uygulamasi/core/app_bindings.dart';
+import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_detail_view.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_credit_card_sheet.dart';
@@ -22,6 +23,26 @@ void main() {
     final cardService = CreditCardService();
     await cardService.init();
     Get.put<CreditCardService>(cardService, permanent: true);
+
+    // Uygulama artık demo kart içermediği için test verisini burada oluşturuyoruz.
+    await cardService.addCard(CreditCardModel(
+      id: 'test_card_a',
+      cardName: 'Test Bonus',
+      bankName: 'Test Bankası',
+      totalLimit: 30000,
+      cutoffDay: 10,
+      dueDay: 20,
+      last4Digits: '1111',
+    ));
+    await cardService.addCard(CreditCardModel(
+      id: 'test_card_b',
+      cardName: 'Test World',
+      bankName: 'Örnek Bank',
+      totalLimit: 50000,
+      cutoffDay: 15,
+      dueDay: 25,
+      last4Digits: '2222',
+    ));
 
     Get.put<CreditCardController>(CreditCardController(), permanent: true);
   });

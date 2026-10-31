@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/models/account_balances.dart';
@@ -76,17 +77,21 @@ class DashboardController extends BaseController {
     loadCategories();
 
     // 3. Kullanıcının varsayılan kategorilerini sessizce denetle / başlat
-    final fbUser = FirebaseAuth.instance.currentUser;
-    if (fbUser != null) {
-      unawaited(
-        CategoryService()
-            .initializeDefaultCategories(fbUser.uid)
-            .then((_) {
-              loadCategories();
-            })
-            .catchError((_) {}),
-      );
-    }
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        final fbUser = FirebaseAuth.instance.currentUser;
+        if (fbUser != null) {
+          unawaited(
+            CategoryService()
+                .initializeDefaultCategories(fbUser.uid)
+                .then((_) {
+                  loadCategories();
+                })
+                .catchError((_) {}),
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   @override

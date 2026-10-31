@@ -209,186 +209,307 @@ class RecurringTransactionsPage extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.all(14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // İkon
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFA855F7).withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.event_repeat_rounded,
-                    color: Color(0xFFA855F7),
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Bilgiler
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.lightTextPrimary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFA855F7)
-                                  .withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              periodText,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFA855F7),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          Text(
-                            "Her ayın ${item.paymentDay}. günü",
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.lightTextSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1.5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: item.isPaidThisMonth
-                                  ? const Color(0xFF10B981)
-                                      .withValues(alpha: 0.14)
-                                  : Colors.amber.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              item.isPaidThisMonth
-                                  ? "✓ Bu Ay Ödendi"
-                                  : (daysRemaining == 0
-                                      ? "Bugün!"
-                                      : "$daysRemaining gün kaldı"),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: item.isPaidThisMonth
-                                    ? const Color(0xFF10B981)
-                                    : (daysRemaining <= 3
-                                        ? Colors.redAccent
-                                        : Colors.amber.shade700),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Tutar ve Aktiflik
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                // 1. Üst Satır: İkon + Başlık & Periyot + Tutar
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // İkon
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFA855F7).withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.event_repeat_rounded,
+                        color: Color(0xFFA855F7),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Başlık ve Bilgiler
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  item.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppColors.lightTextPrimary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFA855F7)
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  periodText,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFA855F7),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                "Her ayın ${item.paymentDay}. günü",
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextSecondary,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: item.isPaidThisMonth
+                                      ? const Color(0xFF10B981)
+                                          .withValues(alpha: 0.14)
+                                      : Colors.amber.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  item.isPaidThisMonth
+                                      ? "✓ Bu Ay Ödendi"
+                                      : (daysRemaining == 0
+                                          ? "Bugün!"
+                                          : "$daysRemaining gün kaldı"),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: item.isPaidThisMonth
+                                        ? const Color(0xFF10B981)
+                                        : (daysRemaining <= 3
+                                            ? Colors.redAccent
+                                            : Colors.amber.shade700),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // Tutar
                     Text(
                       currencyFormatter.format(item.amount),
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFA855F7),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Switch(
-                      value: item.isActive,
-                      activeThumbColor: const Color(0xFFA855F7),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      onChanged: (val) => service.toggleActive(item.id),
-                    ),
                   ],
                 ),
 
-                // Cüzdana İşle ve Silme Butonu
-                IconButton(
-                  tooltip: item.isPaidThisMonth
-                      ? "Bu ay zaten cüzdana işlendi"
-                      : "Bu Ödemeyi Cüzdandan Düş",
-                  icon: Icon(
-                    item.isPaidThisMonth
-                        ? Icons.check_circle_rounded
-                        : Icons.check_circle_outline_rounded,
-                    size: 21,
-                    color: item.isPaidThisMonth
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFF10B981).withValues(alpha: 0.85),
-                  ),
-                  onPressed: () async {
-                    if (item.isPaidThisMonth) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "${item.title} bu ay için zaten cüzdana işlendi.",
-                          ),
-                          backgroundColor: Colors.orange.shade700,
-                        ),
-                      );
-                      return;
-                    }
-                    final ok = await service.recordPaymentToWallet(item);
-                    if (ok && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "${item.title} (${currencyFormatter.format(item.amount)}) cüzdana gider olarak işlendi.",
-                          ),
-                          backgroundColor: const Color(0xFF10B981),
-                        ),
-                      );
-                    }
-                  },
+                const SizedBox(height: 12),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.grey.shade200,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      size: 20, color: Colors.grey),
-                  onPressed: () => service.deleteItem(item.id),
+                const SizedBox(height: 8),
+
+                // 2. Alt Satır: Aktiflik Durumu (Switch) & İşlem Butonları
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Sol: Aktif/Pasif Switch ve Yazı
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 38,
+                          child: FittedBox(
+                            fit: BoxFit.contain,
+                            child: Switch(
+                              value: item.isActive,
+                              activeThumbColor: const Color(0xFFA855F7),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              onChanged: (val) => service.toggleActive(item.id),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          item.isActive ? "Aktif" : "Pasif",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Sağ: Cüzdana Düş ve Silme Butonları
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Cüzdana Düş Butonu
+                        InkWell(
+                          onTap: () async {
+                            if (item.isPaidThisMonth) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "${item.title} bu ay için zaten cüzdana işlendi.",
+                                  ),
+                                  backgroundColor: Colors.orange.shade700,
+                                ),
+                              );
+                              return;
+                            }
+                            final ok = await service.recordPaymentToWallet(item);
+                            if (ok && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "${item.title} (${currencyFormatter.format(item.amount)}) cüzdana gider olarak işlendi.",
+                                  ),
+                                  backgroundColor: const Color(0xFF10B981),
+                                ),
+                              );
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: item.isPaidThisMonth
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.14)
+                                  : const Color(0xFFA855F7).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  item.isPaidThisMonth
+                                      ? Icons.check_circle_rounded
+                                      : Icons.check_circle_outline_rounded,
+                                  size: 15,
+                                  color: item.isPaidThisMonth
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFA855F7),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  item.isPaidThisMonth ? "İşlendi" : "Cüzdana Düş",
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: item.isPaidThisMonth
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFA855F7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Silme Butonu
+                        IconButton(
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 20,
+                            color: Colors.grey,
+                          ),
+                          tooltip: "Sil",
+                          onPressed: () => _confirmDelete(context, item, service),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _confirmDelete(
+    BuildContext context,
+    RecurringTransaction item,
+    RecurringService service,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Ödemeyi Sil"),
+        content: Text(
+          "\"${item.title}\" ödemesini silmek istediğinize emin misiniz?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("İptal"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              service.deleteItem(item.id);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+            ),
+            child: const Text("Sil"),
+          ),
+        ],
       ),
     );
   }

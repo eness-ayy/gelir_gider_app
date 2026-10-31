@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/transaction_model.dart';
 
 class FirestoreService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
 
   /// Giriş yapmış kullanıcının UID bilgisini döndürür.
   /// Kullanıcı oturumu kapalıysa Exception fırlatır.

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/controllers/user_session_controller.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
@@ -12,7 +13,7 @@ import 'package:gelir_gider_uygulamasi/services/invite_link_service.dart';
 
 /// E-posta & Şifre ile kimlik doğrulama, kayıt ve şifre sıfırlama controller'ı
 class AuthController extends BaseController {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
 
   /// Firebase Auth mevcut kullanıcısını reaktif olarak tutan Rx nesnesi
   final Rx<User?> firebaseUser = Rx<User?>(null);
@@ -143,10 +144,14 @@ class AuthController extends BaseController {
   @override
   void onInit() {
     super.onInit();
-    // 1. GetX standartlarında reaktif akış bağlama
-    firebaseUser.bindStream(_auth.authStateChanges());
-    // 2. Oturum durumunu dinle (Çıkış yapıldığında veya giriş yapıldığında tetiklenir)
-    ever(firebaseUser, _handleAuthStateChanged);
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        // 1. GetX standartlarında reaktif akış bağlama
+        firebaseUser.bindStream(_auth.authStateChanges());
+        // 2. Oturum durumunu dinle (Çıkış yapıldığında veya giriş yapıldığında tetiklenir)
+        ever(firebaseUser, _handleAuthStateChanged);
+      }
+    } catch (_) {}
   }
 
   /// Oturum durumuna göre rotalama kontrolü

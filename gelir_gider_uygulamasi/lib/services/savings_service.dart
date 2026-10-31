@@ -187,7 +187,7 @@ class SavingsService extends GetxService {
 
   int get activeGoalsCount => goals.where((g) => !g.isCompleted).length;
   double get totalSavedAmount =>
-      goals.fold(0.0, (sum, g) => sum + g.savedAmount);
+      goals.fold(0.0, (total, g) => total + g.savedAmount);
   double get totalTargetAmount =>
-      goals.fold(0.0, (sum, g) => sum + g.targetAmount);
+      goals.fold(0.0, (total, g) => total + g.targetAmount);
 }

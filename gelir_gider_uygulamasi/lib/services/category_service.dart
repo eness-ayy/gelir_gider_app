@@ -7,7 +7,7 @@ class CategoryService {
   factory CategoryService() => _instance;
   CategoryService._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
   /// 1. STANDART VE SABİT VARSAYILAN KATEGORİ LİSTESİ
   /// Kullanıcının isteği doğrultusunda asla değişmeyen kanonik kategoriler

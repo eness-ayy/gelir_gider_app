@@ -196,11 +196,11 @@ class DebtService extends GetxService {
 
   double get totalReceivables => debts
       .where((d) => !d.isPaid && d.isReceivable)
-      .fold(0.0, (sum, d) => sum + d.amount);
+      .fold(0.0, (total, d) => total + d.amount);
 
   double get totalPayables => debts
       .where((d) => !d.isPaid && !d.isReceivable)
-      .fold(0.0, (sum, d) => sum + d.amount);
+      .fold(0.0, (total, d) => total + d.amount);
 
   double get netBalance => totalReceivables - totalPayables;
 

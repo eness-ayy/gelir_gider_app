@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
@@ -28,13 +29,25 @@ class TransactionRepostory extends GetxService {
   }
 
   /// Aktif Firebase kullanıcısının UID'si
-  String? get _currentUserId => _auth.currentUser?.uid;
+  String? get _currentUserId {
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        return _auth.currentUser?.uid;
+      }
+    } catch (_) {}
+    return null;
+  }
 
   /// Kullanıcının alt koleksiyonu: users/{userId}/transactions
   CollectionReference<Map<String, dynamic>>? get _transactionsCollection {
-    final uid = _currentUserId;
-    if (uid == null || uid.isEmpty) return null;
-    return _firestore.collection('users').doc(uid).collection('transactions');
+    try {
+      if (Firebase.apps.isEmpty) return null;
+      final uid = _currentUserId;
+      if (uid == null || uid.isEmpty) return null;
+      return _firestore.collection('users').doc(uid).collection('transactions');
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Aktif kullanıcının kimliğini (e-posta veya uid) güvenli bir depolama anahtarına dönüştürür.

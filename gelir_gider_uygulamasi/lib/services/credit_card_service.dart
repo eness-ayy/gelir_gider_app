@@ -405,7 +405,7 @@ class CreditCardService extends GetxService {
   }
 
   double get totalCardsLimit =>
-      cards.fold(0.0, (sum, c) => sum + c.totalLimit);
+      cards.fold(0.0, (total, c) => total + c.totalLimit);
 
   double get totalAvailableLimit =>
       (totalCardsLimit - totalUsedLimit).clamp(0.0, double.infinity);

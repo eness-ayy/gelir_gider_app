@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
 import 'package:gelir_gider_uygulamasi/models/app_user.dart';
@@ -14,12 +15,16 @@ import 'package:get/get.dart';
 
 /// Kullanıcı oturumu, Firebase anonim kimlik doğrulama ve yerel profil yönetim controller'ı.
 class UserSessionController extends BaseController {
-  final FirebaseAuth _auth;
+  final FirebaseAuth? _injectedAuth;
+  FirebaseAuth get _auth => _injectedAuth ?? FirebaseAuth.instance;
+
+  /// Firebase başlatılmamışsa (ör. widget testleri) null döner; çökme yerine sessizce atlanır.
+  FirebaseAuth? get _authOrNull =>
+      (_injectedAuth != null || Firebase.apps.isNotEmpty) ? _auth : null;
   late final StorgeService _storageService;
   late final FirestoreGroupService _firestoreGroupService;
 
-  UserSessionController({FirebaseAuth? auth})
-    : _auth = auth ?? FirebaseAuth.instance;
+  UserSessionController({FirebaseAuth? auth}) : _injectedAuth = auth;
 
   // ---------------------------------------------------------------------------
   // Reaktif Durum Değişkenleri (State)
@@ -110,7 +115,7 @@ class UserSessionController extends BaseController {
       }
 
       // 2. Firebase Oturum kontrolü
-      User? user = _auth.currentUser;
+      User? user = _authOrNull?.currentUser;
       if (user != null) {
         firebaseUser.value = user;
         isAnonymous.value = user.isAnonymous;
@@ -149,7 +154,7 @@ class UserSessionController extends BaseController {
   /// Yerel hafızadan takma adı yükler
   void _loadCachedUserName() {
     try {
-      final fbUser = _auth.currentUser;
+      final fbUser = _authOrNull?.currentUser;
       if (fbUser != null &&
           fbUser.displayName != null &&
           fbUser.displayName!.trim().isNotEmpty) {
@@ -209,7 +214,9 @@ class UserSessionController extends BaseController {
 
   /// Firebase Auth dinleyicisi
   void _setupAuthListener() {
-    _authSubscription = _auth.authStateChanges().listen((User? user) {
+    final auth = _authOrNull;
+    if (auth == null) return;
+    _authSubscription = auth.authStateChanges().listen((User? user) {
       firebaseUser.value = user;
       isAnonymous.value = user?.isAnonymous ?? false;
       if (user != null && currentUserName.value.isNotEmpty) {
@@ -222,7 +229,9 @@ class UserSessionController extends BaseController {
   Future<User?> signInAnonymously() async {
     try {
       setLoading(true);
-      final userCredential = await _auth.signInAnonymously();
+      final auth = _authOrNull;
+      if (auth == null) return null;
+      final userCredential = await auth.signInAnonymously();
       final user = userCredential.user;
 
       firebaseUser.value = user;
@@ -359,7 +368,7 @@ class UserSessionController extends BaseController {
     }
 
     _groupsSubscription = _firestoreGroupService
-        .getGroupsForMember(memberName, userUid: _auth.currentUser?.uid)
+        .getGroupsForMember(memberName, userUid: _authOrNull?.currentUser?.uid)
         .listen(
           (groups) {
             userGroups.assignAll(groups);
@@ -389,7 +398,7 @@ class UserSessionController extends BaseController {
   /// Kullanıcının dahil olduğu grupları doğrudan çekerek listeyi tazeler
   Future<void> refreshGroups() async {
     final name = currentUserName.value.trim();
-    final uid = _auth.currentUser?.uid;
+    final uid = _authOrNull?.currentUser?.uid;
     if (name.isEmpty && (uid == null || uid.isEmpty)) return;
 
     try {

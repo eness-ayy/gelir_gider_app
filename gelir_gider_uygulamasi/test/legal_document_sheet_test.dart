@@ -28,7 +28,7 @@ void main() {
 
     expect(find.byType(LegalDocumentSheet), findsOneWidget);
     expect(find.text("Kullanım Koşulları"), findsOneWidget);
-    expect(find.text("Hizmetin Niteliği ve Kapsamı"), findsOneWidget);
+    expect(find.text("Hizmetin Kapsamı ve Özellikleri"), findsOneWidget);
     expect(find.text("Fikri Mülkiyet Hakları"), findsOneWidget);
 
     // Tap Anladım to dismiss
@@ -61,8 +61,8 @@ void main() {
 
     expect(find.byType(LegalDocumentSheet), findsOneWidget);
     expect(find.text("Gizlilik Politikası"), findsOneWidget);
-    expect(find.text("Toplanan Bilgiler ve Veri Türleri"), findsOneWidget);
-    expect(find.text("Verilerin Kullanım Amaçları"), findsOneWidget);
+    expect(find.text("Toplanan Veriler ve Kapsamı"), findsOneWidget);
+    expect(find.text("Verilerin Hangi Amaçlarla ve Nerede Kullanıldığı"), findsOneWidget);
 
     // Tap close icon
     await tester.tap(find.byIcon(Icons.close_rounded));
