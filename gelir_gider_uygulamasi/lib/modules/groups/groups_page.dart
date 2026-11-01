@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/group/expense_group.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/groups_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/widgets/create_group_dialog.dart';
@@ -20,17 +20,6 @@ class GroupsPage extends GetView<GroupsController> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
-        actions: [
-          TextButton.icon(
-            onPressed: () => _showJoinGroupDialog(context),
-            icon: const Icon(Icons.key_rounded, size: 18),
-            label: const Text(
-              "Kod ile Katıl",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 4),
-        ],
       ),
       body: Obx(() {
         final groups = controller.groups;
@@ -485,48 +474,4 @@ class GroupsPage extends GetView<GroupsController> {
     );
   }
 
-  void _showJoinGroupDialog(BuildContext context) {
-    final codeCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text(
-          "Davet Kodu ile Katıl",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        content: TextField(
-          controller: codeCtrl,
-          textCapitalization: TextCapitalization.characters,
-          decoration: InputDecoration(
-            labelText: "6 Haneli Grup Kodu",
-            hintText: "Örn: 8A4F21",
-            prefixIcon: const Icon(Icons.key_rounded),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("İptal"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final code = codeCtrl.text.trim();
-              if (code.isEmpty) return;
-              Navigator.of(ctx).pop();
-              await controller.joinByInviteCode(code);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("Gruba Katıl"),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_credit_card_sheet.dart';
@@ -105,9 +105,18 @@ class PaymentAccountSelector extends GetView<TransactionController> {
           : PaymentMethod.incomeMethods;
       final cards = _creditCardService?.cards ?? <CreditCardModel>[];
       final hasCreditCards = cards.isNotEmpty;
+
+      if (!hasCreditCards && currentMethod == PaymentMethod.creditCard) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (controller.selectedPaymentMethod.value ==
+              PaymentMethod.creditCard) {
+            controller.selectedPaymentMethod.value = PaymentMethod.cash;
+          }
+        });
+      }
+
       final isCreditCardSelected =
-          isExpense && currentMethod == PaymentMethod.creditCard;
-      final showNoCardBanner = isCreditCardSelected && !hasCreditCards;
+          isExpense && currentMethod == PaymentMethod.creditCard && hasCreditCards;
       final showCardPicker = isCreditCardSelected && hasCreditCards;
 
       final activeCardId = controller.selectedCreditCardId.value;
@@ -158,7 +167,9 @@ class PaymentAccountSelector extends GetView<TransactionController> {
           ),
           Row(
             children: availableMethods.map((method) {
-              final isSelected = currentMethod == method;
+              final isCreditCard = method == PaymentMethod.creditCard;
+              final isDisabled = isCreditCard && !hasCreditCards;
+              final isSelected = currentMethod == method && !isDisabled;
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -166,20 +177,23 @@ class PaymentAccountSelector extends GetView<TransactionController> {
                     context: context,
                     method: method,
                     isSelected: isSelected,
+                    isDisabled: isDisabled,
                     isDark: isDark,
                     onTap: () {
+                      if (isDisabled) {
+                        showNoCreditCardInfoDialog(context);
+                        return;
+                      }
                       controller.selectedPaymentMethod.value = method;
                       if (method == PaymentMethod.creditCard) {
                         final currentCards =
                             _creditCardService?.cards ?? <CreditCardModel>[];
-                        if (currentCards.isEmpty) {
-                          showNoCreditCardInfoDialog(context);
-                        } else if (controller.selectedCreditCardId.value ==
-                                null ||
-                            !currentCards.any(
-                              (c) =>
-                                  c.id == controller.selectedCreditCardId.value,
-                            )) {
+                        if (currentCards.isNotEmpty &&
+                            (controller.selectedCreditCardId.value == null ||
+                                !currentCards.any(
+                                  (c) =>
+                                      c.id == controller.selectedCreditCardId.value,
+                                ))) {
                           controller.selectedCreditCardId.value =
                               currentCards.first.id;
                         }
@@ -368,68 +382,7 @@ class PaymentAccountSelector extends GetView<TransactionController> {
               ),
             ),
           ],
-          if (showNoCardBanner) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(
-                  0xFF6366F1,
-                ).withValues(alpha: isDark ? 0.16 : 0.08),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.35),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    color: Color(0xFF6366F1),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      "Henüz kayıtlı bir kredi kartınız yok. Limit ve ekstre takibi için kartınızı tanımlayabilirsiniz.",
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        height: 1.35,
-                        color: isDark ? Colors.white70 : Colors.black87,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => AddCreditCardSheet.show(context),
-                    style: TextButton.styleFrom(
-                      backgroundColor: const Color(
-                        0xFF6366F1,
-                      ).withValues(alpha: 0.15),
-                      foregroundColor: const Color(0xFF6366F1),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    icon: const Icon(Icons.add_card_rounded, size: 15),
-                    label: const Text(
-                      "Kart Ekle",
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+
         ],
       );
     });
@@ -439,6 +392,7 @@ class PaymentAccountSelector extends GetView<TransactionController> {
     required BuildContext context,
     required PaymentMethod method,
     required bool isSelected,
+    bool isDisabled = false,
     required bool isDark,
     required VoidCallback onTap,
   }) {
@@ -449,71 +403,102 @@ class PaymentAccountSelector extends GetView<TransactionController> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: AnimatedContainer(
+        child: AnimatedOpacity(
           duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? activeColor.withValues(alpha: isDark ? 0.22 : 0.12)
-                : (isDark
-                    ? Colors.white.withValues(alpha: 0.04)
-                    : Colors.grey.shade50),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
+          opacity: isDisabled ? 0.42 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? activeColor
-                  : (isDark ? Colors.white12 : Colors.grey.shade300),
-              width: isSelected ? 2 : 1,
+                  ? activeColor.withValues(alpha: isDark ? 0.22 : 0.12)
+                  : (isDark
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Colors.grey.shade50),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isSelected
+                    ? activeColor
+                    : (isDark ? Colors.white12 : Colors.grey.shade300),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: activeColor.withValues(alpha: isDark ? 0.25 : 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
             ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: activeColor.withValues(alpha: isDark ? 0.25 : 0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? activeColor.withValues(alpha: 0.2)
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.06)
+                                : Colors.grey.shade200),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        method.icon,
+                        size: 20,
+                        color: isSelected
+                            ? activeColor
+                            : (isDark ? Colors.white70 : Colors.black54),
+                      ),
                     ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? activeColor.withValues(alpha: 0.2)
-                      : (isDark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : Colors.grey.shade200),
-                  shape: BoxShape.circle,
+                    if (isDisabled)
+                      Positioned(
+                        right: -3,
+                        bottom: -3,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isDark ? Colors.white24 : Colors.grey.shade300,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.lock_outline_rounded,
+                            size: 10,
+                            color: isDark ? Colors.white70 : Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                child: Icon(
-                  method.icon,
-                  size: 20,
-                  color: isSelected
-                      ? activeColor
-                      : (isDark ? Colors.white70 : Colors.black54),
+                const SizedBox(height: 6),
+                Text(
+                  method.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected
+                        ? (isDark ? Colors.white : activeColor)
+                        : (isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                method.title,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected
-                      ? (isDark ? Colors.white : activeColor)
-                      : (isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

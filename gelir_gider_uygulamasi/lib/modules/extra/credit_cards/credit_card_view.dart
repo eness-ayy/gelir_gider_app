@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/credit_card_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_credit_card_sheet.dart';
 import 'package:gelir_gider_uygulamasi/modules/extra/credit_cards/widgets/add_installment_sheet.dart';
@@ -484,15 +484,20 @@ class _CreditCardViewState extends State<CreditCardView> {
           ),
         );
       }),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => AddInstallmentSheet.show(context),
-        backgroundColor: const Color(0xFF6366F1),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          "Taksitli Harcama Ekle",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
+      floatingActionButton: Obx(() {
+        if (controller.cards.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return FloatingActionButton.extended(
+          onPressed: () => AddInstallmentSheet.show(context),
+          backgroundColor: const Color(0xFF6366F1),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            "Taksitli Harcama Ekle",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        );
+      }),
     );
   }
 }

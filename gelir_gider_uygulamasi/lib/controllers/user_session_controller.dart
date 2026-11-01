@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -684,6 +684,7 @@ class UserSessionController extends BaseController {
   }
 
   /// Google ile Giriş: AuthService üzerinden Google ile oturum açar ve UserSession'a bağlar.
+  /// Google ile Giriş: AuthService üzerinden Google ile oturum açar ve UserSession'a bağlar.
   Future<bool> loginWithGoogle() async {
     try {
       setLoading(true);
@@ -691,6 +692,11 @@ class UserSessionController extends BaseController {
         final authService = Get.find<AuthService>();
         final appUser = await authService.signInWithGoogle();
         if (appUser != null) {
+          // Önceki kullanıcıdan kalan backend token'ı ve eski önbellekleri kaldır
+          await _storageService.remove(StorageKeys.userToken);
+          await _storageService.remove(StorageKeys.cachedTransactions);
+          await _storageService.remove(StorageKeys.cachedCategories);
+
           if (Get.isRegistered<DashboardController>()) {
             try {
               final dash = Get.find<DashboardController>();
@@ -701,11 +707,17 @@ class UserSessionController extends BaseController {
             } catch (_) {}
           }
 
+          final fbUser = _authOrNull?.currentUser;
+          if (fbUser != null) {
+            firebaseUser.value = fbUser;
+            isAnonymous.value = fbUser.isAnonymous;
+          }
+
           // Firestore'dan özelleştirilmiş kullanıcı profili var mı kontrol et
           String? firestoreFirst;
           String? firestoreLast;
           String? firestorePhoto;
-          final currentUid = _auth.currentUser?.uid ?? appUser.id;
+          final currentUid = fbUser?.uid ?? appUser.id;
           if (currentUid != null && currentUid.isNotEmpty) {
             try {
               final doc = await FirebaseFirestore.instance
@@ -726,7 +738,7 @@ class UserSessionController extends BaseController {
               "${firestoreFirst ?? ''} ${firestoreLast ?? ''}".trim();
           final defaultName = appUser.fullName.trim().isNotEmpty
               ? appUser.fullName.trim()
-              : (appUser.first_name?.trim() ?? 'Kullanıcı');
+              : (appUser.firstName?.trim() ?? 'Kullanıcı');
 
           final displayName = firestoreFullName.isNotEmpty
               ? firestoreFullName
@@ -750,7 +762,7 @@ class UserSessionController extends BaseController {
           _bindUserGroups(displayName);
           unawaited(refreshGroups().catchError((_) => null));
 
-          if (_auth.currentUser != null) {
+          if (fbUser != null) {
             await _syncDisplayNameWithFirebase(displayName);
           }
 

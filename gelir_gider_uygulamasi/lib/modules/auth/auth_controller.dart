@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -402,6 +402,7 @@ class AuthController extends BaseController {
   }
 
   /// 4. Google ile Giriş Yap (Mevcut altyapıyı bağla, snackbar yok)
+  /// 4. Google ile Giriş Yap
   Future<void> signInWithGoogle() async {
     clearErrors();
     try {
@@ -414,12 +415,39 @@ class AuthController extends BaseController {
           Get.find<InviteLinkService>().checkPendingInviteAfterLogin();
         }
       }
+    } on FirebaseAuthException catch (e) {
+      debugPrint(
+        "Google login FirebaseAuthException: [${e.code}] ${e.message}",
+      );
+      final message = _mapGoogleAuthError(e);
+      passwordError.value = message;
+      showErrorSnackbar(message: message);
     } catch (e) {
       debugPrint("Google login hatası: $e");
-      passwordError.value =
-          "Google ile giriş yapılamadı. Lütfen tekrar deneyiniz.";
+      final message =
+          "Google ile giriş yapılamadı: ${e.toString().replaceAll('Exception: ', '')}";
+      passwordError.value = message;
+      showErrorSnackbar(message: message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  String _mapGoogleAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'account-exists-with-different-credential':
+        return 'Bu e-posta adresiyle ilişkili farklı bir oturum yöntemi mevcut.';
+      case 'invalid-credential':
+        return 'Google kimlik doğrulama belirteci geçersiz veya süresi dolmuş.';
+      case 'operation-not-allowed':
+        return 'Google ile giriş yöntemi Firebase üzerinde etkinleştirilmemiş.';
+      case 'user-disabled':
+        return 'Bu kullanıcı hesabı askıya alınmış veya devre dışı bırakılmış.';
+      case 'network-request-failed':
+        return 'İnternet bağlantınızı kontrol edip tekrar deneyiniz.';
+      default:
+        return e.message ??
+            'Google ile giriş yapılamadı. Lütfen tekrar deneyiniz.';
     }
   }
 

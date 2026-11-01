@@ -1,9 +1,11 @@
-// ignore_for_file: must_call_super
+﻿// ignore_for_file: must_call_super
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gelir_gider_uygulamasi/models/app_category.dart';
 import 'package:gelir_gider_uygulamasi/models/app_transaction.dart';
+import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
+import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/models/transaction_params.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/dashboard_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/dashboard/widgets/account_balances_card.dart';
@@ -314,10 +316,29 @@ void main() {
       expect(find.text('Banka Kartı'), findsOneWidget);
       expect(find.text('Kredi Kartı'), findsOneWidget);
 
-      // Tap "Kredi Kartı"
+      // Tap "Kredi Kartı" - kart eklenmediği için seçilmemeli (kullanıcı talebi: gözüksün ama seçilmesin)
       await tester.tap(find.text('Kredi Kartı'));
       await tester.pumpAndSettle();
-      expect(controller.selectedPaymentMethod.value, equals(PaymentMethod.creditCard));
+      expect(controller.selectedPaymentMethod.value, equals(PaymentMethod.cash));
+
+      // Kart eklendiğinde seçilebilir olmalı
+      if (Get.isRegistered<CreditCardService>()) {
+        final cardService = Get.find<CreditCardService>();
+        await cardService.addCard(CreditCardModel(
+          id: 'test-card-1',
+          cardName: 'Bonus Kart',
+          bankName: 'Garanti',
+          last4Digits: '1234',
+          totalLimit: 50000,
+          cutoffDay: 15,
+          dueDay: 25,
+          colorHex: '#6366F1',
+        ));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Kredi Kartı'));
+        await tester.pumpAndSettle();
+        expect(controller.selectedPaymentMethod.value, equals(PaymentMethod.creditCard));
+      }
 
       // Switch to income
       controller.transactionType.value = 'income';

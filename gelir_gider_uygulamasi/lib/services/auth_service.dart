@@ -16,6 +16,8 @@ import 'package:gelir_gider_uygulamasi/services/recurring_service.dart';
 import 'package:gelir_gider_uygulamasi/services/savings_service.dart';
 import 'package:gelir_gider_uygulamasi/services/storge_service.dart';
 import 'package:get/get.dart';
+import 'package:gelir_gider_uygulamasi/firebase_options.dart';
+import 'package:gelir_gider_uygulamasi/services/category_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService extends GetxController {
@@ -30,6 +32,9 @@ class AuthService extends GetxController {
     _apiServices = Get.find<ApiServices>();
     _googleSignIn = GoogleSignIn(
       serverClientId: ApiConstants.serverClient,
+      clientId: (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
+          ? DefaultFirebaseOptions.ios.iosClientId
+          : null,
       scopes: [
         'email',
         'https://www.googleapis.com/auth/userinfo.profile',
@@ -180,35 +185,89 @@ class AuthService extends GetxController {
   Future<AppUser?> signInWithGoogle() async {
     try {
       // Önceki olası oturum artıklarını temizle
-      await _googleSignIn.signOut();
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
       final googleAuthentication = await googleUser.authentication;
 
-      final response = await _apiServices.post(
-        ApiConstants.login,
-        data: {'idToken': googleAuthentication.idToken},
+      // Firebase Auth Google Credential oluştur
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        idToken: googleAuthentication.idToken,
+        accessToken: googleAuthentication.accessToken,
       );
 
-      if (response.statusCode == 200) {
-        await _storgeService.setValue<String>(
-          StorageKeys.userToken,
-          response.data['token'],
-        );
+      // Firebase Authentication ile doğrudan oturum aç
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      final fbUser = userCredential.user;
 
-        final user = AppUser.fromJson(response.data['user']);
-        // Kullanıcı giriş yaptığında ilk önce eskisi gibi sadece isminin baş harfi olsun
-        final userWithInitialOnly = user.copyWith(clearPhoto: true);
-        await saveLocalUser(userWithInitialOnly);
-        return userWithInitialOnly;
-      } else {
-        return null;
+      if (fbUser == null) {
+        throw Exception("Firebase oturumu açılamadı: Kullanıcı verisi boş.");
       }
+
+      final uid = fbUser.uid;
+      final email = fbUser.email ?? googleUser.email;
+      final displayName = (fbUser.displayName?.trim().isNotEmpty ?? false)
+          ? fbUser.displayName!.trim()
+          : (googleUser.displayName?.trim().isNotEmpty ?? false)
+              ? googleUser.displayName!.trim()
+              : (email.isNotEmpty ? email.split('@').first : 'Kullanıcı');
+
+      final parts = displayName.split(' ');
+      final fName = parts.isNotEmpty && parts.first.isNotEmpty
+          ? parts.first
+          : (email.isNotEmpty ? email.split('@').first : 'Kullanıcı');
+      final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+      final photo = fbUser.photoURL ?? googleUser.photoUrl;
+
+      // Firestore 'users' dokümanını senkronize et
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'uid': uid,
+          'firstName': fName,
+          'lastName': lName,
+          'fullName': displayName,
+          'email': email,
+          'profilePhoto': photo,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint(
+          "Google kullanıcısı Firestore yazma hatası (ihmal edilebilir): $e",
+        );
+      }
+
+      // Varsayılan kategorileri kontrol et / oluştur
+      try {
+        await CategoryService().initializeDefaultCategories(uid);
+      } catch (e) {
+        debugPrint("Varsayılan kategorileri oluşturma hatası: $e");
+      }
+
+      // Eski backend token'ı kaldır
+      await _storgeService.remove(StorageKeys.userToken);
+
+      final user = AppUser(
+        id: uid,
+        email: email,
+        firstName: fName,
+        lastName: lName,
+        profilePhoto: photo,
+      );
+
+      // Kullanıcı giriş yaptığında ilk önce eskisi gibi sadece isminin baş harfi olsun
+      final userWithInitialOnly = user.copyWith(clearPhoto: true);
+      await saveLocalUser(userWithInitialOnly);
+      return userWithInitialOnly;
     } catch (e) {
       debugPrint("Google sign in hatası: $e");
       currentUser.value = null;
-      return null;
+      rethrow;
     }
   }
 

@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gelir_gider_uygulamasi/models/group/group_expense.dart';
+import 'package:gelir_gider_uygulamasi/models/credit_card_model.dart';
 import 'package:gelir_gider_uygulamasi/models/payment_method.dart';
 import 'package:gelir_gider_uygulamasi/modules/groups/group_detail/group_detail_controller.dart';
 import 'package:gelir_gider_uygulamasi/modules/transaction/widgets/payment_account_selector.dart';
@@ -337,39 +338,52 @@ class AddGroupExpenseSheet extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: PaymentMethod.expenseMethods.map((method) {
+                        final isCreditCard = method == PaymentMethod.creditCard;
+                        final cards = Get.isRegistered<CreditCardService>()
+                            ? Get.find<CreditCardService>().cards
+                            : <CreditCardModel>[];
+                        final hasCards = cards.isNotEmpty;
+                        final isDisabled = isCreditCard && !hasCards;
                         final isSelected =
-                            controller.selectedPaymentMethod.value == method;
+                            controller.selectedPaymentMethod.value == method &&
+                                !isDisabled;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
                             avatar: Icon(
                               method.icon,
                               size: 16,
-                              color: isSelected ? Colors.white : method.color,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDisabled
+                                      ? (isDark ? Colors.white38 : Colors.grey)
+                                      : method.color),
                             ),
                             label: Text(method.title),
                             selected: isSelected,
                             selectedColor: method.color,
                             labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : null,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDisabled
+                                      ? (isDark ? Colors.white38 : Colors.grey)
+                                      : null),
                               fontSize: 12,
                             ),
                             onSelected: (selected) {
+                              if (isDisabled) {
+                                PaymentAccountSelector
+                                    .showNoCreditCardInfoDialog(context);
+                                return;
+                              }
                               if (selected) {
                                 controller.selectedPaymentMethod.value = method;
                                 if (method == PaymentMethod.creditCard &&
-                                    Get.isRegistered<CreditCardService>()) {
-                                  final cards =
-                                      Get.find<CreditCardService>().cards;
-                                  if (cards.isEmpty) {
-                                    PaymentAccountSelector
-                                        .showNoCreditCardInfoDialog(context);
-                                  } else if (controller
-                                          .selectedCreditCardId.value ==
-                                      null) {
-                                    controller.selectedCreditCardId.value =
-                                        cards.first.id;
-                                  }
+                                    controller.selectedCreditCardId.value ==
+                                        null &&
+                                    hasCards) {
+                                  controller.selectedCreditCardId.value =
+                                      cards.first.id;
                                 }
                               }
                             },

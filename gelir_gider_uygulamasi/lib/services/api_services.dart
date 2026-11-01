@@ -11,7 +11,7 @@ abstract class ApiConstants {
   static const String categories = '/categories';
   static const String transactions = '/transactions';
   static const String serverClient =
-      '567229315149-7sqmdlqnu3vbc87v8bkb6fs393fk1g1j.apps.googleusercontent.com';
+      '991558928854-53nnkn8srbndk2nif478pqhgmvorujv1.apps.googleusercontent.com';
 }
 
 class ApiServices extends GetxService {
