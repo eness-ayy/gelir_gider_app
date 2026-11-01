@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -505,8 +505,19 @@ class AuthService extends GetxController {
       debugPrint("Firestore kullanıcı verileri temizlenirken hata: $e");
     }
 
-    // 4. Firebase Authentication kullanıcısını sil
-    await user.delete();
+    // 4. Firebase Authentication kullanÄ±cÄ±sÄ±nÄ± sil
+    try {
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login' && user.isAnonymous) {
+        debugPrint("Anonim kullanÄ±cÄ± silinirken requires-recent-login alÄ±ndÄ±, oturum kapatÄ±lÄ±yor: $e");
+      } else {
+        rethrow;
+      }
+    } catch (e) {
+      debugPrint("KullanÄ±cÄ± silinirken hata: $e");
+      if (!user.isAnonymous) rethrow;
+    }
 
     // 5. Oturum ve yerel önbellekleri temizle
     await clearUserSessionData(signOutFirebase: false);

@@ -77,8 +77,9 @@ class ExtraView extends GetView<ExtraController> {
                     iconColor: Colors.white,
                     iconBgColor: const Color(0xFF2563EB), // Canlı Mavi
                     title: "Grup Harcamaları",
-                    subtitle: "Arkadaşlarınızla etkinlik ve gezi harcamalarını bölüşün.",
-                    onTap: controller.goToGroups,
+                    subtitle:
+                        "Arkadaşlarınızla etkinlik ve gezi harcamalarını bölüşün.",
+                    onTap: () => controller.goToGroups(context: context),
                   ),
 
                   // 2. Ortak Hesap (Ev / Yurt Arkadaşları)
@@ -89,7 +90,7 @@ class ExtraView extends GetView<ExtraController> {
                     title: "Ortak Hesap",
                     subtitle:
                         "Ev ve yurt arkadaşlarınızla ortak kasa ve bütçe tutun.",
-                    onTap: controller.goToSharedBudget,
+                    onTap: () => controller.goToSharedBudget(context: context),
                   ),
 
                   // 2. Birikim Hedefleri

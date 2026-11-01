@@ -592,6 +592,11 @@ class ProfileController extends BaseController {
         reason: reason,
         note: note,
       );
+      if (Get.isRegistered<UserSessionController>()) {
+        try {
+          await Get.find<UserSessionController>().signOut();
+        } catch (_) {}
+      }
       Get.offAllNamed(AppRoutes.login);
     } finally {
       isUpdating.value = false;

@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gelir_gider_uygulamasi/modules/profile/profile_controller.dart';
 import 'package:gelir_gider_uygulamasi/themes/app_colors.dart';
@@ -77,9 +77,7 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
         note: _selectedReason == "Diğer" ? _noteController.text.trim() : null,
       );
 
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+      // Get.offAllNamed(AppRoutes.login) zaten tÃ¼m rotalarÄ± temizledi.
 
       Get.snackbar(
         "Hesap Silindi",

@@ -1,4 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:gelir_gider_uygulamasi/controllers/user_session_controller.dart';
 import 'package:gelir_gider_uygulamasi/core/base_controller.dart';
+import 'package:gelir_gider_uygulamasi/modules/extra/widgets/guest_feature_dialog.dart';
 import 'package:gelir_gider_uygulamasi/routes/app_pages.dart';
 import 'package:gelir_gider_uygulamasi/services/credit_card_service.dart';
 import 'package:gelir_gider_uygulamasi/services/debt_service.dart';
@@ -26,6 +31,56 @@ class ExtraController extends BaseController {
 
   // Reaktif Sekme / Navigasyon İndeksi
   final rxNavIndex = 0.obs;
+
+  // Misafir (Anonim) Kullanıcı Durumu
+  final RxBool isGuest = false.obs;
+
+  /// Testler veya harici denetimler için misafir durumunu zorlama alanı
+  bool? debugIsGuest;
+
+  @override
+  void onInit() {
+    super.onInit();
+    checkGuestStatus();
+  }
+
+  /// Kullanıcının misafir (anonim) olup olmadığını belirler ve dinler
+  void checkGuestStatus() {
+    if (debugIsGuest != null) {
+      isGuest.value = debugIsGuest!;
+      return;
+    }
+
+    try {
+      if (Get.isRegistered<UserSessionController>()) {
+        final session = Get.find<UserSessionController>();
+        isGuest.value = session.isAnonymous.value || !session.isLoggedIn;
+        ever(session.isAnonymous, (val) {
+          if (debugIsGuest == null) {
+            isGuest.value = val || !session.isLoggedIn;
+          }
+        });
+        ever(session.firebaseUser, (user) {
+          if (debugIsGuest == null) {
+            isGuest.value = user == null || user.isAnonymous;
+          }
+        });
+        return;
+      }
+
+      if (Firebase.apps.isNotEmpty) {
+        final user = FirebaseAuth.instance.currentUser;
+        isGuest.value = user == null || user.isAnonymous;
+        FirebaseAuth.instance.authStateChanges().listen((user) {
+          if (debugIsGuest == null) {
+            isGuest.value = user == null || user.isAnonymous;
+          }
+        });
+      }
+    } catch (_) {
+      isGuest.value = false;
+    }
+  }
 
   // 1. Gruplar & Ortak Harcamalar Dinamik Verileri
   int get activeGroupCount => _groupService?.groups.length ?? 0;
@@ -76,8 +131,37 @@ class ExtraController extends BaseController {
   String get recurringBadgeText => "$upcomingRecurringCount Yaklaşan";
 
   // Yönlendirme Metodları
-  void goToGroups() {
+
+  /// 1. Grup Harcamaları: Misafir kullanıcılar erişemez, bilgilendirme çıkar
+  void goToGroups({BuildContext? context}) {
+    if (isGuest.value) {
+      showGuestNotice(
+        featureName: "Grup Harcamaları",
+        icon: Icons.groups_rounded,
+        accentColor: const Color(0xFF2563EB),
+        description:
+            "Grup harcamalarını ortaklaşa kullanabilmek için lütfen giriş yapın veya ücretsiz hesap oluşturun.",
+        context: context,
+      );
+      return;
+    }
     Get.toNamed(AppRoutes.groups);
+  }
+
+  /// 2. Ortak Hesap: Misafir kullanıcılar erişemez, bilgilendirme çıkar
+  void goToSharedBudget({BuildContext? context}) {
+    if (isGuest.value) {
+      showGuestNotice(
+        featureName: "Ortak Hesap",
+        icon: Icons.cottage_rounded,
+        accentColor: const Color(0xFF0D9488),
+        description:
+            "Ortak bütçe ve kasa tutabilmek için lütfen giriş yapın veya ücretsiz hesap oluşturun.",
+        context: context,
+      );
+      return;
+    }
+    Get.toNamed(AppRoutes.sharedBudget);
   }
 
   void goToSavingsGoals() {
@@ -96,12 +180,30 @@ class ExtraController extends BaseController {
     Get.toNamed(AppRoutes.creditCards);
   }
 
-  void goToSharedBudget() {
-    Get.toNamed(AppRoutes.sharedBudget);
+  /// Misafir kısıtlama bilgilendirme diyaloğunu gösterir
+  void showGuestNotice({
+    required String featureName,
+    required IconData icon,
+    required Color accentColor,
+    required String description,
+    BuildContext? context,
+  }) {
+    final ctx = context ?? Get.context;
+    if (ctx != null) {
+      GuestFeatureDialog.show(
+        ctx,
+        title: "$featureName Özelliği",
+        featureName: featureName,
+        description: description,
+        icon: icon,
+        accentColor: accentColor,
+      );
+    }
   }
 
   /// Özet verileri yenileme
   Future<void> refreshSummaryData() async {
+    checkGuestStatus();
     _savingsService?.loadGoals();
     _debtService?.loadDebts();
     _recurringService?.loadItems();
